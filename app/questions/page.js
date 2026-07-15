@@ -1,4 +1,5 @@
 import Link from "next/link";
+import sanitizeHtml from "sanitize-html";
 import { getAllQuestions } from "../services/questions";
 
 export default async function QuestionsPage() {
@@ -6,7 +7,15 @@ export default async function QuestionsPage() {
 
     return (
         <main className="p-6">
-            <h1 className="mb-6 text-2xl font-bold">All Questions</h1>
+            <div className="mb-6 flex items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">All Questions</h1>
+                <Link
+                    href="/questions/create"
+                    className="rounded-lg bg-black px-4 py-2 text-white"
+                >
+                    Create question
+                </Link>
+            </div>
 
             <div className="space-y-3">
                 {questions.map((item) => (
@@ -15,7 +24,18 @@ export default async function QuestionsPage() {
                         href={`/questions/${item.id}`}
                         className="block rounded-lg border p-4 hover:bg-gray-600"
                     >
-                        <h2 className="font-semibold">{item.question ?? item.title}</h2>
+                        <div
+                            className="font-semibold"
+                            dangerouslySetInnerHTML={{
+                                __html: sanitizeHtml(item.question ?? item.title ?? "", {
+                                    allowedTags: [
+                                        ...sanitizeHtml.defaults.allowedTags,
+                                        "sub",
+                                        "sup",
+                                    ],
+                                }),
+                            }}
+                        />
 
                         {item.options?.length > 0 && (
                             <ul className="mt-3 list-inside list-disc space-y-1">
