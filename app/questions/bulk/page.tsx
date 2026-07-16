@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import BulkUploader from "./bulk-uploader";
 import { Button } from "@/components/ui/button";
+import { getAllTopics } from "../../services/topics";
 
 export const metadata = {
     title: "Bulk Upload Questions | QMaster",
@@ -15,6 +16,8 @@ export default async function BulkUploadPage() {
     const role = cookieStore.get("user_role")?.value;
     if (!role || !["0", "1", "2"].includes(role)) redirect("/student/tests");
 
+    const topics = await getAllTopics();
+
     return (
         <main className="mx-auto w-full max-w-4xl p-6">
             <div className="mb-6 flex items-center gap-4">
@@ -22,7 +25,7 @@ export default async function BulkUploadPage() {
                     ← Back to questions
                 </Button>
             </div>
-            <BulkUploader />
+            <BulkUploader topics={topics} />
         </main>
     );
 }

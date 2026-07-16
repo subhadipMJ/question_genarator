@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Topic } from "../../services/topics";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ type QuestionDraft = {
     question: string;
     marks: string;
     is_active: boolean;
+    topic_id?: string;
     options: OptionDraft[];
 };
 
@@ -61,6 +63,7 @@ function makeBlankQuestion(): QuestionDraft {
         question: "",
         marks: "1",
         is_active: true,
+        topic_id: "",
         options: [
             { ans: "", is_correct: true },
             { ans: "", is_correct: false },
@@ -101,6 +104,7 @@ function parseJsonToDrafts(raw: string): QuestionDraft[] {
             question: String(item.question ?? ""),
             marks: String(item.marks ?? "1"),
             is_active: item.is_active !== false,
+            topic_id: item.topic_id ? String(item.topic_id) : "",
             options: (opts as Record<string, unknown>[]).map((o, oi) => ({
                 ans: String(o.ans ?? ""),
                 is_correct: o.is_correct === true,
@@ -118,6 +122,7 @@ function QuestionCard({
     onChange,
     onRemove,
     canRemove,
+    topics,
 }: {
     q: QuestionDraft;
     index: number;
@@ -125,6 +130,7 @@ function QuestionCard({
     onChange: (updated: QuestionDraft) => void;
     onRemove: () => void;
     canRemove: boolean;
+    topics: Topic[];
 }) {
     function setField<K extends keyof QuestionDraft>(key: K, value: QuestionDraft[K]) {
         onChange({ ...q, [key]: value });
@@ -193,7 +199,7 @@ function QuestionCard({
                         />
                     </div>
 
-                    {/* Marks + Active */}
+                    {/* Marks + Topic + Active */}
                     <div className="flex flex-wrap items-center gap-4">
                         <div className="space-y-1.5">
                             <Label htmlFor={`q-${q.id}-marks`}>Marks</Label>
@@ -207,7 +213,25 @@ function QuestionCard({
                                 className="w-24"
                             />
                         </div>
-                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+
+                        <div className="space-y-1.5 w-48">
+                            <Label htmlFor={`q-${q.id}-topic`}>Topic (Optional)</Label>
+                            <select
+                                id={`q-${q.id}-topic`}
+                                value={q.topic_id ?? ""}
+                                onChange={(e) => setField("topic_id", e.target.value)}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Default (Inherit global or none)</option>
+                                {topics.map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <label className="flex cursor-pointer items-center gap-2 text-sm mt-5">
                             <input
                                 type="checkbox"
                                 checked={q.is_active}
@@ -274,12 +298,13 @@ function QuestionCard({
 
 type Mode = "builder" | "json";
 
-export default function BulkUploader() {
+export default function BulkUploader({ topics = [] }: { topics?: Topic[] }) {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [mode, setMode] = useState<Mode>("builder");
     const [drafts, setDrafts] = useState<QuestionDraft[]>([makeBlankQuestion()]);
+    const [globalTopicId, setGlobalTopicId] = useState<string>("");
     const [jsonText, setJsonText] = useState("");
     const [jsonError, setJsonError] = useState("");
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
@@ -328,12 +353,16 @@ export default function BulkUploader() {
 
         setBusy(true);
         try {
-            const payload = drafts.map(({ question, marks, is_active, options }) => ({
-                question,
-                marks: parseFloat(marks),
-                is_active,
-                options: options.map(({ ans, is_correct }) => ({ ans: ans.trim(), is_correct })),
-            }));
+            const payload = drafts.map(({ question, marks, is_active, topic_id, options }) => {
+                const finalTopicId = topic_id || globalTopicId;
+                return {
+                    question,
+                    marks: parseFloat(marks),
+                    is_active,
+                    topic_id: finalTopicId ? Number(finalTopicId) : null,
+                    options: options.map(({ ans, is_correct }) => ({ ans: ans.trim(), is_correct })),
+                };
+            });
 
             const res = await fetch("/api/backend/questions/bulk", {
                 method: "POST",
@@ -483,7 +512,7 @@ export default function BulkUploader() {
                 <div className="space-y-4">
                     {/* Stats bar */}
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/40 px-4 py-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <Badge variant="secondary" className="text-sm">
                                 {drafts.length} question{drafts.length !== 1 ? "s" : ""}
                             </Badge>
@@ -491,6 +520,26 @@ export default function BulkUploader() {
                                 <Badge variant="destructive" className="text-sm">
                                     {validationErrors.length} error{validationErrors.length !== 1 ? "s" : ""}
                                 </Badge>
+                            )}
+
+                            {/* Global Topic Select */}
+                            {topics.length > 0 && (
+                                <div className="flex items-center gap-2 sm:ml-4">
+                                    <Label htmlFor="global-topic" className="text-xs shrink-0 text-muted-foreground">Apply Topic to All:</Label>
+                                    <select
+                                        id="global-topic"
+                                        value={globalTopicId}
+                                        onChange={(e) => setGlobalTopicId(e.target.value)}
+                                        className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                                    >
+                                        <option value="">No Global Topic</option>
+                                        {topics.map((t) => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             )}
                         </div>
                         <div className="flex gap-2">
@@ -527,6 +576,7 @@ export default function BulkUploader() {
                                 onChange={(updated) => updateDraft(i, updated)}
                                 onRemove={() => removeDraft(i)}
                                 canRemove={drafts.length > 1}
+                                topics={topics}
                             />
                         ))}
                     </div>
