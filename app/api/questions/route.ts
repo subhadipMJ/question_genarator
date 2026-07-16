@@ -1,12 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import {
     createQuestion,
     createQuestionOption,
 } from "../../services/questions";
 
-export async function POST(request) {
+type CreateQuestionRequest = {
+    question: string;
+    is_active?: boolean;
+    options: Array<{ ans: string; is_correct: boolean }>;
+};
+
+export async function POST(request: NextRequest) {
     try {
-        const { question, is_active = true, options } = await request.json();
+        if (!(await cookies()).has("access_token")) {
+            return NextResponse.json({ message: "Please sign in." }, { status: 401 });
+        }
+
+        const { question, is_active = true, options } = await request.json() as CreateQuestionRequest;
 
         if (!question || !Array.isArray(options) || options.length < 2) {
             return NextResponse.json(
@@ -31,10 +42,12 @@ export async function POST(request) {
         );
 
         return NextResponse.json(createdQuestion, { status: 201 });
-    } catch (error) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unable to create question.";
+        const status = message === "AUTH_REQUIRED" ? 401 : 500;
         return NextResponse.json(
-            { message: error.message || "Unable to create question." },
-            { status: 500 },
+            { message },
+            { status },
         );
     }
 }

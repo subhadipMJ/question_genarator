@@ -1,20 +1,29 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
 import { getAllQuestions } from "../services/questions";
 
 export default async function QuestionsPage() {
+    if (!(await cookies()).has("access_token")) redirect("/login");
+
     const questions = await getAllQuestions();
 
     return (
         <main className="p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold">All Questions</h1>
-                <Link
-                    href="/questions/create"
-                    className="rounded-lg bg-black px-4 py-2 text-white"
-                >
-                    Create question
-                </Link>
+                <div className="flex items-center gap-3">
+                    <form action="/api/auth/logout" method="post">
+                        <button className="rounded-lg border px-4 py-2">Log out</button>
+                    </form>
+                    <Link
+                        href="/questions/create"
+                        className="rounded-lg bg-black px-4 py-2 text-white"
+                    >
+                        Create question
+                    </Link>
+                </div>
             </div>
 
             <div className="space-y-3">
@@ -37,9 +46,9 @@ export default async function QuestionsPage() {
                             }}
                         />
 
-                        {item.options?.length > 0 && (
+                        {(item.options?.length ?? 0) > 0 && (
                             <ul className="mt-3 list-inside list-disc space-y-1">
-                                {item.options.map((option) => (
+                                {item.options?.map((option) => (
                                     <li key={option.id}>{option.ans}</li>
                                 ))}
                             </ul>

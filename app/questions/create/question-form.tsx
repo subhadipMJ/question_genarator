@@ -2,7 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+
+type QuestionOption = {
+    ans: string;
+    is_correct: boolean;
+};
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
@@ -35,14 +40,14 @@ export default function QuestionForm() {
     const router = useRouter();
     const [question, setQuestion] = useState("");
     const [isActive, setIsActive] = useState(true);
-    const [options, setOptions] = useState([
+    const [options, setOptions] = useState<QuestionOption[]>([
         { ...EMPTY_OPTION, is_correct: true },
         { ...EMPTY_OPTION },
     ]);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    function updateOption(index, ans) {
+    function updateOption(index: number, ans: string) {
         setOptions((current) =>
             current.map((option, optionIndex) =>
                 optionIndex === index ? { ...option, ans } : option,
@@ -50,7 +55,7 @@ export default function QuestionForm() {
         );
     }
 
-    function selectCorrectOption(index) {
+    function selectCorrectOption(index: number) {
         setOptions((current) =>
             current.map((option, optionIndex) => ({
                 ...option,
@@ -59,7 +64,7 @@ export default function QuestionForm() {
         );
     }
 
-    function removeOption(index) {
+    function removeOption(index: number) {
         if (options.length <= 2) return;
 
         setOptions((current) => {
@@ -71,7 +76,7 @@ export default function QuestionForm() {
         });
     }
 
-    async function handleSubmit(event) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
 
@@ -102,8 +107,8 @@ export default function QuestionForm() {
 
             router.push(`/questions/${result.id}`);
             router.refresh();
-        } catch (submissionError) {
-            setError(submissionError.message || "Unable to create question.");
+        } catch (submissionError: unknown) {
+            setError(submissionError instanceof Error ? submissionError.message : "Unable to create question.");
         } finally {
             setIsSubmitting(false);
         }

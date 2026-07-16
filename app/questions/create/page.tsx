@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import QuestionForm from "./question-form";
 
-export default function CreateQuestionPage() {
+export default async function CreateQuestionPage() {
+    if (!(await cookies()).has("access_token")) redirect("/login");
+
     return (
         <main className="mx-auto w-full max-w-3xl p-6">
             <Link href="/questions" className="text-sm underline">

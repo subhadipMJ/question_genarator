@@ -1,0 +1,91 @@
+import { cookies } from "next/headers";
+import { getApiUrl } from "../lib/api-url";
+
+export type QuestionOption = {
+    id?: number;
+    q_id?: number;
+    ans: string;
+    is_correct: boolean;
+};
+
+export type Question = {
+    id: number;
+    question: string;
+    title?: string;
+    is_active: boolean;
+    options?: QuestionOption[];
+};
+
+export type CreateQuestionInput = {
+    question: string;
+    is_active: boolean;
+};
+
+export async function getAllQuestions(): Promise<Question[]> {
+    const apiUrl = getQuestionsApiUrl();
+
+    const response = await fetch(apiUrl, {
+        headers: await getAuthorizationHeaders(),
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch questions: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+export async function createQuestion(data: CreateQuestionInput): Promise<Question> {
+    const response = await fetch(getQuestionsApiUrl(), {
+        method: "POST",
+        headers: await getAuthorizationHeaders(true),
+        body: JSON.stringify(data),
+    });
+
+    return readApiResponse(response, "Failed to create question");
+}
+
+export async function createQuestionOption(
+    questionId: number,
+    data: QuestionOption,
+): Promise<QuestionOption> {
+    const optionsUrl = new URL(`${questionId}/options/`, getQuestionsApiUrl());
+    const response = await fetch(optionsUrl, {
+        method: "POST",
+        headers: await getAuthorizationHeaders(true),
+        body: JSON.stringify(data),
+    });
+
+    return readApiResponse(response, "Failed to create option");
+}
+
+async function getAuthorizationHeaders(includeJson = false): Promise<HeadersInit> {
+    const token = (await cookies()).get("access_token")?.value;
+
+    if (!token) {
+        throw new Error("AUTH_REQUIRED");
+    }
+
+    return {
+        ...(includeJson ? { "Content-Type": "application/json" } : {}),
+        Authorization: `Bearer ${token}`,
+    };
+}
+
+function getQuestionsApiUrl() {
+    return getApiUrl("questions/");
+}
+
+async function readApiResponse<T>(
+    response: Response,
+    fallbackMessage: string,
+): Promise<T> {
+    if (!response.ok) {
+        const error = await response.json().catch(() => null) as { detail?: unknown } | null;
+        const detail = typeof error?.detail === "string" ? error.detail : null;
+        throw new Error(detail ?? `${fallbackMessage}: ${response.status}`);
+    }
+
+    return response.json();
+}
