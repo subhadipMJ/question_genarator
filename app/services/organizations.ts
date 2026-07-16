@@ -4,6 +4,9 @@ import { getApiUrl } from "../lib/api-url";
 export type Organization = {
     id: number;
     name: string;
+    code: string;
+    location: string | null;
+    phone_number: string | null;
     is_active: boolean;
 };
 

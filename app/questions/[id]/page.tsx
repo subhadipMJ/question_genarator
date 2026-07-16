@@ -12,7 +12,9 @@ type QuestionPageProps = {
 };
 
 export default async function Page({ params }: QuestionPageProps) {
-  if (!(await cookies()).has("access_token")) redirect("/login");
+  const cookieStore = await cookies();
+  if (!cookieStore.has("access_token")) redirect("/login");
+  if (cookieStore.get("user_role")?.value === "3") redirect("/student/tests");
 
   const { id } = await params;
   const questionId = Number(id);

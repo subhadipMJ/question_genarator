@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getOrganization } from "../services/organizations";
+import OrganizationSettings from "./organization-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -24,12 +26,17 @@ export default async function DashboardPage() {
     const userName = cookieStore.get("user_name")?.value ?? "User";
     const roleValue = cookieStore.get("user_role")?.value;
     if (roleValue === "0") redirect("/super-admin");
+    if (roleValue === "3") redirect("/student/tests");
 
     const roleName = roleValue ? ROLE_NAMES[roleValue] ?? "User" : "User";
+    const organizationId = Number(cookieStore.get("organization_id")?.value);
+    const organization = roleValue === "1" && Number.isInteger(organizationId) && organizationId > 0
+        ? await getOrganization(organizationId)
+        : null;
 
     return (
-        <main className="flex h-full mt-8 items-center justify-center px-6">
-            <Card className="w-full max-w-xl text-center">
+        <main className="mx-auto mt-8 grid max-w-3xl gap-6 px-6">
+            <Card className="text-center">
                 <CardHeader>
                     <CardDescription>Dashboard</CardDescription>
                     <CardTitle className="text-3xl">Welcome, {roleName} {userName}</CardTitle>
@@ -41,6 +48,16 @@ export default async function DashboardPage() {
                     </form>
                 </CardContent>
             </Card>
+
+            {organization && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Organization settings</CardTitle>
+                        <CardDescription>Update your organization name, location, and phone number.</CardDescription>
+                    </CardHeader>
+                    <CardContent><OrganizationSettings initialOrganization={organization} /></CardContent>
+                </Card>
+            )}
         </main>
     );
 }

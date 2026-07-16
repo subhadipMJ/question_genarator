@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function QuestionsPage() {
-    if (!(await cookies()).has("access_token")) redirect("/login");
+    const cookieStore = await cookies();
+    if (!cookieStore.has("access_token")) redirect("/login");
+    if (cookieStore.get("user_role")?.value === "3") redirect("/student/tests");
 
     const questions = await getAllQuestions();
     const nonGlobalQuestions = questions.filter((question) => !question.is_global);
@@ -31,7 +33,10 @@ export default async function QuestionsPage() {
         <main className="p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">All questions</h1>
-                <Button nativeButton={false} render={<Link href="/questions/create" />}>Create question</Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" nativeButton={false} render={<Link href="/questions/bulk" />}>Bulk upload</Button>
+                    <Button nativeButton={false} render={<Link href="/questions/create" />}>Create question</Button>
+                </div>
             </div>
 
             <div className="gap-3 grid grid-cols-1 md:grid-cols-2">

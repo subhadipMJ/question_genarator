@@ -1,0 +1,2 @@
+import { NextRequest,NextResponse } from "next/server"; import { getApiUrl } from "../../../lib/api-url";
+export async function POST(request:NextRequest){const response=await fetch(getApiUrl("auth/register"),{method:"POST",headers:{"Content-Type":"application/json"},body:await request.text(),cache:"no-store"});const body=await response.text();return new NextResponse(body,{status:response.status,headers:{"Content-Type":"application/json"}})}

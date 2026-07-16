@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function CreateQuestionPage() {
-    if (!(await cookies()).has("access_token")) redirect("/login");
+    const cookieStore = await cookies();
+    if (!cookieStore.has("access_token")) redirect("/login");
+    if (cookieStore.get("user_role")?.value === "3") redirect("/student/tests");
 
     return (
         <main className="mx-auto w-full max-w-3xl p-6">

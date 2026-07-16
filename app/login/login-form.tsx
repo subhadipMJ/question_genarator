@@ -32,7 +32,8 @@ export default function LoginForm() {
 
             if (!response.ok) throw new Error(result.message);
 
-            router.replace("/dashboard");
+            const inviteHash = window.location.hash;
+            router.replace(inviteHash.includes("token=") ? `/student/join${inviteHash}` : "/dashboard");
             router.refresh();
         } catch (loginError: unknown) {
             setError(loginError instanceof Error ? loginError.message : "Unable to log in.");

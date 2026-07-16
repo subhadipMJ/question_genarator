@@ -27,6 +27,8 @@ export default function OrganizationForm() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: formData.get("organizationName"),
+                    location: formData.get("location") || null,
+                    phone_number: formData.get("phoneNumber") || null,
                     admin: {
                         name: formData.get("adminName"),
                         email: formData.get("adminEmail"),
@@ -54,6 +56,14 @@ export default function OrganizationForm() {
                 <Field label="Organization name" htmlFor="organizationName">
                     <Input id="organizationName" name="organizationName" required autoFocus placeholder="Acme Academy" />
                 </Field>
+                <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Location" htmlFor="location">
+                        <Input id="location" name="location" placeholder="Colombo" />
+                    </Field>
+                    <Field label="Phone number" htmlFor="phoneNumber">
+                        <Input id="phoneNumber" name="phoneNumber" type="tel" minLength={5} placeholder="+94 11 234 5678" />
+                    </Field>
+                </div>
             </fieldset>
 
             <Separator />
