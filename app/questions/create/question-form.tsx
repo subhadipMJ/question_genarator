@@ -45,6 +45,7 @@ const QUILL_FORMATS = [
 export default function QuestionForm() {
     const router = useRouter();
     const [question, setQuestion] = useState("");
+    const [marks, setMarks] = useState("1");
     const [isActive, setIsActive] = useState(true);
     const [options, setOptions] = useState<QuestionOption[]>([
         { ...EMPTY_OPTION, is_correct: true },
@@ -92,6 +93,11 @@ export default function QuestionForm() {
             return;
         }
 
+        if (!Number.isFinite(Number(marks)) || Number(marks) <= 0) {
+            setError("Marks must be greater than zero.");
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -100,6 +106,7 @@ export default function QuestionForm() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     question,
+                    marks,
                     is_active: isActive,
                     options: options.map((option) => ({
                         ans: option.ans.trim(),
@@ -134,6 +141,19 @@ export default function QuestionForm() {
                         formats={QUILL_FORMATS}
                     />
                 </div>
+            </div>
+
+            <div className="max-w-40 space-y-2">
+                <Label htmlFor="marks">Marks</Label>
+                <Input
+                    id="marks"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={marks}
+                    onChange={(event) => setMarks(event.target.value)}
+                />
             </div>
 
             <fieldset className="space-y-3">

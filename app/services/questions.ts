@@ -12,16 +12,23 @@ export type Question = {
     id: number;
     question: string;
     title?: string;
+    organization_id: number;
+    user_id: number;
+    is_global: boolean;
+    marks: string;
     is_active: boolean;
     options?: QuestionOption[];
 };
 
 export type CreateQuestionInput = {
     question: string;
+    marks: string;
     is_active: boolean;
 };
 
-export type UpdateQuestionInput = Partial<CreateQuestionInput>;
+export type UpdateQuestionInput = Partial<CreateQuestionInput> & {
+    options?: Array<Pick<QuestionOption, "ans" | "is_correct">>;
+};
 
 export async function getAllQuestions(): Promise<Question[]> {
     const apiUrl = getQuestionsApiUrl();

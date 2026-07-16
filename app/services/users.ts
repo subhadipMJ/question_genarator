@@ -28,6 +28,23 @@ export async function getAllUsers(): Promise<User[]> {
     return response.json() as Promise<User[]>;
 }
 
+export async function getUser(userId: number): Promise<User> {
+    const token = (await cookies()).get("access_token")?.value;
+
+    if (!token) throw new Error("AUTH_REQUIRED");
+
+    const response = await fetch(getApiUrl(`users/${userId}`), {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch user: ${response.status}`);
+    }
+
+    return response.json() as Promise<User>;
+}
+
 function getUsersApiUrl(): string {
     return getApiUrl("users/");
 }

@@ -5,11 +5,16 @@ type LoginResponse = {
     message: string;
     access_token: string;
     expires_in: number;
+    organization_id: number | null;
+    organization_name: string | null;
+    user_role: number;
     user: {
+        id: number;
         name: string;
         role: number;
+        organization_id?: number;
         organization_name?: string;
-        organization?: { name?: string } | string;
+        organization?: { id?: number; name?: string } | string;
     };
 };
 
@@ -48,36 +53,29 @@ export async function POST(request: NextRequest) {
             message: loginResult.message,
             user: loginResult.user,
         });
-        nextResponse.cookies.set("access_token", loginResult.access_token, {
+        const cookieOptions = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            sameSite: "lax" as const,
             path: "/",
             maxAge: loginResult.expires_in,
-        });
-        nextResponse.cookies.set("user_name", loginResult.user.name, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge: loginResult.expires_in,
-        });
-        nextResponse.cookies.set("user_role", String(loginResult.user.role), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge: loginResult.expires_in,
-        });
-        const organizationName = getOrganizationName(loginResult.user);
+        };
+
+        nextResponse.cookies.set("access_token", loginResult.access_token, cookieOptions);
+        nextResponse.cookies.set("user_id", String(loginResult.user.id), cookieOptions);
+        nextResponse.cookies.set("user_name", loginResult.user.name, cookieOptions);
+        nextResponse.cookies.set("user_role", String(loginResult.user_role ?? loginResult.user.role), cookieOptions);
+        nextResponse.cookies.delete("organization_id");
+        nextResponse.cookies.delete("organization_name");
+
+        const organizationId = loginResult.organization_id ?? getOrganizationId(loginResult.user);
+        if (organizationId !== null) {
+            nextResponse.cookies.set("organization_id", String(organizationId), cookieOptions);
+        }
+
+        const organizationName = loginResult.organization_name ?? getOrganizationName(loginResult.user);
         if (organizationName) {
-            nextResponse.cookies.set("organization_name", organizationName, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                path: "/",
-                maxAge: loginResult.expires_in,
-            });
+            nextResponse.cookies.set("organization_name", organizationName, cookieOptions);
         }
 
         return nextResponse;
@@ -87,6 +85,14 @@ export async function POST(request: NextRequest) {
             { status: 500 },
         );
     }
+}
+
+function getOrganizationId(user: LoginResponse["user"]): number | null {
+    if (Number.isInteger(user.organization_id)) return user.organization_id ?? null;
+    if (user.organization && typeof user.organization === "object" && Number.isInteger(user.organization.id)) {
+        return user.organization.id ?? null;
+    }
+    return null;
 }
 
 function getOrganizationName(user: LoginResponse["user"]): string | null {

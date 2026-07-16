@@ -2,6 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAllUsers } from "../services/users";
+import { getAllOrganizations } from "../services/organizations";
+import OrganizationManager from "./organization-manager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +27,7 @@ export default async function SuperAdminPage() {
     if (cookieStore.get("user_role")?.value !== "0") redirect("/dashboard");
 
     const userName = cookieStore.get("user_name")?.value ?? "Super Admin";
-    const users = await getAllUsers();
+    const [users, organizations] = await Promise.all([getAllUsers(), getAllOrganizations()]);
 
     return (
         <main className="px-6 py-12">
@@ -52,6 +54,14 @@ export default async function SuperAdminPage() {
 
                     <Card><CardHeader><CardTitle>Manage users</CardTitle><CardDescription>{users.length} registered {users.length === 1 ? "user" : "users"}.</CardDescription></CardHeader></Card>
                 </section>
+
+                <Card className="mb-8">
+                    <CardHeader>
+                        <CardTitle>Organizations</CardTitle>
+                        <CardDescription>{organizations.length} registered {organizations.length === 1 ? "organization" : "organizations"}.</CardDescription>
+                    </CardHeader>
+                    <CardContent><OrganizationManager initialOrganizations={organizations} /></CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader><CardTitle>All users</CardTitle></CardHeader>
@@ -85,7 +95,6 @@ export default async function SuperAdminPage() {
                     </CardContent>
                 </Card>
 
-                <Button variant="ghost" className="mt-8" nativeButton={false} render={<Link href="/dashboard" />}>← Back to dashboard</Button>
             </div>
         </main>
     );

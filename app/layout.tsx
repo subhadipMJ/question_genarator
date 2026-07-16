@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -31,8 +32,9 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const isAuthenticated = cookieStore.has("access_token");
   const role = cookieStore.get("user_role")?.value;
+  const userName = cookieStore.get("user_name")?.value;
   const organizationName = cookieStore.get("organization_name")?.value;
-  const headerName = role === "0" ? "Super Admin" : organizationName || "Organization";
+  const headerName = role === "0" ? "Super Admin" : organizationName || userName || "QMaster";
 
   return (
     <html
@@ -42,6 +44,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <Toaster position="top-right" richColors closeButton />
         {isAuthenticated && (
           <header className="bg-background/95 sticky top-0 z-50 border-b backdrop-blur">
             <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-6 px-6 py-3">

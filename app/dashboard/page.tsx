@@ -23,8 +23,9 @@ export default async function DashboardPage() {
 
     const userName = cookieStore.get("user_name")?.value ?? "User";
     const roleValue = cookieStore.get("user_role")?.value;
+    if (roleValue === "0") redirect("/super-admin");
+
     const roleName = roleValue ? ROLE_NAMES[roleValue] ?? "User" : "User";
-    const isSuperAdmin = roleValue === "0";
 
     return (
         <main className="flex h-full mt-8 items-center justify-center px-6">
@@ -34,9 +35,6 @@ export default async function DashboardPage() {
                     <CardTitle className="text-3xl">Welcome, {roleName} {userName}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap justify-center gap-3">
-                    {isSuperAdmin && (
-                        <Button nativeButton={false} render={<Link href="/super-admin" />}>Super admin</Button>
-                    )}
                     <Button nativeButton={false} render={<Link href="/questions" />}>View questions</Button>
                     <form action="/api/auth/logout" method="post">
                         <Button type="submit" variant="outline">Log out</Button>

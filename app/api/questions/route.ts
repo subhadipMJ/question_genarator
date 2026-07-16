@@ -7,6 +7,7 @@ import {
 
 type CreateQuestionRequest = {
     question: string;
+    marks?: string | number;
     is_active?: boolean;
     options: Array<{ ans: string; is_correct: boolean }>;
 };
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Please sign in." }, { status: 401 });
         }
 
-        const { question, is_active = true, options } = await request.json() as CreateQuestionRequest;
+        const { question, marks = "1", is_active = true, options } = await request.json() as CreateQuestionRequest;
 
         if (!question || !Array.isArray(options) || options.length < 2) {
             return NextResponse.json(
@@ -33,7 +34,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const createdQuestion = await createQuestion({ question, is_active });
+        if (!Number.isFinite(Number(marks)) || Number(marks) <= 0) {
+            return NextResponse.json(
+                { message: "Marks must be greater than zero." },
+                { status: 400 },
+            );
+        }
+
+        const createdQuestion = await createQuestion({ question, marks: String(marks), is_active });
 
         await Promise.all(
             options.map((option) =>

@@ -8,7 +8,9 @@ type RouteContext = {
 
 type UpdateQuestionRequest = {
     question?: string;
+    marks?: string | number;
     is_active?: boolean;
+    options?: Array<{ ans: string; is_correct: boolean }>;
 };
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
@@ -29,9 +31,32 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             return NextResponse.json({ message: "Question text is required." }, { status: 400 });
         }
 
+        if (!Number.isFinite(Number(body.marks)) || Number(body.marks) <= 0) {
+            return NextResponse.json({ message: "Marks must be greater than zero." }, { status: 400 });
+        }
+
+        if (!Array.isArray(body.options) || body.options.length < 2) {
+            return NextResponse.json({ message: "At least two answer options are required." }, { status: 400 });
+        }
+
+        const options = body.options.map((option) => ({
+            ans: typeof option.ans === "string" ? option.ans.trim() : "",
+            is_correct: option.is_correct === true,
+        }));
+
+        if (options.some((option) => !option.ans)) {
+            return NextResponse.json({ message: "Complete every answer option." }, { status: 400 });
+        }
+
+        if (options.filter((option) => option.is_correct).length !== 1) {
+            return NextResponse.json({ message: "Select exactly one correct option." }, { status: 400 });
+        }
+
         const updatedQuestion = await updateQuestion(questionId, {
             question: body.question,
+            marks: String(body.marks),
             is_active: body.is_active,
+            options,
         });
 
         return NextResponse.json(updatedQuestion);
