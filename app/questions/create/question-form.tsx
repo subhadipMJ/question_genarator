@@ -2,13 +2,16 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Topic } from "../../services/topics";
 
 type QuestionOption = {
     ans: string;
@@ -53,6 +56,55 @@ export default function QuestionForm() {
     ]);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Topic states
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [selectedTopicId, setSelectedTopicId] = useState<string>("");
+
+    // Quick Create Topic states
+    const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+    const [newTopicName, setNewTopicName] = useState("");
+    const [newTopicColor, setNewTopicColor] = useState("#3b82f6");
+    const [isCreatingTopic, setIsCreatingTopic] = useState(false);
+
+    useEffect(() => {
+        async function loadTopics() {
+            try {
+                const res = await fetch("/api/backend/topics/");
+                if (res.ok) {
+                    const data = await res.json();
+                    setTopics(data);
+                }
+            } catch (err) {
+                console.error("Failed to load topics", err);
+            }
+        }
+        loadTopics();
+    }, []);
+
+    async function handleQuickCreateTopic(e: React.FormEvent) {
+        e.preventDefault();
+        if (!newTopicName.trim()) return;
+        setIsCreatingTopic(true);
+        try {
+            const res = await fetch("/api/backend/topics/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newTopicName.trim(), color: newTopicColor, is_active: true }),
+            });
+            const created = await res.json();
+            if (!res.ok) throw new Error(created.detail ?? "Failed to create topic.");
+            setTopics((current) => [...current, created]);
+            setSelectedTopicId(String(created.id));
+            setNewTopicName("");
+            setIsQuickCreateOpen(false);
+            toast.success("Topic created successfully!");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Failed to create topic.");
+        } finally {
+            setIsCreatingTopic(false);
+        }
+    }
 
     function updateOption(index: number, ans: string) {
         setOptions((current) =>
@@ -108,6 +160,7 @@ export default function QuestionForm() {
                     question,
                     marks,
                     is_active: isActive,
+                    topic_id: selectedTopicId ? Number(selectedTopicId) : null,
                     options: options.map((option) => ({
                         ans: option.ans.trim(),
                         is_correct: option.is_correct,
@@ -128,6 +181,7 @@ export default function QuestionForm() {
     }
 
     return (
+        <>
         <form onSubmit={handleSubmit} className="space-y-8">
             <div>
                 <Label className="mb-2">Question</Label>
@@ -154,6 +208,28 @@ export default function QuestionForm() {
                     value={marks}
                     onChange={(event) => setMarks(event.target.value)}
                 />
+            </div>
+
+            <div className="max-w-md space-y-2">
+                <Label htmlFor="topic">Topic (Optional)</Label>
+                <div className="flex gap-2">
+                    <select
+                        id="topic"
+                        value={selectedTopicId}
+                        onChange={(e) => setSelectedTopicId(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="">No topic</option>
+                        {topics.map((t) => (
+                            <option key={t.id} value={t.id}>
+                                {t.name}
+                            </option>
+                        ))}
+                    </select>
+                    <Button type="button" variant="outline" onClick={() => setIsQuickCreateOpen(true)}>
+                        New
+                    </Button>
+                </div>
             </div>
 
             <fieldset className="space-y-3">
@@ -210,5 +286,62 @@ export default function QuestionForm() {
                 {isSubmitting ? "Creating..." : "Create question"}
             </Button>
         </form>
+
+        {isQuickCreateOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <Card className="w-full max-w-sm animate-in fade-in-50 zoom-in-95 duration-150">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold">Quick Create Topic</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleQuickCreateTopic} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="new-topic-name">Topic Name</Label>
+                                <Input
+                                    id="new-topic-name"
+                                    value={newTopicName}
+                                    onChange={(e) => setNewTopicName(e.target.value)}
+                                    placeholder="e.g. Science, React"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-topic-color">Color</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="new-topic-color"
+                                        type="color"
+                                        value={newTopicColor}
+                                        onChange={(e) => setNewTopicColor(e.target.value)}
+                                        className="w-12 h-10 p-0.5 cursor-pointer shrink-0"
+                                    />
+                                    <Input
+                                        type="text"
+                                        value={newTopicColor}
+                                        onChange={(e) => setNewTopicColor(e.target.value)}
+                                        className="font-mono text-sm uppercase"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-4 border-t">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setIsQuickCreateOpen(false)}
+                                    disabled={isCreatingTopic}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={isCreatingTopic}>
+                                    {isCreatingTopic ? "Creating..." : "Create"}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
+        </>
     );
 }

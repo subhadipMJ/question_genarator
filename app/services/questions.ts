@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getApiUrl } from "../lib/api-url";
+import { Topic } from "./topics";
 
 export type QuestionOption = {
     id?: number;
@@ -17,6 +18,8 @@ export type Question = {
     is_global: boolean;
     marks: string;
     is_active: boolean;
+    topic_id?: number | null;
+    topic?: Topic | null;
     options?: QuestionOption[];
 };
 
@@ -24,6 +27,7 @@ export type CreateQuestionInput = {
     question: string;
     marks: string;
     is_active: boolean;
+    topic_id?: number | null;
 };
 
 export type UpdateQuestionInput = Partial<CreateQuestionInput> & {

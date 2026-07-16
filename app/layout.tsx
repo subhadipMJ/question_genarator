@@ -62,6 +62,7 @@ export default async function RootLayout({
               <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-3">
                 <Button variant="ghost" nativeButton={false} render={<Link href="/dashboard" />}>Dashboard</Button>
                 {role !== "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/questions" />}>Questions</Button>}
+                {role !== "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/topics" />}>Topics</Button>}
                 {role !== "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/test-series" />}>Test series</Button>}
                 {role === "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/student/tests" />}>Tests</Button>}
                 {role === "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/student/history" />}>History</Button>}

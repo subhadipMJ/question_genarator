@@ -57,6 +57,17 @@ export default async function QuestionsPage() {
                             }}
                           />
                           <div className="flex shrink-0 gap-2">
+                            {item.topic && (
+                              <Badge
+                                style={{
+                                  backgroundColor: item.topic.color,
+                                  color: "#ffffff",
+                                  borderColor: "transparent",
+                                }}
+                              >
+                                {item.topic.name}
+                              </Badge>
+                            )}
                             <Badge variant="outline">{item.marks} marks</Badge>
                             <Badge variant={item.is_active ? "default" : "secondary"}>{item.is_active ? "Active" : "Inactive"}</Badge>
                           </div>
