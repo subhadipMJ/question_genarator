@@ -8,6 +8,8 @@ type LoginResponse = {
     user: {
         name: string;
         role: number;
+        organization_name?: string;
+        organization?: { name?: string } | string;
     };
 };
 
@@ -67,6 +69,16 @@ export async function POST(request: NextRequest) {
             path: "/",
             maxAge: loginResult.expires_in,
         });
+        const organizationName = getOrganizationName(loginResult.user);
+        if (organizationName) {
+            nextResponse.cookies.set("organization_name", organizationName, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                path: "/",
+                maxAge: loginResult.expires_in,
+            });
+        }
 
         return nextResponse;
     } catch (error: unknown) {
@@ -75,6 +87,15 @@ export async function POST(request: NextRequest) {
             { status: 500 },
         );
     }
+}
+
+function getOrganizationName(user: LoginResponse["user"]): string | null {
+    if (typeof user.organization_name === "string") return user.organization_name;
+    if (typeof user.organization === "string") return user.organization;
+    if (user.organization && typeof user.organization.name === "string") {
+        return user.organization.name;
+    }
+    return null;
 }
 
 function getLoginUrl() {

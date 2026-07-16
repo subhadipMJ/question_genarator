@@ -6,7 +6,7 @@ export default function Home() {
     Welcome
   </div>
 
-    <Link href={`/questions`} className="bg-gray-400 w-fit px-5 py-2 rounded-4xl">quesions</Link>
+    <Link href={`/dashboard`} className="bg-gray-400 w-fit px-5 py-2 rounded-4xl">Dashboard</Link>
   </div>
 
 

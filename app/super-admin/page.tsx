@@ -41,7 +41,7 @@ export default async function SuperAdminPage() {
                     </form>
                 </div>
 
-                <section className="mb-8 grid gap-4 sm:grid-cols-2">
+                <section className="mb-8 grid gap-4 sm:grid-cols-3">
                     <Link
                         href="/questions"
                         className="rounded-2xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
@@ -49,6 +49,16 @@ export default async function SuperAdminPage() {
                         <h2 className="text-xl font-semibold">Manage questions</h2>
                         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                             View existing questions and create new ones.
+                        </p>
+                    </Link>
+
+                    <Link
+                        href="/organizations/create"
+                        className="rounded-2xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+                    >
+                        <h2 className="text-xl font-semibold">Create organization</h2>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            Add an organization and its first administrator.
                         </p>
                     </Link>
 
