@@ -5,9 +5,6 @@ export function proxy(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname === "/login";
   const user_role = request.cookies.get("user_role")?.value;
 
-  if (user_role === "0") {
-    return NextResponse.redirect(new URL("/super-admin", request.url));
-  }
   if (!hasToken && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
