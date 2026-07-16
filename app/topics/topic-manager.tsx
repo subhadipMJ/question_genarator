@@ -146,6 +146,9 @@ export default function TopicManager({ initialTopics, userRole }: TopicManagerPr
                     style={{ backgroundColor: topic.color }}
                   />
                   {topic.name}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    (ID: {topic.id})
+                  </span>
                 </CardTitle>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full font-medium ${

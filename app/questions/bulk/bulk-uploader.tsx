@@ -34,6 +34,7 @@ const EXAMPLE_JSON = JSON.stringify(
             question: "<p>What is the capital of France?</p>",
             marks: 1,
             is_active: true,
+            topic_id: 1,
             options: [
                 { ans: "Paris", is_correct: true },
                 { ans: "Berlin", is_correct: false },
@@ -45,6 +46,7 @@ const EXAMPLE_JSON = JSON.stringify(
             question: "<p>Which planet is closest to the Sun?</p>",
             marks: 2,
             is_active: true,
+            topic_id: 2,
             options: [
                 { ans: "Venus", is_correct: false },
                 { ans: "Mercury", is_correct: true },
@@ -448,7 +450,9 @@ export default function BulkUploader({ topics = [] }: { topics?: Topic[] }) {
                             <code className="text-xs bg-muted px-1 py-0.5 rounded">question</code>,{" "}
                             <code className="text-xs bg-muted px-1 py-0.5 rounded">marks</code>, and{" "}
                             <code className="text-xs bg-muted px-1 py-0.5 rounded">options</code> (min 2, exactly one{" "}
-                            <code className="text-xs bg-muted px-1 py-0.5 rounded">is_correct: true</code>).
+                            <code className="text-xs bg-muted px-1 py-0.5 rounded">is_correct: true</code>). You can also
+                            optionally supply{" "}
+                            <code className="text-xs bg-muted px-1 py-0.5 rounded">topic_id</code>.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
