@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getApiUrl } from "../lib/api-url";
 import { getAllTestSeries } from "../services/test-series";
 import { getAllQuestions } from "../services/questions";
+import { getAllTopics } from "../services/topics";
 import TestSeriesManager from "./test-series-manager";
 
 export const metadata = {
@@ -18,9 +19,10 @@ export default async function TestSeriesPage() {
     if (!token) redirect("/login");
     if (!role || !["0", "1", "2"].includes(role)) redirect("/student/tests");
 
-    const [series, allQuestions] = await Promise.all([
+    const [series, allQuestions, topics] = await Promise.all([
         getAllTestSeries().catch(() => []),
         getAllQuestions().catch(() => []),
+        getAllTopics().catch(() => []),
     ]);
 
     const organizationId = Number(cookieStore.get("organization_id")?.value);
@@ -35,7 +37,7 @@ export default async function TestSeriesPage() {
 
     return (
         <main className="p-6">
-            <TestSeriesManager initialSeries={series} questions={questions} />
+            <TestSeriesManager initialSeries={series} questions={questions} topics={topics} />
         </main>
     );
 }

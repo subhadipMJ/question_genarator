@@ -6,6 +6,7 @@ import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import type { TestSeries } from "../services/test-series";
 import type { Question } from "../services/questions";
+import type { Topic } from "../services/topics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -108,13 +109,16 @@ function SeriesCard({ s, origin }: { s: TestSeries; origin: string }) {
 export default function TestSeriesManager({
     initialSeries,
     questions,
+    topics = [],
 }: {
     initialSeries: TestSeries[];
     questions: Question[];
+    topics?: Topic[];
 }) {
     const [series, setSeries] = useState(initialSeries);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [search, setSearch] = useState("");
+    const [topicFilter, setTopicFilter] = useState("");
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(null);
     const [origin, setOrigin] = useState("");
@@ -125,13 +129,19 @@ export default function TestSeriesManager({
     }, []);
 
     const filtered = useMemo(() => {
+        let result = questions;
+
+        if (topicFilter) {
+            result = result.filter((question) => question.topic_id === Number(topicFilter));
+        }
+
         const q = search.toLowerCase();
-        if (!q) return questions;
-        return questions.filter((question) => {
+        if (!q) return result;
+        return result.filter((question) => {
             const plain = sanitizeHtml(question.question, { allowedTags: [] }).toLowerCase();
             return plain.includes(q) || String(question.id).includes(q);
         });
-    }, [questions, search]);
+    }, [questions, search, topicFilter]);
 
     function toggleQuestion(id: number) {
         setSelected((prev) => {
@@ -287,12 +297,27 @@ export default function TestSeriesManager({
                                     )}
                                 </Label>
                                 <div className="flex items-center gap-2">
+                                    {topics.length > 0 && (
+                                        <select
+                                            id="ts-topic-filter"
+                                            value={topicFilter}
+                                            onChange={(e) => setTopicFilter(e.target.value)}
+                                            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                                        >
+                                            <option value="">All topics</option>
+                                            {topics.map((t) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                     <Input
                                         id="ts-search"
                                         placeholder="Search questions…"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        className="h-8 w-48 text-sm"
+                                        className="h-8 w-40 text-sm"
                                     />
                                     {filtered.length > 0 && (
                                         <>
@@ -358,7 +383,17 @@ export default function TestSeriesManager({
                                                     onChange={() => toggleQuestion(q.id)}
                                                     className="h-4 w-4 shrink-0 accent-primary"
                                                 />
-                                                <span className="min-w-0 flex-1 truncate text-sm">{plain || `Question #${q.id}`}</span>
+                                                <span className="min-w-0 flex-1 truncate text-sm flex items-center gap-2">
+                                                    {plain || `Question #${q.id}`}
+                                                    {q.topic && (
+                                                        <span
+                                                            className="inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold text-white shrink-0"
+                                                            style={{ backgroundColor: q.topic.color }}
+                                                        >
+                                                            {q.topic.name}
+                                                        </span>
+                                                    )}
+                                                </span>
                                                 <Badge variant="outline" className="shrink-0 text-[11px]">
                                                     {q.marks} marks
                                                 </Badge>
