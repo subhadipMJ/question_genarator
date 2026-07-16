@@ -57,8 +57,8 @@ export default async function RootLayout({
               </Link>
 
               <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-3">
-                <Button variant="ghost" render={<Link href="/dashboard" />}>Dashboard</Button>
-                <Button variant="ghost" render={<Link href="/questions" />}>Questions</Button>
+                <Button variant="ghost" nativeButton={false} render={<Link href="/dashboard" />}>Dashboard</Button>
+                <Button variant="ghost" nativeButton={false} render={<Link href="/questions" />}>Questions</Button>
                 <ModeToggle />
                 <form action="/api/auth/logout" method="post">
                   <Button variant="outline" type="submit">Log out</Button>

@@ -85,7 +85,7 @@ export default async function SuperAdminPage() {
                     </CardContent>
                 </Card>
 
-                <Button variant="ghost" className="mt-8" render={<Link href="/dashboard" />}>← Back to dashboard</Button>
+                <Button variant="ghost" className="mt-8" nativeButton={false} render={<Link href="/dashboard" />}>← Back to dashboard</Button>
             </div>
         </main>
     );

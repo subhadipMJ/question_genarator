@@ -16,7 +16,7 @@ export default async function CreateOrganizationPage() {
     return (
         <main className="px-6 py-12">
             <div className="mx-auto max-w-2xl">
-                <Button variant="ghost" render={<Link href="/super-admin" />}>← Back to super admin</Button>
+                <Button variant="ghost" nativeButton={false} render={<Link href="/super-admin" />}>← Back to super admin</Button>
                 <Card className="mt-4">
                     <CardHeader><CardDescription>Super Admin</CardDescription><CardTitle className="text-3xl">Create organization</CardTitle><CardDescription>Set up an organization and its first administrator account.</CardDescription></CardHeader>
                     <CardContent><OrganizationForm /></CardContent>

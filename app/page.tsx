@@ -9,7 +9,7 @@ export default function Home() {
           <CardTitle className="text-3xl">QMaster</CardTitle>
           <CardDescription>The Smart Assessment Platform.</CardDescription>
         </CardHeader>
-        <CardContent><Button render={<Link href="/dashboard" />}>Open dashboard</Button></CardContent>
+        <CardContent><Button nativeButton={false} render={<Link href="/dashboard" />}>Open dashboard</Button></CardContent>
       </Card>
     </main>
   );

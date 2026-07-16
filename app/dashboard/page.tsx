@@ -35,9 +35,9 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent className="flex flex-wrap justify-center gap-3">
                     {isSuperAdmin && (
-                        <Button render={<Link href="/super-admin" />}>Super admin</Button>
+                        <Button nativeButton={false} render={<Link href="/super-admin" />}>Super admin</Button>
                     )}
-                    <Button render={<Link href="/questions" />}>View questions</Button>
+                    <Button nativeButton={false} render={<Link href="/questions" />}>View questions</Button>
                     <form action="/api/auth/logout" method="post">
                         <Button type="submit" variant="outline">Log out</Button>
                     </form>

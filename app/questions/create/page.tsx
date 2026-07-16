@@ -10,7 +10,7 @@ export default async function CreateQuestionPage() {
 
     return (
         <main className="mx-auto w-full max-w-3xl p-6">
-            <Button variant="ghost" render={<Link href="/questions" />}>← Back to questions</Button>
+            <Button variant="ghost" nativeButton={false} render={<Link href="/questions" />}>← Back to questions</Button>
             <Card className="mt-4">
                 <CardHeader><CardTitle className="text-3xl">Create question</CardTitle></CardHeader>
                 <CardContent><QuestionForm /></CardContent>

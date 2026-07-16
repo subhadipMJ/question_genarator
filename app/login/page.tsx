@@ -13,7 +13,7 @@ export default async function LoginPage() {
     }
 
     return (
-        <main className="flex  items-center justify-center px-6 py-12">
+        <main className="flex min-h-[90vh] items-center justify-center ">
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardDescription>QMaster · The Smart Assessment Platform.</CardDescription>

@@ -16,7 +16,7 @@ export default async function QuestionsPage() {
         <main className="p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">All questions</h1>
-                <Button render={<Link href="/questions/create" />}>Create question</Button>
+                <Button nativeButton={false} render={<Link href="/questions/create" />}>Create question</Button>
             </div>
 
             <div className="space-y-3">
