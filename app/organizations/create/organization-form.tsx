@@ -1,6 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function OrganizationForm() {
     const [error, setError] = useState("");
@@ -42,46 +47,45 @@ export default function OrganizationForm() {
         }
     }
 
-    const inputClass = "w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 outline-none transition focus:border-indigo-600 dark:border-gray-700 dark:focus:border-indigo-400";
-
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
             <fieldset className="space-y-5">
                 <legend className="mb-4 text-lg font-semibold">Organization details</legend>
                 <Field label="Organization name" htmlFor="organizationName">
-                    <input id="organizationName" name="organizationName" required autoFocus className={inputClass} placeholder="Acme Academy" />
+                    <Input id="organizationName" name="organizationName" required autoFocus placeholder="Acme Academy" />
                 </Field>
             </fieldset>
 
-            <fieldset className="grid gap-5 border-t pt-8 dark:border-gray-800 sm:grid-cols-2">
+            <Separator />
+            <fieldset className="grid gap-5 sm:grid-cols-2">
                 <legend className="mb-4 text-lg font-semibold">Administrator account</legend>
                 <Field label="Full name" htmlFor="adminName">
-                    <input id="adminName" name="adminName" required autoComplete="name" className={inputClass} placeholder="Alex Morgan" />
+                    <Input id="adminName" name="adminName" required autoComplete="name" placeholder="Alex Morgan" />
                 </Field>
                 <Field label="Email address" htmlFor="adminEmail">
-                    <input id="adminEmail" name="adminEmail" type="email" required autoComplete="email" className={inputClass} placeholder="admin@example.com" />
+                    <Input id="adminEmail" name="adminEmail" type="email" required autoComplete="email" placeholder="admin@example.com" />
                 </Field>
                 <div className="sm:col-span-2">
                     <Field label="Temporary password" htmlFor="adminPassword">
-                        <input id="adminPassword" name="adminPassword" type="password" required minLength={8} autoComplete="new-password" className={inputClass} placeholder="At least 8 characters" />
+                        <Input id="adminPassword" name="adminPassword" type="password" required minLength={8} autoComplete="new-password" placeholder="At least 8 characters" />
                     </Field>
                 </div>
             </fieldset>
 
-            {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{error}</p>}
-            {success && <p role="status" className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-950 dark:text-green-200">{success}</p>}
+            {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+            {success && <Alert><AlertDescription>{success}</AlertDescription></Alert>}
 
-            <button type="submit" disabled={isSubmitting} className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
+            <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting ? "Creating organization..." : "Create organization and admin"}
-            </button>
+            </Button>
         </form>
     );
 }
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
     return (
-        <div>
-            <label htmlFor={htmlFor} className="mb-2 block text-sm font-medium">{label}</label>
+        <div className="space-y-2">
+            <Label htmlFor={htmlFor}>{label}</Label>
             {children}
         </div>
     );

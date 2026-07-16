@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 export default function Home() {
   return (
-  <div className="flex flex-col items-center justify-center min-h-screen">
-  <div className="text-xl px-10 py-5 ">
-    Welcome
-  </div>
-
-    <Link href={`/dashboard`} className="bg-gray-400 w-fit px-5 py-2 rounded-4xl">Dashboard</Link>
-  </div>
-
-
+    <main className="flex min-h-[70vh] items-center justify-center">
+      <Card className="w-full max-w-md text-center">
+        <CardHeader>
+          <CardTitle className="text-3xl">QMaster</CardTitle>
+          <CardDescription>The Smart Assessment Platform.</CardDescription>
+        </CardHeader>
+        <CardContent><Button render={<Link href="/dashboard" />}>Open dashboard</Button></CardContent>
+      </Card>
+    </main>
   );
 }

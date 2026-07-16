@@ -3,6 +3,12 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type QuestionOption = {
     ans: string;
@@ -11,7 +17,7 @@ type QuestionOption = {
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
-    loading: () => <div className="h-40 animate-pulse rounded bg-gray-100" />,
+    loading: () => <div className="bg-muted h-40 animate-pulse rounded" />,
 });
 
 const EMPTY_OPTION = { ans: "", is_correct: false };
@@ -117,7 +123,7 @@ export default function QuestionForm() {
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-                <label className="mb-2 block font-medium">Question</label>
+                <Label className="mb-2">Question</Label>
                 <div className="overflow-hidden rounded-lg bg-white text-black">
                     <ReactQuill
                         theme="snow"
@@ -132,60 +138,57 @@ export default function QuestionForm() {
 
             <fieldset className="space-y-3">
                 <legend className="mb-2 font-medium">Answer options</legend>
+                <RadioGroup value={String(options.findIndex((option) => option.is_correct))} onValueChange={(value) => selectCorrectOption(Number(value))}>
                 {options.map((option, index) => (
                     <div key={index} className="flex items-center gap-3">
-                        <input
-                            type="radio"
-                            name="correct-option"
-                            checked={option.is_correct}
-                            onChange={() => selectCorrectOption(index)}
+                        <RadioGroupItem value={String(index)}
                             aria-label={`Mark option ${index + 1} as correct`}
                         />
-                        <input
+                        <Input
                             type="text"
                             value={option.ans}
                             onChange={(event) => updateOption(index, event.target.value)}
                             placeholder={`Option ${index + 1}`}
-                            className="flex-1 rounded-lg border px-3 py-2"
+                            className="flex-1"
                         />
-                        <button
+                        <Button
+                            variant="ghost"
                             type="button"
                             onClick={() => removeOption(index)}
                             disabled={options.length <= 2}
-                            className="rounded px-3 py-2 text-red-600 disabled:opacity-30"
+                            className="text-destructive"
                         >
                             Remove
-                        </button>
+                        </Button>
                     </div>
                 ))}
+                </RadioGroup>
 
-                <button
+                <Button
+                    variant="outline"
                     type="button"
                     onClick={() => setOptions((current) => [...current, { ...EMPTY_OPTION }])}
-                    className="rounded-lg border px-4 py-2"
                 >
                     Add option
-                </button>
+                </Button>
             </fieldset>
 
-            <label className="flex items-center gap-2">
-                <input
-                    type="checkbox"
+            <Label className="flex items-center gap-2">
+                <Checkbox
                     checked={isActive}
-                    onChange={(event) => setIsActive(event.target.checked)}
+                    onCheckedChange={(checked) => setIsActive(checked === true)}
                 />
                 Active question
-            </label>
+            </Label>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
 
-            <button
+            <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="rounded-lg bg-black px-5 py-3 text-white disabled:opacity-50"
             >
                 {isSubmitting ? "Creating..." : "Create question"}
-            </button>
+            </Button>
         </form>
     );
 }

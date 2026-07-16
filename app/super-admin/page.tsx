@@ -2,6 +2,10 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAllUsers } from "../services/users";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const ROLE_NAMES: Record<number, string> = {
     0: "Super Admin",
@@ -11,7 +15,7 @@ const ROLE_NAMES: Record<number, string> = {
 };
 
 export const metadata = {
-    title: "Super Admin | Question Generator",
+    title: "Super Admin | QMaster",
 };
 
 export default async function SuperAdminPage() {
@@ -24,98 +28,64 @@ export default async function SuperAdminPage() {
     const users = await getAllUsers();
 
     return (
-        <main className="min-h-screen bg-gray-50 px-6 py-12 dark:bg-gray-950">
+        <main className="px-6 py-12">
             <div className="mx-auto max-w-5xl">
                 <div className="mb-8 flex items-center justify-between gap-4">
                     <div>
-                        <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
+                        <p className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
                             Super Admin
                         </p>
                         <h1 className="mt-2 text-3xl font-bold">Welcome, {userName}</h1>
-                        <p className="mt-2 text-gray-600 dark:text-gray-400">
-                            Manage the Question Generator platform.
+                        <p className="text-muted-foreground mt-2">
+                            Manage QMaster, The Smart Assessment Platform.
                         </p>
                     </div>
                     <form action="/api/auth/logout" method="post">
-                        <button className="rounded-lg border px-4 py-2">Log out</button>
+                        <Button type="submit" variant="outline">Log out</Button>
                     </form>
                 </div>
 
                 <section className="mb-8 grid gap-4 sm:grid-cols-3">
-                    <Link
-                        href="/questions"
-                        className="rounded-2xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-                    >
-                        <h2 className="text-xl font-semibold">Manage questions</h2>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            View existing questions and create new ones.
-                        </p>
-                    </Link>
+                    <Card className="transition-colors hover:bg-accent/50"><Link href="/questions"><CardHeader><CardTitle>Manage questions</CardTitle><CardDescription>View existing questions and create new ones.</CardDescription></CardHeader></Link></Card>
 
-                    <Link
-                        href="/organizations/create"
-                        className="rounded-2xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-                    >
-                        <h2 className="text-xl font-semibold">Create organization</h2>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            Add an organization and its first administrator.
-                        </p>
-                    </Link>
+                    <Card className="transition-colors hover:bg-accent/50"><Link href="/organizations/create"><CardHeader><CardTitle>Create organization</CardTitle><CardDescription>Add an organization and its first administrator.</CardDescription></CardHeader></Link></Card>
 
-                    <div className="rounded-2xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <h2 className="text-xl font-semibold">Manage users</h2>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            {users.length} registered {users.length === 1 ? "user" : "users"}.
-                        </p>
-                    </div>
+                    <Card><CardHeader><CardTitle>Manage users</CardTitle><CardDescription>{users.length} registered {users.length === 1 ? "user" : "users"}.</CardDescription></CardHeader></Card>
                 </section>
 
-                <section className="overflow-hidden rounded-2xl border bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <div className="border-b px-6 py-4 dark:border-gray-800">
-                        <h2 className="text-xl font-semibold">All users</h2>
-                    </div>
+                <Card>
+                    <CardHeader><CardTitle>All users</CardTitle></CardHeader>
+                    <CardContent>
 
                     {users.length === 0 ? (
-                        <p className="px-6 py-10 text-center text-gray-500">No users found.</p>
+                        <p className="text-muted-foreground px-6 py-10 text-center">No users found.</p>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                    <tr>
-                                        <th className="px-6 py-3 font-medium">Name</th>
-                                        <th className="px-6 py-3 font-medium">Email</th>
-                                        <th className="px-6 py-3 font-medium">Role</th>
-                                        <th className="px-6 py-3 font-medium">Joined</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y dark:divide-gray-800">
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead></TableRow></TableHeader>
+                                <TableBody>
                                     {users.map((user) => (
-                                        <tr key={user.id}>
-                                            <td className="px-6 py-4 font-medium">{user.name}</td>
-                                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                        <TableRow key={user.id}>
+                                            <TableCell className="font-medium">{user.name}</TableCell>
+                                            <TableCell>
                                                 {user.email}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200">
-                                                    {ROLE_NAMES[user.role] ?? `Role ${user.role}`}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                            </TableCell>
+                                            <TableCell><Badge variant="secondary">{ROLE_NAMES[user.role] ?? `Role ${user.role}`}</Badge></TableCell>
+                                            <TableCell>
                                                 {new Intl.DateTimeFormat("en", {
                                                     dateStyle: "medium",
                                                 }).format(new Date(user.created_at))}
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </div>
                     )}
-                </section>
+                    </CardContent>
+                </Card>
 
-                <Link href="/dashboard" className="mt-8 inline-block text-sm underline">
-                    Back to dashboard
-                </Link>
+                <Button variant="ghost" className="mt-8" render={<Link href="/dashboard" />}>← Back to dashboard</Button>
             </div>
         </main>
     );

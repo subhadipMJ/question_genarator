@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ROLE_NAMES: Record<string, string> = {
     0: "Super Admin",
@@ -10,7 +12,7 @@ const ROLE_NAMES: Record<string, string> = {
 };
 
 export const metadata = {
-    title: "Dashboard | Question Generator",
+    title: "Dashboard | QMaster",
 };
 
 export default async function DashboardPage() {
@@ -25,35 +27,22 @@ export default async function DashboardPage() {
     const isSuperAdmin = roleValue === "0";
 
     return (
-        <main className="flex min-h-screen items-center justify-center px-6">
-            <section className="w-full max-w-xl rounded-2xl border border-gray-200 p-8 text-center shadow-sm dark:border-gray-800">
-                <p className="mb-2 text-sm font-medium uppercase tracking-wider text-gray-500">
-                    Dashboard
-                </p>
-                <h1 className="text-3xl font-bold">
-                    Welcome, {roleName} {userName}
-                </h1>
-
-                <div className="mt-8 flex justify-center gap-3">
+        <main className="flex h-full mt-8 items-center justify-center px-6">
+            <Card className="w-full max-w-xl text-center">
+                <CardHeader>
+                    <CardDescription>Dashboard</CardDescription>
+                    <CardTitle className="text-3xl">Welcome, {roleName} {userName}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-wrap justify-center gap-3">
                     {isSuperAdmin && (
-                        <Link
-                            href="/super-admin"
-                            className="rounded-lg bg-indigo-600 px-4 py-2 text-white"
-                        >
-                            Super admin
-                        </Link>
+                        <Button render={<Link href="/super-admin" />}>Super admin</Button>
                     )}
-                    <Link
-                        href="/questions"
-                        className="rounded-lg bg-black px-4 py-2 text-white dark:bg-white dark:text-black"
-                    >
-                        View questions
-                    </Link>
+                    <Button render={<Link href="/questions" />}>View questions</Button>
                     <form action="/api/auth/logout" method="post">
-                        <button className="rounded-lg border px-4 py-2">Log out</button>
+                        <Button type="submit" variant="outline">Log out</Button>
                     </form>
-                </div>
-            </section>
+                </CardContent>
+            </Card>
         </main>
     );
 }

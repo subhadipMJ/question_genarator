@@ -3,6 +3,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
 import { getAllQuestions } from "../services/questions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function QuestionsPage() {
     if (!(await cookies()).has("access_token")) redirect("/login");
@@ -12,29 +15,17 @@ export default async function QuestionsPage() {
     return (
         <main className="p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold">All Questions</h1>
-                <div className="flex items-center gap-3">
-                    <form action="/api/auth/logout" method="post">
-                        <button className="rounded-lg border px-4 py-2">Log out</button>
-                    </form>
-                    <Link
-                        href="/questions/create"
-                        className="rounded-lg bg-black px-4 py-2 text-white"
-                    >
-                        Create question
-                    </Link>
-                </div>
+                <h1 className="text-3xl font-bold tracking-tight">All questions</h1>
+                <Button render={<Link href="/questions/create" />}>Create question</Button>
             </div>
 
             <div className="space-y-3">
                 {questions.map((item) => (
-                    <Link
-                        key={item.id}
-                        href={`/questions/${item.id}`}
-                        className="block rounded-lg border p-4 hover:bg-gray-600"
-                    >
-                        <div
-                            className="font-semibold"
+                    <Card key={item.id} className="transition-colors hover:bg-accent/50">
+                      <Link href={`/questions/${item.id}`}>
+                        <CardHeader className="flex-row items-start justify-between gap-4">
+                          <CardTitle
+                            className="text-base leading-relaxed"
                             dangerouslySetInnerHTML={{
                                 __html: sanitizeHtml(item.question ?? item.title ?? "", {
                                     allowedTags: [
@@ -44,16 +35,21 @@ export default async function QuestionsPage() {
                                     ],
                                 }),
                             }}
-                        />
+                          />
+                          <Badge variant={item.is_active ? "default" : "secondary"}>{item.is_active ? "Active" : "Inactive"}</Badge>
+                        </CardHeader>
 
                         {(item.options?.length ?? 0) > 0 && (
-                            <ul className="mt-3 list-inside list-disc space-y-1">
+                          <CardContent>
+                            <ul className="text-muted-foreground list-inside list-disc space-y-1 text-sm">
                                 {item.options?.map((option) => (
                                     <li key={option.id}>{option.ans}</li>
                                 ))}
                             </ul>
+                          </CardContent>
                         )}
-                    </Link>
+                      </Link>
+                    </Card>
                 ))}
             </div>
         </main>

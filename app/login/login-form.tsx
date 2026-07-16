@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginForm() {
     const router = useRouter();
@@ -39,51 +43,43 @@ export default function LoginForm() {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-                <label htmlFor="email" className="mb-2 block text-sm font-medium">
-                    Email address
-                </label>
-                <input
+            <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
                     id="email"
                     name="email"
                     type="email"
                     autoComplete="email"
                     required
                     autoFocus
-                    className="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 outline-none transition focus:border-black dark:border-gray-700 dark:focus:border-white"
                     placeholder="you@example.com"
                 />
             </div>
 
-            <div>
-                <label htmlFor="password" className="mb-2 block text-sm font-medium">
-                    Password
-                </label>
-                <input
+            <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
                     id="password"
                     name="password"
                     type="password"
                     autoComplete="current-password"
                     required
                     minLength={8}
-                    className="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 outline-none transition focus:border-black dark:border-gray-700 dark:focus:border-white"
                     placeholder="Enter your password"
                 />
             </div>
 
             {error && (
-                <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">
-                    {error}
-                </p>
+                <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
             )}
 
-            <button
+            <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-xl bg-black px-4 py-3 font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                className="w-full"
             >
                 {isSubmitting ? "Signing in..." : "Sign in"}
-            </button>
+            </Button>
         </form>
     );
 }

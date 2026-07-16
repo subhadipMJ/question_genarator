@@ -2,8 +2,10 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import OrganizationForm from "./organization-form";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Create Organization | Question Generator" };
+export const metadata = { title: "Create Organization | QMaster" };
 
 export default async function CreateOrganizationPage() {
     const cookieStore = await cookies();
@@ -12,15 +14,13 @@ export default async function CreateOrganizationPage() {
     if (cookieStore.get("user_role")?.value !== "0") redirect("/dashboard");
 
     return (
-        <main className="min-h-screen bg-gray-50 px-6 py-12 dark:bg-gray-950">
+        <main className="px-6 py-12">
             <div className="mx-auto max-w-2xl">
-                <Link href="/super-admin" className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">← Back to super admin</Link>
-                <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-8">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Super Admin</p>
-                    <h1 className="mt-2 text-3xl font-bold">Create organization</h1>
-                    <p className="mt-2 mb-8 text-gray-600 dark:text-gray-400">Set up an organization and its first administrator account.</p>
-                    <OrganizationForm />
-                </div>
+                <Button variant="ghost" render={<Link href="/super-admin" />}>← Back to super admin</Button>
+                <Card className="mt-4">
+                    <CardHeader><CardDescription>Super Admin</CardDescription><CardTitle className="text-3xl">Create organization</CardTitle><CardDescription>Set up an organization and its first administrator account.</CardDescription></CardHeader>
+                    <CardContent><OrganizationForm /></CardContent>
+                </Card>
             </div>
         </main>
     );

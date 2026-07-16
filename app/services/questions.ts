@@ -21,6 +21,8 @@ export type CreateQuestionInput = {
     is_active: boolean;
 };
 
+export type UpdateQuestionInput = Partial<CreateQuestionInput>;
+
 export async function getAllQuestions(): Promise<Question[]> {
     const apiUrl = getQuestionsApiUrl();
 
@@ -36,6 +38,15 @@ export async function getAllQuestions(): Promise<Question[]> {
     return response.json();
 }
 
+export async function getQuestion(questionId: number): Promise<Question> {
+    const response = await fetch(getQuestionApiUrl(questionId), {
+        headers: await getAuthorizationHeaders(),
+        cache: "no-store",
+    });
+
+    return readApiResponse(response, "Failed to fetch question");
+}
+
 export async function createQuestion(data: CreateQuestionInput): Promise<Question> {
     const response = await fetch(getQuestionsApiUrl(), {
         method: "POST",
@@ -44,6 +55,19 @@ export async function createQuestion(data: CreateQuestionInput): Promise<Questio
     });
 
     return readApiResponse(response, "Failed to create question");
+}
+
+export async function updateQuestion(
+    questionId: number,
+    data: UpdateQuestionInput,
+): Promise<Question> {
+    const response = await fetch(getQuestionApiUrl(questionId), {
+        method: "PATCH",
+        headers: await getAuthorizationHeaders(true),
+        body: JSON.stringify(data),
+    });
+
+    return readApiResponse(response, "Failed to update question");
 }
 
 export async function createQuestionOption(
@@ -75,6 +99,10 @@ async function getAuthorizationHeaders(includeJson = false): Promise<HeadersInit
 
 function getQuestionsApiUrl() {
     return getApiUrl("questions/");
+}
+
+function getQuestionApiUrl(questionId: number) {
+    return new URL(`${questionId}/`, getQuestionsApiUrl());
 }
 
 async function readApiResponse<T>(

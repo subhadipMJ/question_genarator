@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -16,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Question Generator",
-  description: "Create and manage questions",
+  title: "QMaster",
+  description: "The Smart Assessment Platform.",
 };
 
 export default async function RootLayout({
@@ -34,40 +37,47 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         {isAuthenticated && (
-          <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur dark:border-gray-800 dark:bg-gray-950/95">
+          <header className="bg-background/95 sticky top-0 z-50 border-b backdrop-blur">
             <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-6 px-6 py-3">
               <Link href="/dashboard" className="min-w-0">
-                <span className="block truncate text-lg font-bold text-gray-950 dark:text-white">
+                <span className="block truncate text-lg font-bold">
                   {headerName}
                 </span>
                 {role !== "0" && (
-                  <span className="block text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {role === "1" ? "Admin" : role === "2" ? "Teacher" : "Question Generator"}
+                  <span className="text-muted-foreground block text-xs font-medium uppercase tracking-wider">
+                    {role === "1" ? "Admin" : role === "2" ? "Teacher" : "QMaster"}
                   </span>
                 )}
               </Link>
 
               <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-3">
-                <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-800">
-                  Dashboard
-                </Link>
-                <Link href="/questions" className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-800">
-                  Questions
-                </Link>
+                <Button variant="ghost" render={<Link href="/dashboard" />}>Dashboard</Button>
+                <Button variant="ghost" render={<Link href="/questions" />}>Questions</Button>
+                <ModeToggle />
                 <form action="/api/auth/logout" method="post">
-                  <button className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800">
-                    Log out
-                  </button>
+                  <Button variant="outline" type="submit">Log out</Button>
                 </form>
               </nav>
             </div>
           </header>
         )}
-        {children}
+        <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-3">
+          {children}
+        </div>
+        {/* //footer  */}
+
+        <footer className="mt-1 h-5 px-2 sticky bottom-0">
+          <p className="text-muted-foreground text-right text-sm">
+            &copy; QMaster - The Smart Assessment Platform
+          </p>
+        </footer>
+        </ThemeProvider>
       </body>
     </html>
   );
