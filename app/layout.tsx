@@ -6,6 +6,19 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import { ChevronDown, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import "./globals.css";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -42,48 +55,87 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <Toaster position="top-right" richColors closeButton />
-        {isAuthenticated && (
-          <header className="bg-background/95 sticky top-0 z-50 border-b backdrop-blur">
-            <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-6 px-6 py-3">
-              <Link href="/dashboard" className="min-w-0">
-                <span className="block truncate text-lg font-bold">
-                  {headerName}
-                </span>
-                {role !== "0" && (
-                  <span className="text-muted-foreground block text-xs font-medium uppercase tracking-wider">
-                    {role === "1" ? "Admin" : role === "2" ? "Teacher" : "QMaster"}
-                  </span>
-                )}
-              </Link>
+          <TooltipProvider>
+            <Toaster position="top-right" richColors closeButton />
+            {isAuthenticated ? (
+              <SidebarProvider>
+                <AppSidebar role={role ?? ""} userName={userName ?? "User"} organizationName={organizationName} />
+                <div className="flex flex-col flex-1 h-screen overflow-y-auto overflow-x-hidden">
+                  <header className="bg-background/95 sticky top-0 z-40 border-b backdrop-blur flex h-16 shrink-0 items-center justify-between gap-2 px-6">
+                    <div className="flex items-center gap-2 justify-center">
+                      <SidebarTrigger />
+                      <span className="text-sm font-semibold truncate max-w-[200px] sm:max-w-none">
+                        {headerName} -<span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider hidden sm:inline-block   ml-1">{role === "1" ? "Admin" : role === "2" ? "Teacher" : "Student"}</span>
+                      </span>
 
-              <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-3">
-                <Button variant="ghost" nativeButton={false} render={<Link href="/dashboard" />}>Dashboard</Button>
-                {role !== "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/questions" />}>Questions</Button>}
-                {role !== "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/topics" />}>Topics</Button>}
-                {role !== "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/test-series" />}>Test series</Button>}
-                {role === "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/student/tests" />}>Tests</Button>}
-                {role === "3" && <Button variant="ghost" nativeButton={false} render={<Link href="/student/history" />}>History</Button>}
-                <ModeToggle />
-                <form action="/api/auth/logout" method="post">
-                  <Button variant="outline" type="submit">Log out</Button>
-                </form>
-              </nav>
-            </div>
-          </header>
-        )}
-        <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-3">
-          {children}
-        </div>
-        {/* //footer  */}
-
-        <footer className="mt-1 h-5 px-2 sticky bottom-0">
-          <p className="text-muted-foreground text-right text-sm">
-            &copy; QMaster - The Smart Assessment Platform
-          </p>
-        </footer>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <ModeToggle />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity outline-none bg-transparent border-0 p-0">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground font-semibold shadow-xs shrink-0">
+                            {userName ? userName.charAt(0).toUpperCase() : "U"}
+                          </div>
+                          {/* <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block shrink-0" /> */}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          side="bottom"
+                          align="end"
+                          className="w-56 p-1 bg-popover text-popover-foreground rounded-lg border border-border shadow-md"
+                        >
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            My Account
+                          </div>
+                          <div className="px-2 py-1.5 border-b border-border mb-1">
+                            <p className="text-xs font-semibold text-foreground truncate">{userName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {role === "0"
+                                ? "Super Admin"
+                                : role === "1"
+                                  ? "Admin"
+                                  : role === "2"
+                                    ? "Teacher"
+                                    : role === "3"
+                                      ? "Student"
+                                      : "User"}
+                            </p>
+                          </div>
+                          <form action="/api/auth/logout" method="post" className="w-full">
+                            <button
+                              type="submit"
+                              className="w-full cursor-pointer flex items-center gap-2 px-1.5 py-1 text-sm text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive dark:focus:bg-destructive/20 rounded-md bg-transparent border-0 text-left outline-none"
+                            >
+                              <LogOut className="h-4 w-4 shrink-0" />
+                              <span>Log out</span>
+                            </button>
+                          </form>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </header>
+                  <main className="flex-1 p-6">
+                    {children}
+                  </main>
+                  <footer className="bg-background/95 sticky bottom-0 z-40 border-t backdrop-blur flex h-10 px-6 items-center justify-between shrink-0">
+                    <p className="text-muted-foreground text-xs">
+                      QMaster - The Smart Assessment Platform
+                    </p>
+                    {/* <p className="text-muted-foreground text-xs">
+                      &copy; {new Date().getFullYear()}
+                    </p> */}
+                  </footer>
+                </div>
+              </SidebarProvider>
+            ) : (
+              <div className="flex-1 min-h-screen flex flex-col">
+                <main className="flex-1">
+                  {children}
+                </main>
+              </div>
+            )}
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
