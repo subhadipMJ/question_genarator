@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
 import { toast } from "sonner";
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ type AttemptQuestion = {
     marks: string;
     options: AttemptOption[];
     selected_option_id: number | null;
+    correct_option_id?: number | null;
 };
 
 export type Attempt = {
@@ -207,31 +209,53 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                                 {q.options.map((opt) => {
                                     const isSelected = q.selected_option_id === opt.id;
                                     const isDisabled = !isActive || isSaving;
+                                    const isSubmitted = attempt.status === "submitted" || attempt.status === "expired";
+                                    const isCorrect = q.correct_option_id === opt.id;
+
+                                    let containerClasses = "flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors";
+                                    
+                                    if (isSubmitted) {
+                                        containerClasses += " cursor-default";
+                                        if (isCorrect) {
+                                            containerClasses += " border-emerald-500 bg-emerald-500/5 font-medium dark:bg-emerald-950/20";
+                                        } else if (isSelected) {
+                                            containerClasses += " border-destructive bg-destructive/5 dark:bg-destructive/10";
+                                        } else {
+                                            containerClasses += " border-border opacity-60";
+                                        }
+                                    } else {
+                                        containerClasses += isDisabled ? " cursor-not-allowed opacity-60" : " cursor-pointer hover:bg-muted/50";
+                                        containerClasses += isSelected ? " border-primary bg-primary/5 font-medium" : " border-border";
+                                    }
 
                                     return (
                                         <label
                                             key={opt.id}
-                                            htmlFor={`opt-${q.id}-${opt.id}`}
-                                            className={[
-                                                "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors",
-                                                isDisabled ? "cursor-not-allowed opacity-60" : "hover:bg-muted/50",
-                                                isSelected
-                                                    ? "border-primary bg-primary/5 font-medium"
-                                                    : "border-border",
-                                            ].join(" ")}
+                                            htmlFor={isSubmitted ? undefined : `opt-${q.id}-${opt.id}`}
+                                            className={containerClasses}
                                         >
-                                            <input
-                                                id={`opt-${q.id}-${opt.id}`}
-                                                type="radio"
-                                                name={`question-${q.id}`}
-                                                value={String(opt.id)}
-                                                checked={isSelected}
-                                                disabled={isDisabled}
-                                                onChange={() => {
-                                                    if (!isDisabled) handleAnswer(q.id, opt.id);
-                                                }}
-                                                className="h-4 w-4 shrink-0 accent-primary"
-                                            />
+                                            {isSubmitted ? (
+                                                isCorrect ? (
+                                                    <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
+                                                ) : isSelected ? (
+                                                    <X className="h-4 w-4 text-destructive shrink-0 font-bold" />
+                                                ) : (
+                                                    <div className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                                )
+                                            ) : (
+                                                <input
+                                                    id={`opt-${q.id}-${opt.id}`}
+                                                    type="radio"
+                                                    name={`question-${q.id}`}
+                                                    value={String(opt.id)}
+                                                    checked={isSelected}
+                                                    disabled={isDisabled}
+                                                    onChange={() => {
+                                                        if (!isDisabled) handleAnswer(q.id, opt.id);
+                                                    }}
+                                                    className="h-4 w-4 shrink-0 accent-primary"
+                                                />
+                                            )}
                                             <span
                                                 dangerouslySetInnerHTML={{
                                                     __html: sanitizeHtml(opt.ans, {
@@ -239,6 +263,16 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                                                     }),
                                                 }}
                                             />
+                                            {isSubmitted && isCorrect && (
+                                                <Badge variant="outline" className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                                    {isSelected ? "Correct (Selected)" : "Correct Option"}
+                                                </Badge>
+                                            )}
+                                            {isSubmitted && !isCorrect && isSelected && (
+                                                <Badge variant="outline" className="ml-auto border-destructive/30 bg-destructive/10 text-destructive">
+                                                    Incorrect Selection
+                                                </Badge>
+                                            )}
                                         </label>
                                     );
                                 })}
