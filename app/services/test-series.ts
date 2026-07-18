@@ -50,3 +50,22 @@ export async function getTestSeries(seriesId: number): Promise<TestSeries> {
     if (!response.ok) throw new Error(`Failed to fetch test series: ${response.status}`);
     return response.json();
 }
+
+export type TestSeriesUpdate = {
+    name?: string;
+    access_type?: "public" | "invite_only";
+    valid_until?: string;
+    duration_seconds?: number;
+    question_ids?: number[];
+    is_active?: boolean;
+};
+
+export async function updateTestSeries(seriesId: number, data: TestSeriesUpdate): Promise<TestSeries> {
+    const response = await fetch(getApiUrl(`test-series/${seriesId}`), {
+        method: "PATCH",
+        headers: await getAuthHeaders(true),
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(`Failed to update test series: ${response.status}`);
+    return response.json();
+}

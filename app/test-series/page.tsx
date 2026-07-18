@@ -37,7 +37,14 @@ export default async function TestSeriesPage() {
 
     return (
         <main className="p-6">
-            <TestSeriesManager initialSeries={series} questions={questions} topics={topics} />
+            <TestSeriesManager
+                initialSeries={series}
+                questions={questions}
+                topics={topics}
+                userId={userId}
+                userRole={role}
+                userOrgId={organizationId}
+            />
         </main>
     );
 }

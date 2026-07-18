@@ -58,7 +58,17 @@ function StatPill({ label, value }: { label: string; value: string | number }) {
     );
 }
 
-function SeriesCard({ s, origin }: { s: TestSeries; origin: string }) {
+function SeriesCard({
+    s,
+    origin,
+    canEdit,
+    onEdit,
+}: {
+    s: TestSeries;
+    origin: string;
+    canEdit: boolean;
+    onEdit: () => void;
+}) {
     const expired = new Date(s.valid_until) < new Date();
     return (
         <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
@@ -72,18 +82,30 @@ function SeriesCard({ s, origin }: { s: TestSeries; origin: string }) {
                         {s.question_ids.length} question{s.question_ids.length !== 1 ? "s" : ""} ·{" "}
                         {formatDuration(s.duration_seconds)} · {formatExpiry(s.valid_until)}
                     </p>
-                    {s.invite_token && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                navigator.clipboard.writeText(`${origin}/student/join#token=${s.invite_token}`);
-                                toast.success("Invite link copied!");
-                            }}
-                            className="mt-2 text-xs text-primary underline underline-offset-2 hover:no-underline"
-                        >
-                            Copy invite link
-                        </button>
-                    )}
+                    <div className="mt-2 flex items-center gap-3">
+                        {s.invite_token && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`${origin}/student/join#token=${s.invite_token}`);
+                                    toast.success("Invite link copied!");
+                                }}
+                                className="text-xs text-primary underline underline-offset-2 hover:no-underline"
+                            >
+                                Copy invite link
+                            </button>
+                        )}
+                        {s.invite_token && canEdit && <span className="text-muted-foreground text-xs">·</span>}
+                        {canEdit && (
+                            <button
+                                type="button"
+                                onClick={onEdit}
+                                className="text-xs text-primary underline underline-offset-2 hover:no-underline"
+                            >
+                                Edit
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-2">
@@ -106,14 +128,29 @@ function SeriesCard({ s, origin }: { s: TestSeries; origin: string }) {
 
 // ─── main component ───────────────────────────────────────────────────────────
 
+function formatDateTimeLocal(isoString?: string): string {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "";
+    // Offset to local time
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function TestSeriesManager({
     initialSeries,
     questions,
     topics = [],
+    userId,
+    userRole,
+    userOrgId,
 }: {
     initialSeries: TestSeries[];
     questions: Question[];
     topics?: Topic[];
+    userId: number;
+    userRole?: string;
+    userOrgId?: number;
 }) {
     const [series, setSeries] = useState(initialSeries);
     const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -122,6 +159,18 @@ export default function TestSeriesManager({
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(null);
     const [origin, setOrigin] = useState("");
+    const [editingSeries, setEditingSeries] = useState<TestSeries | null>(null);
+
+    function handleEdit(s: TestSeries) {
+        setEditingSeries(s);
+        setSelected(new Set(s.question_ids));
+        setNewInviteToken(null);
+    }
+
+    function cancelEdit() {
+        setEditingSeries(null);
+        setSelected(new Set());
+    }
 
     // get origin only on client
     useMemo(() => {
@@ -180,8 +229,13 @@ export default function TestSeriesManager({
 
         setBusy(true);
         try {
-            const res = await fetch("/api/backend/test-series/", {
-                method: "POST",
+            const url = editingSeries
+                ? `/api/backend/test-series/${editingSeries.id}`
+                : "/api/backend/test-series/";
+            const method = editingSeries ? "PATCH" : "POST";
+
+            const res = await fetch(url, {
+                method: method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: String(f.get("name") ?? "").trim(),
@@ -195,13 +249,20 @@ export default function TestSeriesManager({
             const data = await res.json().catch(() => null);
             if (!res.ok) throw new Error(getApiError(data, res.status));
 
-            setSeries((prev) => [data as TestSeries, ...prev]);
-            setNewInviteToken((data as TestSeries).invite_token ?? null);
+            if (editingSeries) {
+                setSeries((prev) => prev.map((s) => (s.id === editingSeries.id ? (data as TestSeries) : s)));
+                setNewInviteToken((data as TestSeries).invite_token ?? null);
+                setEditingSeries(null);
+                toast.success("Test series updated!");
+            } else {
+                setSeries((prev) => [data as TestSeries, ...prev]);
+                setNewInviteToken((data as TestSeries).invite_token ?? null);
+                toast.success("Test series created!");
+            }
             setSelected(new Set());
             (e.target as HTMLFormElement).reset();
-            toast.success("Test series created!");
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Unable to create test series.");
+            toast.error(err instanceof Error ? err.message : `Unable to ${editingSeries ? "update" : "create"} test series.`);
         } finally {
             setBusy(false);
         }
@@ -231,11 +292,19 @@ export default function TestSeriesManager({
             {/* ── Create Form ── */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Create a new test series</CardTitle>
-                    <CardDescription>Configure the details, then pick questions from the list below.</CardDescription>
+                    <CardTitle>{editingSeries ? "Edit test series" : "Create a new test series"}</CardTitle>
+                    <CardDescription>
+                        {editingSeries
+                            ? `Modify the details and questions for "${editingSeries.name}"`
+                            : "Configure the details, then pick questions from the list below."}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form
+                        key={editingSeries ? `edit-${editingSeries.id}` : "create"}
+                        onSubmit={handleSubmit}
+                        className="space-y-6"
+                    >
                         {/* Row 1: name + access type */}
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-1.5">
@@ -246,6 +315,7 @@ export default function TestSeriesManager({
                                     placeholder="e.g. Physics Mock Test 1"
                                     required
                                     autoComplete="off"
+                                    defaultValue={editingSeries?.name ?? ""}
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -254,6 +324,7 @@ export default function TestSeriesManager({
                                     id="ts-access"
                                     name="access_type"
                                     className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    defaultValue={editingSeries?.access_type ?? "invite_only"}
                                 >
                                     <option value="public">Public — anyone can start</option>
                                     <option value="invite_only">Invite only — share a link</option>
@@ -270,6 +341,7 @@ export default function TestSeriesManager({
                                     name="valid_until"
                                     type="datetime-local"
                                     required
+                                    defaultValue={formatDateTimeLocal(editingSeries?.valid_until)}
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -281,6 +353,11 @@ export default function TestSeriesManager({
                                     min="1"
                                     placeholder="e.g. 60"
                                     required
+                                    defaultValue={
+                                        editingSeries
+                                            ? Math.round(editingSeries.duration_seconds / 60)
+                                            : ""
+                                    }
                                 />
                             </div>
                         </div>
@@ -404,13 +481,31 @@ export default function TestSeriesManager({
                             )}
                         </div>
 
-                        <Button
-                            type="submit"
-                            disabled={busy || questions.length === 0}
-                            className="w-full sm:w-auto"
-                        >
-                            {busy ? "Creating…" : "Create test series"}
-                        </Button>
+                        <div className="flex flex-wrap gap-3">
+                            <Button
+                                type="submit"
+                                disabled={busy || questions.length === 0}
+                                className="w-full sm:w-auto"
+                            >
+                                {busy
+                                    ? editingSeries
+                                        ? "Saving…"
+                                        : "Creating…"
+                                    : editingSeries
+                                    ? "Save changes"
+                                    : "Create test series"}
+                            </Button>
+                            {editingSeries && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={cancelEdit}
+                                    className="w-full sm:w-auto"
+                                >
+                                    Cancel
+                                </Button>
+                            )}
+                        </div>
                     </form>
 
                     {/* Invite link banner */}
@@ -455,9 +550,21 @@ export default function TestSeriesManager({
                     </div>
                 ) : (
                     <div className="grid gap-3">
-                        {series.map((s) => (
-                            <SeriesCard key={s.id} s={s} origin={origin} />
-                        ))}
+                        {series.map((s) => {
+                            const canEdit =
+                                (userRole === "0" && s.org_id === 0) ||
+                                (userRole === "1" && s.org_id === userOrgId) ||
+                                s.created_by === userId;
+                            return (
+                                <SeriesCard
+                                    key={s.id}
+                                    s={s}
+                                    origin={origin}
+                                    canEdit={canEdit}
+                                    onEdit={() => handleEdit(s)}
+                                />
+                            );
+                        })}
                     </div>
                 )}
             </section>
