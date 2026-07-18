@@ -20,11 +20,14 @@ function formatDuration(seconds: number) {
 export default function StudentTests({
     tests,
     history,
+    organizations = {},
 }: {
     tests: AvailableTest[];
     history: AttemptSummary[];
+    organizations?: Record<number, string>;
 }) {
     const [busy, setBusy] = useState<number | null>(null);
+    const [pendingTestId, setPendingTestId] = useState<number | null>(null);
     const router = useRouter();
 
     // Build a map: series_id → most recent attempt
@@ -37,6 +40,11 @@ export default function StudentTests({
         }
     }
 
+    const availableTests = tests.filter((t) => {
+        const existingAttempt = attemptBySeriesId.get(t.id);
+        return !existingAttempt || existingAttempt.status === "in_progress";
+    });
+
     async function start(seriesId: number) {
         // Check if there's already an in-progress attempt — just redirect
         const existing = attemptBySeriesId.get(seriesId);
@@ -45,7 +53,7 @@ export default function StudentTests({
             return;
         }
 
-        if (!confirm("Start this test now? The timer begins immediately.")) return;
+        setPendingTestId(null);
         setBusy(seriesId);
         try {
             const res = await fetch("/api/backend/student/test-series/start", {
@@ -81,7 +89,7 @@ export default function StudentTests({
         }
     }
 
-    if (tests.length === 0) {
+    if (availableTests.length === 0) {
         return (
             <div className="mx-auto max-w-4xl">
                 <h1 className="mb-6 text-3xl font-bold tracking-tight">Available tests</h1>
@@ -91,15 +99,42 @@ export default function StudentTests({
     }
 
     return (
-        <div className="mx-auto max-w-4xl space-y-6">
+        <>
+        {pendingTestId !== null && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+                <Card className="w-full max-w-md shadow-2xl">
+                    <CardHeader>
+                        <CardTitle>Start this test now?</CardTitle>
+                        <CardDescription>
+                            The timer begins immediately after you start the test.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setPendingTestId(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button className="flex-1" onClick={() => start(pendingTestId)}>
+                            Start test
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
+
+        <div className="mx-auto max-w-7xl space-y-6">
             <h1 className="text-3xl font-bold tracking-tight">Available tests</h1>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                {tests.map((t) => {
+            <div className="grid gap-4 sm:grid-cols-3">
+                {availableTests.map((t) => {
                     const existingAttempt = attemptBySeriesId.get(t.id);
                     const isInProgress = existingAttempt?.status === "in_progress";
                     const isSubmitted = existingAttempt?.status === "submitted";
                     const isExpired = new Date(t.valid_until) < new Date();
+                    const orgName = t.org_id === 0 ? "QMaster" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
 
                     return (
                         <Card key={t.id} className="relative overflow-hidden">
@@ -137,7 +172,8 @@ export default function StudentTests({
                                 </div>
                                 <CardDescription>
                                     {t.question_count} question{t.question_count !== 1 ? "s" : ""} ·{" "}
-                                    {formatDuration(t.duration_seconds)}
+                                    {formatDuration(t.duration_seconds)} ·{" "}
+                                    <span className="font-semibold text-primary">{orgName}</span>
                                 </CardDescription>
                             </CardHeader>
 
@@ -172,7 +208,7 @@ export default function StudentTests({
                                     <Button
                                         className="w-full"
                                         disabled={busy === t.id || isExpired}
-                                        onClick={() => start(t.id)}
+                                        onClick={() => setPendingTestId(t.id)}
                                     >
                                         {busy === t.id ? "Starting…" : isExpired ? "Expired" : "Start test"}
                                     </Button>
@@ -183,5 +219,6 @@ export default function StudentTests({
                 })}
             </div>
         </div>
+        </>
     );
 }

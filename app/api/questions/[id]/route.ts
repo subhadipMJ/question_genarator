@@ -10,6 +10,7 @@ type UpdateQuestionRequest = {
     question?: string;
     marks?: string | number;
     is_active?: boolean;
+    topic_id?: number | null;
     options?: Array<{ ans: string; is_correct: boolean }>;
 };
 
@@ -56,6 +57,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             question: body.question,
             marks: String(body.marks),
             is_active: body.is_active,
+            topic_id: body.topic_id,
             options,
         });
 

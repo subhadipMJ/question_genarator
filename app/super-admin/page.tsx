@@ -47,10 +47,12 @@ export default async function SuperAdminPage() {
                     </form>
                 </div>
 
-                <section className="mb-8 grid gap-4 sm:grid-cols-3">
+                <section className="mb-8 grid gap-4 sm:grid-cols-4">
                     <Card className="transition-colors hover:bg-accent/50"><Link href="/questions"><CardHeader><CardTitle>Manage questions</CardTitle><CardDescription>View existing questions and create new ones.</CardDescription></CardHeader></Link></Card>
 
                     <Card className="transition-colors hover:bg-accent/50"><Link href="/organizations/create"><CardHeader><CardTitle>Create organization</CardTitle><CardDescription>Add an organization and its first administrator.</CardDescription></CardHeader></Link></Card>
+
+                    <Card className="transition-colors hover:bg-accent/50"><Link href="/super-admin/send-mail"><CardHeader><CardTitle>Send email</CardTitle><CardDescription>Compose and send emails to any user or address.</CardDescription></CardHeader></Link></Card>
 
                     <Card><CardHeader><CardTitle>Manage users</CardTitle><CardDescription>{users.length} registered {users.length === 1 ? "user" : "users"}.</CardDescription></CardHeader></Card>
                 </section>

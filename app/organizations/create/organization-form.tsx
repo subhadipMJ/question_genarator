@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -8,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
 export default function OrganizationForm() {
+    const router = useRouter();
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +35,6 @@ export default function OrganizationForm() {
                     admin: {
                         name: formData.get("adminName"),
                         email: formData.get("adminEmail"),
-                        password: formData.get("adminPassword"),
                     },
                 }),
             });
@@ -75,15 +77,19 @@ export default function OrganizationForm() {
                 <Field label="Email address" htmlFor="adminEmail">
                     <Input id="adminEmail" name="adminEmail" type="email" required autoComplete="email" placeholder="admin@example.com" />
                 </Field>
-                <div className="sm:col-span-2">
-                    <Field label="Temporary password" htmlFor="adminPassword">
-                        <Input id="adminPassword" name="adminPassword" type="password" required minLength={8} autoComplete="new-password" placeholder="At least 8 characters" />
-                    </Field>
-                </div>
             </fieldset>
 
             {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-            {success && <Alert><AlertDescription>{success}</AlertDescription></Alert>}
+            {success && (
+                <div className="space-y-4">
+                    <Alert><AlertDescription>{success}</AlertDescription></Alert>
+                    <div className="flex gap-3">
+                        <Button type="button" variant="outline" nativeButton={false} render={<Link href="/super-admin" />}>
+                            Return to Super Admin
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting ? "Creating organization..." : "Create organization and admin"}

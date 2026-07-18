@@ -59,6 +59,34 @@ const EXAMPLE_JSON = JSON.stringify(
     2,
 );
 
+const AI_PROMPT_TEMPLATE = `Generate a JSON array of multiple-choice questions for an online assessment in the exact format specified below.
+Each question must be an object with the following schema:
+- question: string (can contain basic HTML tags like <p>, <strong>, <sub>, <sup> for scientific/math formatting)
+- marks: number (e.g., 1 or 2)
+- is_active: true
+- topic_id: number | null (the database ID of the topic, or null if not applicable)
+- options: an array of exactly 4 options. Each option must have:
+  - ans: string (the text of the answer option)
+  - is_correct: boolean (exactly one option in the array must be true, the other three must be false)
+
+Example Format:
+[
+  {
+    "question": "<p>What is the chemical formula for water?</p>",
+    "marks": 1,
+    "is_active": true,
+    "topic_id": 1,
+    "options": [
+      { "ans": "H2O", "is_correct": true },
+      { "ans": "CO2", "is_correct": false },
+      { "ans": "O2", "is_correct": false },
+      { "ans": "H2", "is_correct": false }
+    ]
+  }
+]
+
+Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. Do not write any markdown code blocks, explanation text, or introductions.`;
+
 function makeBlankQuestion(): QuestionDraft {
     return {
         id: crypto.randomUUID(),
@@ -395,6 +423,11 @@ export default function BulkUploader({ topics = [] }: { topics?: Topic[] }) {
         }
     }
 
+    function copyAiPrompt() {
+        navigator.clipboard.writeText(AI_PROMPT_TEMPLATE);
+        toast.success("AI Prompt template copied to clipboard! Paste it into ChatGPT.");
+    }
+
     const errorMap = new Map(validationErrors.map((e) => [e.index, e.message]));
 
     return (
@@ -505,6 +538,13 @@ export default function BulkUploader({ topics = [] }: { topics?: Topic[] }) {
                                 onClick={() => setJsonText(EXAMPLE_JSON)}
                             >
                                 Load example
+                            </Button>
+                            <Button
+                                id="btn-copy-prompt"
+                                variant="outline"
+                                onClick={copyAiPrompt}
+                            >
+                                Copy AI Prompt
                             </Button>
                         </div>
                     </CardContent>

@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import { cookies } from "next/headers";
-import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { ChevronDown, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import "./globals.css";
@@ -62,8 +56,8 @@ export default async function RootLayout({
             {isAuthenticated ? (
               <SidebarProvider>
                 <AppSidebar role={role ?? ""} userName={userName ?? "User"} organizationName={organizationName} />
-                <div className="flex flex-col flex-1 h-screen overflow-y-auto overflow-x-hidden">
-                  <header className="bg-background/95 sticky top-0 z-40 border-b backdrop-blur flex h-16 shrink-0 items-center justify-between gap-2 px-6">
+                <div data-app-shell="content" className="flex flex-col flex-1 h-screen overflow-y-auto overflow-x-hidden">
+                  <header data-app-shell="header" className="bg-background/95 sticky top-0 z-40 border-b backdrop-blur flex h-16 shrink-0 items-center justify-between gap-2 px-6">
                     <div className="flex items-center gap-2 justify-center">
                       <SidebarTrigger />
                       <span className="text-sm font-semibold truncate max-w-[200px] sm:max-w-none">
@@ -115,10 +109,10 @@ export default async function RootLayout({
                       </DropdownMenu>
                     </div>
                   </header>
-                  <main className="flex-1 p-6">
+                  <main data-app-shell="main" className="flex-1 p-6">
                     {children}
                   </main>
-                  <footer className="bg-background/95 sticky bottom-0 z-40 border-t backdrop-blur flex h-10 px-6 items-center justify-between shrink-0">
+                  <footer data-app-shell="footer" className="bg-background/95 sticky bottom-0 z-40 border-t backdrop-blur flex h-10 px-6 items-center justify-between shrink-0">
                     <p className="text-muted-foreground text-xs">
                       QMaster - The Smart Assessment Platform
                     </p>

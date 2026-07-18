@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Sparkles,
   Settings,
+  Mail,
 } from "lucide-react";
 
 import {
@@ -57,6 +58,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             title: "Create Org",
             href: "/organizations/create",
             icon: PlusCircle,
+          },
+          {
+            title: "Send Email",
+            href: "/super-admin/send-mail",
+            icon: Mail,
           },
         ];
       case "1": // Admin

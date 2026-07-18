@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -62,7 +61,13 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
     const [now, setNow] = useState(() => Date.now());
     const [savingId, setSavingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [instructionsOpen, setInstructionsOpen] = useState(initialAttempt.status === "in_progress");
+    const [tabSwitchCount, setTabSwitchCount] = useState(0);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [submitModalOpen, setSubmitModalOpen] = useState(false);
     const router = useRouter();
+    const tabWasHiddenRef = useRef(false);
+    const fullscreenSubmitStartedRef = useRef(false);
 
     // Track whether the timer was ever > 0 in this session.
     // This prevents auto-submit firing immediately when the attempt
@@ -78,6 +83,42 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
     const expiresAt = safeParseUTC(attempt.expires_at);
     const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
     const isActive = attempt.status === "in_progress" && remaining > 0;
+
+    useEffect(() => {
+        if (!isActive || instructionsOpen) return;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "hidden") {
+                tabWasHiddenRef.current = true;
+                return;
+            }
+
+            if (tabWasHiddenRef.current) {
+                tabWasHiddenRef.current = false;
+                setTabSwitchCount((count) => count + 1);
+                toast.warning("Tab switching is not allowed during the test.");
+            }
+        };
+
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && !fullscreenSubmitStartedRef.current) {
+                document.documentElement.classList.remove("exam-fullscreen");
+                fullscreenSubmitStartedRef.current = true;
+                toast.error("Fullscreen exited. Your test is being submitted automatically.");
+                void handleSubmit(true);
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            document.removeEventListener("fullscreenchange", handleFullscreenChange);
+            document.documentElement.classList.remove("exam-fullscreen");
+        };
+        // handleSubmit intentionally uses the latest attempt state from this render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [instructionsOpen, isActive]);
 
     // Record that we've seen remaining > 0 at least once
     if (remaining > 0) hadTimeRef.current = true;
@@ -124,7 +165,11 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
     );
 
     async function handleSubmit(auto = false) {
-        if (!auto && !confirm("Submit this attempt? Answers cannot be changed afterward.")) return;
+        if (!auto) {
+            setSubmitModalOpen(true);
+            return;
+        }
+        setSubmitModalOpen(false);
         setSubmitting(true);
         try {
             const res = await fetch(`/api/backend/student/attempts/${attempt.id}/submit`, {
@@ -133,6 +178,11 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
             const data = await res.json().catch(() => null);
             if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Unable to submit.");
             setAttempt(data as Attempt);
+            fullscreenSubmitStartedRef.current = true;
+            if (document.fullscreenElement) {
+                await document.exitFullscreen().catch(() => undefined);
+            }
+            document.documentElement.classList.remove("exam-fullscreen");
             toast.success("Test submitted!");
             router.refresh();
         } catch (err) {
@@ -143,9 +193,87 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
     }
 
     const answeredCount = attempt.questions.filter((q) => q.selected_option_id !== null).length;
+    const currentQuestion = attempt.questions[currentQuestionIndex];
+
+    async function enterTest() {
+        try {
+            if (!document.fullscreenElement) {
+                document.documentElement.classList.add("exam-fullscreen");
+                await document.documentElement.requestFullscreen();
+            }
+            fullscreenSubmitStartedRef.current = false;
+            setInstructionsOpen(false);
+        } catch {
+            document.documentElement.classList.remove("exam-fullscreen");
+            toast.error("Fullscreen permission is required to start the test.");
+        }
+    }
 
     return (
-        <div className="mx-auto max-w-3xl space-y-5 pb-24">
+        <>
+            {instructionsOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg border-primary/20 shadow-2xl">
+                        <CardHeader>
+                            <CardTitle className="text-2xl">Before you begin</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-3 text-sm">
+                                <div className="rounded-lg border bg-muted/40 p-4">
+                                    <p className="font-semibold">You will enter fullscreen mode</p>
+                                    <p className="mt-1 text-muted-foreground">Remain in fullscreen until you submit the test.</p>
+                                </div>
+                                <div className="rounded-lg border bg-muted/40 p-4">
+                                    <p className="font-semibold">Do not switch tabs or windows</p>
+                                    <p className="mt-1 text-muted-foreground">Leaving this test screen will be detected and recorded.</p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                The test timer is already running. Click below when you are ready.
+                            </p>
+                            <Button className="w-full" size="lg" onClick={enterTest}>
+                                Start in fullscreen
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {submitModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+                    <Card className="w-full max-w-md shadow-2xl">
+                        <CardHeader>
+                            <CardTitle>Submit this test?</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <p className="text-sm text-muted-foreground">
+                                You answered {answeredCount} of {attempt.questions.length} questions. Answers cannot be changed after submission.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setSubmitModalOpen(false)}
+                                    disabled={submitting}
+                                >
+                                    Continue test
+                                </Button>
+                                <Button className="flex-1" onClick={() => handleSubmit(true)} disabled={submitting}>
+                                    {submitting ? "Submitting…" : "Submit test"}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            <div className="mx-auto max-w-3xl space-y-5 pb-24">
+
+            {tabSwitchCount > 0 && isActive && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    Warning: tab or window switching detected {tabSwitchCount} time{tabSwitchCount === 1 ? "" : "s"}.
+                </div>
+            )}
 
             {/* ── Sticky header bar ── */}
             <div className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur">
@@ -184,7 +312,8 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
             </div>
 
             {/* ── Questions ── */}
-            {attempt.questions.map((q) => {
+            {currentQuestion && (() => {
+                const q = currentQuestion;
                 const isSaving = savingId === q.id;
                 return (
                     <Card key={q.id} className={isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}>
@@ -280,16 +409,38 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                         </CardContent>
                     </Card>
                 );
-            })}
+            })()}
+
+            {attempt.questions.length > 1 && (
+                <div className="flex items-center justify-between gap-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
+                        disabled={currentQuestionIndex === 0}
+                    >
+                        Previous
+                    </Button>
+                    <span className="text-sm font-medium text-muted-foreground">
+                        Question {currentQuestionIndex + 1} of {attempt.questions.length}
+                    </span>
+                    <Button
+                        variant="outline"
+                        onClick={() => setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1))}
+                        disabled={currentQuestionIndex === attempt.questions.length - 1}
+                    >
+                        Next
+                    </Button>
+                </div>
+            )}
 
             {/* ── Submit button ── */}
             {isActive && (
-                <div className="fixed bottom-6 left-0 right-0 flex justify-center px-6">
+                <div className="pt-4 flex justify-center">
                     <Button
                         onClick={() => handleSubmit(false)}
                         disabled={submitting}
                         size="lg"
-                        className="w-full max-w-3xl shadow-lg"
+                        className="w-full shadow-md"
                     >
                         {submitting ? "Submitting…" : `Submit test (${answeredCount}/${attempt.questions.length} answered)`}
                     </Button>
@@ -329,6 +480,7 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                     </CardContent>
                 </Card>
             )}
-        </div>
+            </div>
+        </>
     );
 }

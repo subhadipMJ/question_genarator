@@ -34,8 +34,21 @@ export type UpdateQuestionInput = Partial<CreateQuestionInput> & {
     options?: Array<Pick<QuestionOption, "ans" | "is_correct">>;
 };
 
-export async function getAllQuestions(): Promise<Question[]> {
-    const apiUrl = getQuestionsApiUrl();
+export type PaginatedQuestionResponse = {
+    items: Question[];
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+};
+
+export async function getAllQuestions(page = 1, pageSize = 20, topicId?: number): Promise<PaginatedQuestionResponse> {
+    const baseUrl = getQuestionsApiUrl();
+    const separator = baseUrl.includes("?") ? "&" : "?";
+    let apiUrl = `${baseUrl}${separator}page=${page}&page_size=${pageSize}`;
+    if (topicId !== undefined && topicId !== null) {
+        apiUrl += `&topic_id=${topicId}`;
+    }
 
     const response = await fetch(apiUrl, {
         headers: await getAuthorizationHeaders(),
@@ -47,6 +60,21 @@ export async function getAllQuestions(): Promise<Question[]> {
     }
 
     return response.json();
+}
+
+export async function getAllQuestionsList(): Promise<Question[]> {
+    let page = 1;
+    let allItems: Question[] = [];
+    let totalPages = 1;
+
+    do {
+        const res = await getAllQuestions(page, 100);
+        allItems = [...allItems, ...res.items];
+        totalPages = res.total_pages;
+        page++;
+    } while (page <= totalPages);
+
+    return allItems;
 }
 
 export async function getQuestion(questionId: number): Promise<Question> {
