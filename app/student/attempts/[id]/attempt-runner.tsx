@@ -284,12 +284,12 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
 
             {/* ── Submit button ── */}
             {isActive && (
-                <div className="fixed bottom-6 left-0 right-0 flex justify-center px-6">
+                <div className="pt-4 flex justify-center">
                     <Button
                         onClick={() => handleSubmit(false)}
                         disabled={submitting}
                         size="lg"
-                        className="w-full max-w-3xl shadow-lg"
+                        className="w-full shadow-md"
                     >
                         {submitting ? "Submitting…" : `Submit test (${answeredCount}/${attempt.questions.length} answered)`}
                     </Button>

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getApiUrl } from "../../lib/api-url";
+import { getOrganization } from "../../services/organizations";
 import StudentTests from "./student-tests";
 
 export type AvailableTest = {
@@ -41,9 +42,17 @@ export default async function Page() {
     const tests: AvailableTest[] = testsRes.ok ? await testsRes.json() : [];
     const history: AttemptSummary[] = historyRes.ok ? await historyRes.json() : [];
 
+    const orgIds = [...new Set(tests.map((t) => t.org_id).filter((id) => id > 0))];
+    const orgResults = await Promise.allSettled(orgIds.map((id) => getOrganization(id)));
+    const organizations = Object.fromEntries(
+        orgResults.flatMap((res) =>
+            res.status === "fulfilled" ? [[res.value.id, res.value.name]] : [],
+        )
+    );
+
     return (
         <main className="p-6">
-            <StudentTests tests={tests} history={history} />
+            <StudentTests tests={tests} history={history} organizations={organizations} />
         </main>
     );
 }

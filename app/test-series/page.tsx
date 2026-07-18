@@ -2,8 +2,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getApiUrl } from "../lib/api-url";
 import { getAllTestSeries } from "../services/test-series";
-import { getAllQuestions } from "../services/questions";
+import { getAllQuestionsList } from "../services/questions";
 import { getAllTopics } from "../services/topics";
+import { getOrganization } from "../services/organizations";
 import TestSeriesManager from "./test-series-manager";
 
 export const metadata = {
@@ -21,9 +22,17 @@ export default async function TestSeriesPage() {
 
     const [series, allQuestions, topics] = await Promise.all([
         getAllTestSeries().catch(() => []),
-        getAllQuestions().catch(() => []),
+        getAllQuestionsList().catch(() => []),
         getAllTopics().catch(() => []),
     ]);
+
+    const orgIds = [...new Set(series.map((s) => s.org_id).filter((id) => id > 0))];
+    const orgResults = await Promise.allSettled(orgIds.map((id) => getOrganization(id)));
+    const organizations = Object.fromEntries(
+        orgResults.flatMap((res) =>
+            res.status === "fulfilled" ? [[res.value.id, res.value.name]] : [],
+        )
+    );
 
     const organizationId = Number(cookieStore.get("organization_id")?.value);
     const userId = Number(cookieStore.get("user_id")?.value);
@@ -39,6 +48,7 @@ export default async function TestSeriesPage() {
         <main className="p-6">
             <TestSeriesManager
                 initialSeries={series}
+                organizations={organizations}
                 questions={questions}
                 topics={topics}
                 userId={userId}

@@ -20,9 +20,11 @@ function formatDuration(seconds: number) {
 export default function StudentTests({
     tests,
     history,
+    organizations = {},
 }: {
     tests: AvailableTest[];
     history: AttemptSummary[];
+    organizations?: Record<number, string>;
 }) {
     const [busy, setBusy] = useState<number | null>(null);
     const router = useRouter();
@@ -36,6 +38,11 @@ export default function StudentTests({
             attemptBySeriesId.set(a.series_id, a);
         }
     }
+
+    const availableTests = tests.filter((t) => {
+        const existingAttempt = attemptBySeriesId.get(t.id);
+        return !existingAttempt || existingAttempt.status === "in_progress";
+    });
 
     async function start(seriesId: number) {
         // Check if there's already an in-progress attempt — just redirect
@@ -81,7 +88,7 @@ export default function StudentTests({
         }
     }
 
-    if (tests.length === 0) {
+    if (availableTests.length === 0) {
         return (
             <div className="mx-auto max-w-4xl">
                 <h1 className="mb-6 text-3xl font-bold tracking-tight">Available tests</h1>
@@ -95,11 +102,12 @@ export default function StudentTests({
             <h1 className="text-3xl font-bold tracking-tight">Available tests</h1>
 
             <div className="grid gap-4 sm:grid-cols-2">
-                {tests.map((t) => {
+                {availableTests.map((t) => {
                     const existingAttempt = attemptBySeriesId.get(t.id);
                     const isInProgress = existingAttempt?.status === "in_progress";
                     const isSubmitted = existingAttempt?.status === "submitted";
                     const isExpired = new Date(t.valid_until) < new Date();
+                    const orgName = t.org_id === 0 ? "QMaster" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
 
                     return (
                         <Card key={t.id} className="relative overflow-hidden">
@@ -137,7 +145,8 @@ export default function StudentTests({
                                 </div>
                                 <CardDescription>
                                     {t.question_count} question{t.question_count !== 1 ? "s" : ""} ·{" "}
-                                    {formatDuration(t.duration_seconds)}
+                                    {formatDuration(t.duration_seconds)} ·{" "}
+                                    <span className="font-semibold text-primary">{orgName}</span>
                                 </CardDescription>
                             </CardHeader>
 
