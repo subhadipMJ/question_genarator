@@ -128,8 +128,8 @@ export default function StudentTests({
         <div className="mx-auto max-w-7xl space-y-6">
             <h1 className="text-3xl font-bold tracking-tight">Available tests</h1>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-                {availableTests.map((t) => {
+            <div className="grid gap-4 sm:grid-cols-2">
+                {tests.map((t) => {
                     const existingAttempt = attemptBySeriesId.get(t.id);
                     const isInProgress = existingAttempt?.status === "in_progress";
                     const isSubmitted = existingAttempt?.status === "submitted";
