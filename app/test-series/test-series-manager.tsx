@@ -1,13 +1,31 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
+import {
+    Plus,
+    Users,
+    BarChart2,
+    Eye,
+    Search,
+    X,
+    Filter,
+    RotateCcw,
+    ChevronLeft,
+    ChevronRight,
+    Copy,
+    QrCode,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import QRCodeModal from "./qr-code-modal";
 import type { TestSeries } from "../services/test-series";
 import type { Question } from "../services/questions";
 import type { Topic } from "../services/topics";
+
 import TestSeriesModal, { TestSeriesModalFormData } from "./test-series-modal";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -41,10 +59,7 @@ function formatExpiry(isoString: string): string {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return "Unknown validity";
     if (d < new Date()) return "Expired";
-    return `Valid until ${d.toLocaleDateString()} ${d.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    })}`;
+    return `Valid until ${d.toISOString().slice(0, 10)}`;
 }
 
 function StatPill({ label, value }: { label: string; value: number }) {
@@ -79,14 +94,82 @@ export default function TestSeriesManager({
     const [origin, setOrigin] = useState("");
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+    // Filter controls state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [accessFilter, setAccessFilter] = useState<"all" | "public" | "invite_only">("all");
+    const [orgFilter, setOrgFilter] = useState("all");
+    const [sortBy, setSortBy] = useState<"newest" | "name_asc" | "name_desc" | "attempts_desc">("newest");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
     function closeModal() {
         setIsCreateOpen(false);
     }
 
-    // get origin only on client
-    useMemo(() => {
+    useEffect(() => {
         if (typeof window !== "undefined") setOrigin(window.location.origin);
     }, []);
+
+    // Collect available organization list for filter
+    const availableOrgs = useMemo(() => {
+        const orgsMap = new Map<string, string>();
+        for (const s of series) {
+            const idStr = String(s.org_id);
+            const name = s.org_id === 0 ? "QMaster" : organizations[s.org_id] ?? `Organization #${s.org_id}`;
+            orgsMap.set(idStr, name);
+        }
+        return Array.from(orgsMap.entries()).map(([id, name]) => ({ id, name }));
+    }, [series, organizations]);
+
+    // Filtering & Sorting
+    const filteredSeries = useMemo(() => {
+        const list = series.filter((s) => {
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim();
+                const nameMatch = s.name.toLowerCase().includes(q);
+                const codeMatch = s.code?.toLowerCase().includes(q) ?? false;
+                if (!nameMatch && !codeMatch) return false;
+            }
+            if (accessFilter !== "all") {
+                if (s.access_type !== accessFilter) return false;
+            }
+            if (orgFilter !== "all") {
+                if (String(s.org_id) !== orgFilter) return false;
+            }
+            return true;
+        });
+
+        return list.sort((a, b) => {
+            if (sortBy === "name_asc") return a.name.localeCompare(b.name, undefined, { numeric: true });
+            if (sortBy === "name_desc") return b.name.localeCompare(a.name, undefined, { numeric: true });
+            if (sortBy === "attempts_desc") return (b.attempt_count ?? 0) - (a.attempt_count ?? 0);
+            return b.id - a.id;
+        });
+    }, [series, searchQuery, accessFilter, orgFilter, sortBy]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredSeries.length / pageSize) || 1;
+
+    // Reset page on filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, accessFilter, orgFilter, sortBy, pageSize]);
+
+
+    const paginatedSeries = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredSeries.slice(start, start + pageSize);
+    }, [filteredSeries, currentPage, pageSize]);
+
+    const isFilterActive = searchQuery.trim() !== "" || accessFilter !== "all" || orgFilter !== "all" || sortBy !== "newest";
+
+    function clearFilters() {
+        setSearchQuery("");
+        setAccessFilter("all");
+        setOrgFilter("all");
+        setSortBy("newest");
+        setCurrentPage(1);
+    }
 
     async function handleModalSubmit(data: TestSeriesModalFormData) {
         setBusy(true);
@@ -118,13 +201,13 @@ export default function TestSeriesManager({
     }
 
     return (
-        <div className="mx-auto max-w-5xl space-y-8">
+        <div className="mx-auto max-w-7xl space-y-6">
             {/* ── Page Header ── */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Test Series</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Create timed assessments and share them with students.
+                        Create timed assessments, assign questions, and review student attempt performance.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -180,20 +263,128 @@ export default function TestSeriesManager({
                 busy={busy}
             />
 
-            {/* ── Series List ── */}
+            {/* ── Filter Controls Bar ── */}
+            <div className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Search Input */}
+                    <div className="relative flex-1 min-w-[220px]">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search test series by title..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 pr-8 h-9 text-xs"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Access Filter */}
+                    <select
+                        value={accessFilter}
+                        onChange={(e) => setAccessFilter(e.target.value as any)}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[130px]"
+                    >
+                        <option value="all">All Access Types</option>
+                        <option value="public">Public</option>
+                        <option value="invite_only">Invite Only</option>
+                    </select>
+
+                    {/* Organization Filter */}
+                    <select
+                        value={orgFilter}
+                        onChange={(e) => setOrgFilter(e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[150px]"
+                    >
+                        <option value="all">All Organizations</option>
+                        {availableOrgs.map((org) => (
+                            <option key={org.id} value={org.id}>
+                                {org.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Sort Dropdown */}
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring shrink-0"
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="name_asc">Name (A–Z)</option>
+                        <option value="name_desc">Name (Z–A)</option>
+                        <option value="attempts_desc">Most Attempts</option>
+                    </select>
+
+                    {/* Per Page Select */}
+                    <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring shrink-0"
+                    >
+                        <option value={10}>10 per page</option>
+                        <option value={20}>20 per page</option>
+                        <option value={50}>50 per page</option>
+                    </select>
+
+                    {/* Clear Filters */}
+                    {isFilterActive && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearFilters}
+                            className="h-9 text-xs gap-1.5 text-muted-foreground hover:text-foreground shrink-0"
+                        >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Clear filters
+                        </Button>
+                    )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+                    <span>
+                        Showing <strong className="text-foreground font-semibold">{paginatedSeries.length}</strong> of{" "}
+                        <strong className="text-foreground font-semibold">{filteredSeries.length}</strong> test series
+                    </span>
+                    {isFilterActive && (
+                        <span className="flex items-center gap-1.5 text-primary text-[11px]">
+                            <Filter className="h-3 w-3" />
+                            Filters active
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* ── 2 Columns Grid View ── */}
             <section aria-label="Existing test series">
-                <h2 className="mb-4 text-lg font-semibold">All test series</h2>
-                {series.length === 0 ? (
-                    <div className="rounded-lg border border-dashed p-10 text-center">
-                        <p className="text-muted-foreground text-sm">No test series yet. Click "Create Test Series" above.</p>
+                {filteredSeries.length === 0 ? (
+                    <div className="rounded-xl border border-dashed p-10 text-center bg-card">
+                        <p className="text-muted-foreground text-sm">No test series found matching your filters.</p>
+                        {isFilterActive && (
+                            <Button variant="outline" size="sm" className="mt-4 gap-2 text-xs" onClick={clearFilters}>
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Clear filters
+                            </Button>
+                        )}
                     </div>
                 ) : (
-                    <div className="grid gap-3">
-                        {series.map((s) => {
+                    <div className="grid gap-4 md:grid-cols-2">
+
+
+                        {paginatedSeries.map((s) => {
                             const canEdit =
-                                (userRole === "0" && s.org_id === 0) ||
-                                (userRole === "1" && s.org_id === userOrgId) ||
+                                userRole === "0" ||
+                                (userOrgId !== undefined && s.org_id === userOrgId) ||
                                 s.created_by === userId;
+
+
+
                             return (
                                 <SeriesCard
                                     key={s.id}
@@ -207,11 +398,58 @@ export default function TestSeriesManager({
                     </div>
                 )}
             </section>
+
+            {/* ── Pagination Footer ── */}
+            {totalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
+                    <p className="text-xs text-muted-foreground">
+                        Showing page <span className="font-semibold text-foreground">{currentPage}</span> of{" "}
+                        <span className="font-semibold text-foreground">{totalPages}</span> (
+                        <span className="font-semibold">{filteredSeries.length}</span> total series)
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage <= 1}
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            className="h-8 gap-1 text-xs"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                        </Button>
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <Button
+                                    key={page}
+                                    variant={page === currentPage ? "default" : "outline"}
+                                    size="icon"
+                                    onClick={() => setCurrentPage(page)}
+                                    className="h-8 w-8 text-xs"
+                                >
+                                    {page}
+                                </Button>
+                            ))}
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            className="h-8 gap-1 text-xs"
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
 function SeriesCard({
+
     s,
     origin,
     canEdit,
@@ -222,16 +460,31 @@ function SeriesCard({
     canEdit: boolean;
     organizations: Record<number, string>;
 }) {
+    const [isQROpen, setIsQROpen] = useState(false);
     const expired = new Date(s.valid_until) < new Date();
     const orgName = s.org_id === 0 ? "QMaster" : organizations[s.org_id] ?? `Organization #${s.org_id}`;
-    return (
-        <div className="border bg-card text-card-foreground rounded-lg shadow-sm group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-            {/* accent stripe */}
-            <div className={`absolute inset-y-0 left-0 w-1 rounded-l-xl ${expired ? "bg-muted-foreground/30" : "bg-primary"}`} />
 
-            <div className="pl-5 pr-4 py-4 flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                    <p className="font-semibold truncate text-base leading-tight mb-1">{s.name}</p>
+    return (
+        <>
+            <div className="border bg-card text-card-foreground rounded-xl shadow-sm group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between">
+                {/* accent stripe */}
+                <div className={`absolute inset-y-0 left-0 w-1 rounded-l-xl ${expired ? "bg-muted-foreground/30" : "bg-primary"}`} />
+
+                <div className="pl-5 pr-4 py-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold truncate text-base leading-snug hover:text-primary transition-colors">
+                            <Link href={`/test-series/${s.id}/results`}>
+                                {s.name}
+                            </Link>
+                        </h3>
+                        <Badge
+                            variant={s.access_type === "public" ? "secondary" : "outline"}
+                            className="shrink-0 text-[10px] capitalize"
+                        >
+                            {s.access_type.replace("_", " ")}
+                        </Badge>
+                    </div>
+
                     <p className="text-muted-foreground text-xs">
                         {s.question_ids.length === 0 ? (
                             <span className="text-amber-600 dark:text-amber-500 font-medium">Empty series — click edit to configure</span>
@@ -241,40 +494,83 @@ function SeriesCard({
                         {" · "}
                         {formatDuration(s.duration_seconds)} · {formatExpiry(s.valid_until)}
                     </p>
-                    <div className="mt-2 flex items-center gap-3">
-                        {s.invite_token && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(`${origin}/student/join#token=${s.invite_token}`);
-                                    toast.success("Invite link copied!");
-                                }}
-                                className="text-muted-foreground hover:text-foreground text-xs font-medium underline underline-offset-2 flex items-center gap-1"
-                            >
-                                Copy invite link
-                            </button>
-                        )}
-                        <span className="text-muted-foreground text-xs">
-                            Access: <span className="font-medium text-foreground capitalize">{s.access_type.replace("_", " ")}</span>
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                            · Organization: <span className="font-medium text-foreground">{orgName}</span>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                        <span className="font-semibold text-primary">{orgName}</span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1 font-medium text-foreground">
+                            <Users className="h-3.5 w-3.5 text-primary" />
+                            {s.attempt_count ?? 0} attempt{(s.attempt_count ?? 0) !== 1 ? "s" : ""}
                         </span>
                     </div>
+
+                    {/* Invite Link & QR Code Buttons for Invite-only test series */}
+                    {(s.access_type === "invite_only" || s.invite_token) && (
+                        <div className="flex items-center gap-2 pt-1.5 border-t border-border/40">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    const shareToken = s.invite_token || s.code || String(s.id);
+                                    navigator.clipboard.writeText(`${origin}/student/join#token=${shareToken}`);
+                                    toast.success("Invite link copied!");
+                                }}
+                                className="h-7 text-[11px] gap-1 text-muted-foreground hover:text-foreground font-medium"
+                            >
+                                <Copy className="h-3 w-3 text-primary" />
+                                Copy Link
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsQROpen(true)}
+                                className="h-7 text-[11px] gap-1 text-muted-foreground hover:text-foreground font-medium"
+                            >
+                                <QrCode className="h-3 w-3 text-primary" />
+                                QR Code
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
-                {canEdit && (
+                {/* Action Bar */}
+                <div className="px-5 pb-4 pt-2 flex items-center gap-2 border-t bg-muted/20">
                     <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         nativeButton={false}
-                        render={<Link href={`/test-series/${s.id}`} />}
-                        className="shrink-0 h-8 text-xs font-semibold px-3"
+                        render={<Link href={`/test-series/${s.id}/results`} />}
+                        className="flex-1 h-8 text-xs font-semibold gap-1.5"
                     >
-                        Edit
+                        <Eye className="h-3.5 w-3.5" />
+                        View
                     </Button>
-                )}
+                    {canEdit && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            nativeButton={false}
+                            render={<Link href={`/test-series/${s.id}`} />}
+                            className="flex-1 h-8 text-xs font-semibold"
+                        >
+                            Edit
+                        </Button>
+                    )}
+                </div>
             </div>
-        </div>
+
+            <QRCodeModal
+                isOpen={isQROpen}
+                onClose={() => setIsQROpen(false)}
+                seriesName={s.name}
+                inviteToken={s.invite_token || s.code || String(s.id)}
+                origin={origin}
+            />
+
+        </>
     );
 }
+
+

@@ -13,7 +13,9 @@ export type TestSeries = {
     duration_seconds: number;
     is_active: boolean;
     question_ids: number[];
+    attempt_count?: number;
 };
+
 
 export type TestSeriesCreate = {
     name: string;
@@ -69,3 +71,38 @@ export async function updateTestSeries(seriesId: number, data: TestSeriesUpdate)
     if (!response.ok) throw new Error(`Failed to update test series: ${response.status}`);
     return response.json();
 }
+
+export type TestSeriesResultItem = {
+    attempt_id: number;
+    user_id: number;
+    student_name: string;
+    student_email: string;
+    started_at: string;
+    submitted_at: string | null;
+    status: string;
+    score: number;
+    total_marks: number;
+    percentage: number;
+};
+
+export type TestSeriesResults = {
+    series_id: number;
+    series_name: string;
+    invite_token?: string | null;
+    access_type?: string;
+    total_attempts: number;
+    completed_attempts: number;
+    average_score: number;
+    results: TestSeriesResultItem[];
+};
+
+
+export async function getTestSeriesResults(seriesId: number): Promise<TestSeriesResults> {
+    const response = await fetch(getApiUrl(`test-series/${seriesId}/results`), {
+        headers: await getAuthHeaders(),
+        cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch test series results: ${response.status}`);
+    return response.json();
+}
+
