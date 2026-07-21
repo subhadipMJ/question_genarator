@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { updateQuestion } from "../../../services/questions";
+import { deleteQuestion, updateQuestion } from "../../../services/questions";
 
 type RouteContext = {
     params: Promise<{ id: string }>;
@@ -64,6 +64,34 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return NextResponse.json(updatedQuestion);
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unable to update question.";
+        const status = message === "AUTH_REQUIRED" ? 401 : 500;
+        return NextResponse.json({ message }, { status });
+    }
+}
+
+export async function DELETE(_request: NextRequest, { params }: RouteContext) {
+    const cookieStore = await cookies();
+
+    if (!cookieStore.has("access_token")) {
+        return NextResponse.json({ message: "Please sign in." }, { status: 401 });
+    }
+
+    if (!["0", "1", "2"].includes(cookieStore.get("user_role")?.value ?? "")) {
+        return NextResponse.json({ message: "Question management access required." }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const questionId = Number(id);
+
+    if (!Number.isInteger(questionId) || questionId < 1) {
+        return NextResponse.json({ message: "Invalid question ID." }, { status: 400 });
+    }
+
+    try {
+        await deleteQuestion(questionId);
+        return new NextResponse(null, { status: 204 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unable to delete question.";
         const status = message === "AUTH_REQUIRED" ? 401 : 500;
         return NextResponse.json({ message }, { status });
     }

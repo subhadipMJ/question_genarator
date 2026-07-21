@@ -62,6 +62,7 @@ export default async function QuestionsPage() {
                 topics={topics}
                 users={users}
                 organizations={organizations}
+                userRole={cookieStore.get("user_role")?.value ?? ""}
             />
         </main>
     );

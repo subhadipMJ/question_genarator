@@ -109,6 +109,20 @@ export async function updateQuestion(
     return readApiResponse(response, "Failed to update question");
 }
 
+export async function deleteQuestion(questionId: number): Promise<void> {
+    const response = await fetch(getQuestionApiUrl(questionId), {
+        method: "DELETE",
+        headers: await getAuthorizationHeaders(),
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => null) as { detail?: unknown } | null;
+        const detail = typeof error?.detail === "string" ? error.detail : null;
+        throw new Error(detail ?? `Failed to delete question: ${response.status}`);
+    }
+}
+
 export async function createQuestionOption(
     questionId: number,
     data: QuestionOption,

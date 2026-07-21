@@ -21,10 +21,11 @@ export default async function TestSeriesPage() {
     if (!role || !["0", "1", "2"].includes(role)) redirect("/student/tests");
 
     const [series, allQuestions, topics] = await Promise.all([
-        getAllTestSeries().catch(() => []),
+        getAllTestSeries().catch((e) => { console.error("[TestSeries] fetch error:", e?.message || e); return []; }),
         getAllQuestionsList().catch(() => []),
         getAllTopics().catch(() => []),
     ]);
+
 
     const orgIds = [...new Set(series.map((s) => s.org_id).filter((id) => id > 0))];
     const orgResults = await Promise.allSettled(orgIds.map((id) => getOrganization(id)));
@@ -37,12 +38,13 @@ export default async function TestSeriesPage() {
     const organizationId = Number(cookieStore.get("organization_id")?.value);
     const userId = Number(cookieStore.get("user_id")?.value);
 
-    // Filter questions by role: superadmin sees globals, admin sees org questions, teacher sees own
+    // Filter questions by role: superadmin sees globals, admin/teacher sees available questions
     const questions = allQuestions.filter((q) => {
         if (role === "0") return q.is_global;
-        if (role === "1") return !q.is_global && q.organization_id === organizationId;
-        return q.user_id === userId;
+        if (role === "1") return true;
+        return q.user_id === userId || !q.is_global;
     });
+
 
     return (
         <main className="p-6">

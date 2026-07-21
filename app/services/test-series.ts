@@ -40,9 +40,13 @@ export async function getAllTestSeries(): Promise<TestSeries[]> {
         headers: await getAuthHeaders(),
         cache: "no-store",
     });
-    if (!response.ok) throw new Error(`Failed to fetch test series: ${response.status}`);
+    if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`Failed to fetch test series: ${response.status} — ${errorText}`);
+    }
     return response.json();
 }
+
 
 export async function getTestSeries(seriesId: number): Promise<TestSeries> {
     const response = await fetch(getApiUrl(`test-series/${seriesId}`), {

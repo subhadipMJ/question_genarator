@@ -365,12 +365,18 @@ export default function TestSeriesManager({
             <section aria-label="Existing test series">
                 {filteredSeries.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-10 text-center bg-card">
-                        <p className="text-muted-foreground text-sm">No test series found matching your filters.</p>
-                        {isFilterActive && (
-                            <Button variant="outline" size="sm" className="mt-4 gap-2 text-xs" onClick={clearFilters}>
-                                <RotateCcw className="h-3.5 w-3.5" />
-                                Clear filters
-                            </Button>
+                        {series.length === 0 ? (
+                            <p className="text-muted-foreground text-sm">No test series found. Create your first test series using the button above.</p>
+                        ) : (
+                            <>
+                                <p className="text-muted-foreground text-sm">No test series found matching your filters.</p>
+                                {isFilterActive && (
+                                    <Button variant="outline" size="sm" className="mt-4 gap-2 text-xs" onClick={clearFilters}>
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        Clear filters
+                                    </Button>
+                                )}
+                            </>
                         )}
                     </div>
                 ) : (

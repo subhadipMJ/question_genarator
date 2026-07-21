@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import sanitizeHtml from "sanitize-html";
-import { Search, ChevronLeft, ChevronRight, Edit3 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Edit3, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ type QuestionsTableProps = {
     topics: Topic[];
     users: Record<number, string>;
     organizations: Record<number, string>;
+    userRole: string;
 };
 
 export default function QuestionsTable({
@@ -30,15 +32,38 @@ export default function QuestionsTable({
     topics,
     users,
     organizations,
+    userRole,
 }: QuestionsTableProps) {
+    const [questions, setQuestions] = useState(initialQuestions);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedTopicId, setSelectedTopicId] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [deletingQuestionId, setDeletingQuestionId] = useState<number | null>(null);
+
+    async function deleteQuestion(questionId: number) {
+        if (!window.confirm(`Permanently delete question #${questionId}? This cannot be undone.`)) return;
+
+        setDeletingQuestionId(questionId);
+        try {
+            const response = await fetch(`/api/questions/${questionId}`, { method: "DELETE" });
+            if (!response.ok) {
+                const result = await response.json().catch(() => null) as { message?: string } | null;
+                throw new Error(result?.message ?? "Unable to delete question.");
+            }
+
+            setQuestions((current) => current.filter((question) => question.id !== questionId));
+            toast.success("Question deleted.");
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : "Unable to delete question.");
+        } finally {
+            setDeletingQuestionId(null);
+        }
+    }
 
     // Live search filtering
     const filteredQuestions = useMemo(() => {
-        let result = initialQuestions;
+        let result = questions;
         if (selectedTopicId) {
             result = result.filter((q) => q.topic_id === Number(selectedTopicId));
         }
@@ -52,7 +77,7 @@ export default function QuestionsTable({
             });
         }
         return result;
-    }, [initialQuestions, searchQuery, selectedTopicId]);
+    }, [questions, searchQuery, selectedTopicId]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredQuestions.length / pageSize);
@@ -60,11 +85,6 @@ export default function QuestionsTable({
         const start = (currentPage - 1) * pageSize;
         return filteredQuestions.slice(start, start + pageSize);
     }, [filteredQuestions, currentPage, pageSize]);
-
-    // Reset current page when query changes
-    useMemo(() => {
-        setCurrentPage(1);
-    }, [searchQuery, pageSize, selectedTopicId]);
 
     return (
         <div className="space-y-4">
@@ -76,14 +96,20 @@ export default function QuestionsTable({
                         <Input
                             placeholder="Search questions by ID, text, or topic..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
                             className="pl-9 h-9 text-xs"
                         />
                     </div>
                     {topics.length > 0 && (
                         <select
                             value={selectedTopicId}
-                            onChange={(e) => setSelectedTopicId(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedTopicId(e.target.value);
+                                setCurrentPage(1);
+                            }}
                             className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring shrink-0 min-w-[140px]"
                         >
                             <option value="">All Topics</option>
@@ -99,7 +125,10 @@ export default function QuestionsTable({
                     <span className="text-xs text-muted-foreground">Rows per page:</span>
                     <select
                         value={pageSize}
-                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        onChange={(e) => {
+                            setPageSize(Number(e.target.value));
+                            setCurrentPage(1);
+                        }}
                         className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                         <option value={10}>10</option>
@@ -126,7 +155,7 @@ export default function QuestionsTable({
                                 <TableHead className="px-4 py-3 w-24">Marks</TableHead>
                                 <TableHead className="px-4 py-3 w-24">Status</TableHead>
                                 <TableHead className="px-4 py-3 w-40">Creator / Org</TableHead>
-                                <TableHead className="px-4 py-3 w-20 text-right">Actions</TableHead>
+                                <TableHead className="px-4 py-3 w-24 text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody className="text-xs">
@@ -196,16 +225,30 @@ export default function QuestionsTable({
                                             {org && <div className="text-[10px]">{org}</div>}
                                         </TableCell>
                                         <TableCell className="px-4 py-3.5 text-right">
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                nativeButton={false}
-                                                render={<Link href={`/questions/${q.id}`} />}
-                                                className="h-7 w-7"
-                                                title="Edit question"
-                                            >
-                                                <Edit3 className="h-3.5 w-3.5" />
-                                            </Button>
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    nativeButton={false}
+                                                    render={<Link href={`/questions/${q.id}`} />}
+                                                    className="h-7 w-7"
+                                                    title="Edit question"
+                                                >
+                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            {["0", "1", "2"].includes(userRole) && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-destructive hover:text-destructive"
+                                                        title="Delete question"
+                                                        disabled={deletingQuestionId === q.id}
+                                                        onClick={() => deleteQuestion(q.id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 );

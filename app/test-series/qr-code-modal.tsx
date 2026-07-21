@@ -36,15 +36,24 @@ export default function QRCodeModal({
         setTimeout(() => setCopied(false), 2000);
     }
 
-    function handleDownload() {
-        const link = document.createElement("a");
-        link.href = qrImageUrl;
-        link.download = `${seriesName.replace(/\s+/g, "_")}_QR.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("QR Code downloaded!");
+    async function handleDownload() {
+        try {
+            const res = await fetch(qrImageUrl);
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = `${seriesName.replace(/\s+/g, "_")}_QR.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+            toast.success("QR Code downloaded!");
+        } catch {
+            window.open(qrImageUrl, "_blank");
+        }
     }
+
 
     return (
         <div
