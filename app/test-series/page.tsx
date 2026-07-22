@@ -27,16 +27,19 @@ export default async function TestSeriesPage() {
     ]);
 
 
-    const orgIds = [...new Set(series.map((s) => s.org_id).filter((id) => id > 0))];
+    const organizationId = Number(cookieStore.get("organization_id")?.value);
+    const userId = Number(cookieStore.get("user_id")?.value);
+
+    // Filter test series for teacher role
+    const teacherSeries = role === "2" ? series.filter((s) => s.created_by === userId) : series;
+
+    const orgIds = [...new Set(teacherSeries.map((s) => s.org_id).filter((id) => id > 0))];
     const orgResults = await Promise.allSettled(orgIds.map((id) => getOrganization(id)));
     const organizations = Object.fromEntries(
         orgResults.flatMap((res) =>
             res.status === "fulfilled" ? [[res.value.id, res.value.name]] : [],
         )
     );
-
-    const organizationId = Number(cookieStore.get("organization_id")?.value);
-    const userId = Number(cookieStore.get("user_id")?.value);
 
     // Filter questions by role: superadmin sees globals, admin/teacher sees available questions
     const questions = allQuestions.filter((q) => {
@@ -49,7 +52,7 @@ export default async function TestSeriesPage() {
     return (
         <main className="p-6">
             <TestSeriesManager
-                initialSeries={series}
+                initialSeries={teacherSeries}
                 organizations={organizations}
                 questions={questions}
                 topics={topics}
