@@ -56,12 +56,18 @@ function safeParseUTC(dateStr: string): number {
 
 // ─── component ────────────────────────────────────────────────────────────────
 
-export default function AttemptRunner({ initialAttempt }: { initialAttempt: Attempt }) {
+export default function AttemptRunner({
+    initialAttempt,
+    readOnly = false,
+}: {
+    initialAttempt: Attempt;
+    readOnly?: boolean;
+}) {
     const [attempt, setAttempt] = useState<Attempt>(initialAttempt);
     const [now, setNow] = useState(() => Date.now());
     const [savingId, setSavingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [instructionsOpen, setInstructionsOpen] = useState(initialAttempt.status === "in_progress");
+    const [instructionsOpen, setInstructionsOpen] = useState(!readOnly && initialAttempt.status === "in_progress");
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [submitModalOpen, setSubmitModalOpen] = useState(false);
@@ -74,15 +80,21 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
     // is already expired on page load (remaining starts at 0).
     const hadTimeRef = useRef(false);
 
-    // Tick every second
+    // Tick every second only when instructions are closed
     useEffect(() => {
+        if (instructionsOpen) return;
         const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [instructionsOpen]);
 
+    const answeredCount = attempt.questions.filter((q) => q.selected_option_id !== null).length;
     const expiresAt = safeParseUTC(attempt.expires_at);
-    const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
-    const isActive = attempt.status === "in_progress" && remaining > 0;
+    const startedAt = safeParseUTC(attempt.started_at);
+    // While instructions are open on initial start, display full duration without ticking down
+    const remaining = (instructionsOpen && answeredCount === 0)
+        ? Math.max(0, Math.floor((expiresAt - startedAt) / 1000))
+        : Math.max(0, Math.floor((expiresAt - now) / 1000));
+    const isActive = !readOnly && attempt.status === "in_progress" && remaining > 0;
 
     useEffect(() => {
         if (!isActive || instructionsOpen) return;
@@ -125,14 +137,15 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
 
     // Auto-submit ONLY when timer transitions from > 0 → 0, not on initial mount
     useEffect(() => {
-        if (attempt.status === "in_progress" && remaining === 0 && hadTimeRef.current) {
+        if (!readOnly && attempt.status === "in_progress" && remaining === 0 && hadTimeRef.current && !instructionsOpen) {
             handleSubmit(true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [remaining]);
+    }, [remaining, instructionsOpen]);
 
     const handleAnswer = useCallback(
         async (attemptQuestionId: number, optionId: number) => {
+            if (readOnly) return;
             // Optimistic UI update
             setAttempt((prev) => ({
                 ...prev,
@@ -161,10 +174,11 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                 setSavingId(null);
             }
         },
-        [attempt.id, initialAttempt],
+        [attempt.id, initialAttempt, readOnly],
     );
 
     async function handleSubmit(auto = false) {
+        if (readOnly) return;
         if (!auto) {
             setSubmitModalOpen(true);
             return;
@@ -192,7 +206,6 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
         }
     }
 
-    const answeredCount = attempt.questions.filter((q) => q.selected_option_id !== null).length;
     const currentQuestion = attempt.questions[currentQuestionIndex];
 
     async function enterTest() {
@@ -203,6 +216,18 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
             }
             fullscreenSubmitStartedRef.current = false;
             setInstructionsOpen(false);
+
+            // Call backend endpoint to start the timer officially at this exact moment
+            const res = await fetch(`/api/backend/student/attempts/${attempt.id}/start-timer`, {
+                method: "POST",
+            });
+            if (res.ok) {
+                const data = await res.json().catch(() => null);
+                if (data) {
+                    setAttempt(data as Attempt);
+                    setNow(Date.now());
+                }
+            }
         } catch {
             document.documentElement.classList.remove("exam-fullscreen");
             toast.error("Fullscreen permission is required to start the test.");
@@ -228,10 +253,10 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                                     <p className="mt-1 text-muted-foreground">Leaving this test screen will be detected and recorded.</p>
                                 </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                The test timer is already running. Click below when you are ready.
+                            <p className="text-xs font-medium text-foreground/80">
+                                Your test timer will officially start when you click the button below.
                             </p>
-                            <Button className="w-full" size="lg" onClick={enterTest}>
+                            <Button className="w-full cursor-pointer" size="lg" onClick={enterTest}>
                                 Start in fullscreen
                             </Button>
                         </CardContent>
@@ -268,6 +293,12 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
             )}
 
             <div className="mx-auto max-w-3xl space-y-5 pb-24">
+
+            {readOnly && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">
+                    Read-only staff view. Answers and submission cannot be changed.
+                </div>
+            )}
 
             {tabSwitchCount > 0 && isActive && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -315,21 +346,41 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
             {currentQuestion && (() => {
                 const q = currentQuestion;
                 const isSaving = savingId === q.id;
+                const isSubmitted = readOnly || attempt.status === "submitted" || attempt.status === "expired";
                 return (
                     <Card key={q.id} className={isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}>
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-base font-medium leading-relaxed">
-                                <span className="mr-2 font-bold">{q.position}.</span>
-                                <span
-                                    dangerouslySetInnerHTML={{
-                                        __html: sanitizeHtml(q.question, {
-                                            allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
-                                        }),
-                                    }}
-                                />
-                                <span className="text-muted-foreground ml-2 text-sm font-normal">
-                                    ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
-                                </span>
+                            <CardTitle className="text-base font-medium leading-relaxed flex items-start justify-between gap-3">
+                                <div>
+                                    <span className="mr-2 font-bold">{q.position}.</span>
+                                    <span
+                                        dangerouslySetInnerHTML={{
+                                            __html: sanitizeHtml(q.question, {
+                                                allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
+                                            }),
+                                        }}
+                                    />
+                                    <span className="text-muted-foreground ml-2 text-sm font-normal">
+                                        ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
+                                    </span>
+                                </div>
+                                {isSubmitted && (
+                                    <span className="shrink-0">
+                                        {q.selected_option_id === null ? (
+                                            <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                                Unanswered
+                                            </Badge>
+                                        ) : q.correct_option_id && q.selected_option_id === q.correct_option_id ? (
+                                            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                Correct
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+                                                Incorrect
+                                            </Badge>
+                                        )}
+                                    </span>
+                                )}
                             </CardTitle>
                         </CardHeader>
 
@@ -338,7 +389,6 @@ export default function AttemptRunner({ initialAttempt }: { initialAttempt: Atte
                                 {q.options.map((opt) => {
                                     const isSelected = q.selected_option_id === opt.id;
                                     const isDisabled = !isActive || isSaving;
-                                    const isSubmitted = attempt.status === "submitted" || attempt.status === "expired";
                                     const isCorrect = q.correct_option_id === opt.id;
 
                                     let containerClasses = "flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors";

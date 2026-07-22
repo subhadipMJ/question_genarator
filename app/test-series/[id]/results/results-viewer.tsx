@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import sanitizeHtml from "sanitize-html";
 import {
     ArrowLeft,
     Search,
@@ -15,6 +16,10 @@ import {
     Filter,
     Copy,
     QrCode,
+    Eye,
+    Loader2,
+    Check,
+    AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,6 +45,7 @@ export default function ResultsViewer({
     const [statusFilter, setStatusFilter] = useState<"all" | "submitted" | "in_progress">("all");
     const [sortBy, setSortBy] = useState<"score_desc" | "score_asc" | "date_desc" | "name_asc">("date_desc");
     const [isQROpen, setIsQROpen] = useState(false);
+    const [selectedAttemptItem, setSelectedAttemptItem] = useState<TestSeriesResultItem | null>(null);
     const [origin, setOrigin] = useState("");
 
     useEffect(() => {
@@ -363,27 +369,306 @@ export default function ResultsViewer({
                                             {item.submitted_at ? new Date(item.submitted_at).toLocaleString() : "Not submitted"}
                                         </TableCell>
 
-                                        {/* Action */}
-                                        <TableCell className="px-4 py-3.5 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                nativeButton={false}
-                                                render={<Link href={`/student/attempts/${item.attempt_id}`} />}
-                                                className="h-8 text-xs gap-1 font-normal text-muted-foreground hover:text-foreground"
-                                                title="View student attempt details"
-                                            >
-                                                View
-                                                <ExternalLink className="h-3 w-3" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </div>
+                                         {/* Action */}
+                                         <TableCell className="px-4 py-3.5 text-right">
+                                             <Button
+                                                 variant="outline"
+                                                 size="sm"
+                                                 onClick={() => setSelectedAttemptItem(item)}
+                                                 className="h-8 text-xs gap-1.5 font-medium cursor-pointer"
+                                                 title="View student choices and attempt details"
+                                             >
+                                                 <Eye className="h-3.5 w-3.5 text-primary" />
+                                                 View Responses
+                                             </Button>
+                                         </TableCell>
+                                     </TableRow>
+                                 );
+                             })}
+                         </TableBody>
+                     </Table>
+                 </div>
+             )}
+
+            {/* Student Attempt Modal */}
+            {selectedAttemptItem && (
+                <StudentAttemptModal
+                    item={selectedAttemptItem}
+                    onClose={() => setSelectedAttemptItem(null)}
+                />
             )}
+        </div>
+    );
+}
+
+function StudentAttemptModal({
+    item,
+    onClose,
+}: {
+    item: TestSeriesResultItem;
+    onClose: () => void;
+}) {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [attemptData, setAttemptData] = useState<any>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchAttempt() {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await fetch(`/api/backend/student/attempts/${item.attempt_id}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Failed to load attempt details.");
+                if (isMounted) setAttemptData(data);
+            } catch (err: any) {
+                if (isMounted) setError(err.message || "Failed to load attempt.");
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        }
+        fetchAttempt();
+        return () => {
+            isMounted = false;
+        };
+    }, [item.attempt_id]);
+
+    const questions: any[] = attemptData?.questions ?? [];
+    const totalQuestions = questions.length;
+    const correctCount = questions.filter(
+        (q) => q.correct_option_id && q.selected_option_id === q.correct_option_id,
+    ).length;
+    const incorrectCount = questions.filter(
+        (q) => q.selected_option_id !== null && q.selected_option_id !== q.correct_option_id,
+    ).length;
+    const unansweredCount = questions.filter((q) => q.selected_option_id === null).length;
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-5 border-b border-border bg-muted/30">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-bold">{item.student_name}</h3>
+                            <Badge variant={item.status === "submitted" ? "default" : "secondary"}>
+                                {item.status === "submitted" ? "Submitted" : item.status}
+                            </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono">{item.student_email}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="text-right">
+                            <div className="text-sm font-bold text-primary">
+                                {item.score} / {item.total_marks} ({item.percentage}%)
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                                {item.submitted_at ? new Date(item.submitted_at).toLocaleString() : "In progress"}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-muted-foreground hover:text-foreground cursor-pointer rounded-full p-1 hover:bg-accent transition-colors ml-2"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                    {loading ? (
+                        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground space-y-3">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm font-medium">Loading student responses...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="py-12 text-center space-y-3">
+                            <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+                            <p className="text-sm font-medium text-destructive">{error}</p>
+                            <Button variant="outline" size="sm" onClick={onClose}>
+                                Close
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Summary Chips */}
+                            <div className="grid grid-cols-4 gap-3">
+                                <div className="rounded-lg border bg-card p-3 text-center">
+                                    <div className="text-xs text-muted-foreground font-medium">Total</div>
+                                    <div className="text-lg font-bold mt-0.5">{totalQuestions}</div>
+                                </div>
+                                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
+                                    <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                        Correct
+                                    </div>
+                                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                        {correctCount}
+                                    </div>
+                                </div>
+                                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-center">
+                                    <div className="text-xs text-destructive font-medium">Incorrect</div>
+                                    <div className="text-lg font-bold text-destructive mt-0.5">
+                                        {incorrectCount}
+                                    </div>
+                                </div>
+                                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+                                    <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                        Unanswered
+                                    </div>
+                                    <div className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                                        {unansweredCount}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Questions list */}
+                            <div className="space-y-4">
+                                {questions.map((q: any) => {
+                                    const isCorrect =
+                                        q.correct_option_id && q.selected_option_id === q.correct_option_id;
+                                    const isUnanswered = q.selected_option_id === null;
+
+                                    return (
+                                        <Card key={q.id} className="border shadow-xs overflow-hidden">
+                                            <CardHeader className="py-3 px-4 bg-muted/20 border-b border-border/60">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="text-sm font-semibold flex items-start gap-2">
+                                                        <span className="text-primary font-bold">{q.position}.</span>
+                                                        <span
+                                                            dangerouslySetInnerHTML={{
+                                                                __html: sanitizeHtml(q.question, {
+                                                                    allowedTags: [
+                                                                        ...sanitizeHtml.defaults.allowedTags,
+                                                                        "sub",
+                                                                        "sup",
+                                                                    ],
+                                                                }),
+                                                            }}
+                                                        />
+                                                        <span className="text-xs text-muted-foreground font-normal whitespace-nowrap">
+                                                            ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        {isUnanswered ? (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs"
+                                                            >
+                                                                Unanswered
+                                                            </Badge>
+                                                        ) : isCorrect ? (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs"
+                                                            >
+                                                                ✓ Correct (+{q.marks})
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="border-destructive/40 bg-destructive/10 text-destructive text-xs"
+                                                            >
+                                                                ✗ Incorrect (0)
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-4 space-y-2">
+                                                {q.options.map((opt: any) => {
+                                                    const isSelected = q.selected_option_id === opt.id;
+                                                    const isOptCorrect = q.correct_option_id === opt.id;
+
+                                                    let optionStyle = "border-border/60 bg-card";
+                                                    if (isOptCorrect) {
+                                                        optionStyle =
+                                                            "border-emerald-500/80 bg-emerald-500/10 font-medium text-emerald-950 dark:text-emerald-200";
+                                                    } else if (isSelected && !isOptCorrect) {
+                                                        optionStyle =
+                                                            "border-destructive/80 bg-destructive/10 text-destructive";
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            key={opt.id}
+                                                            className={`flex items-center justify-between gap-3 p-3 rounded-lg border text-xs transition-colors ${optionStyle}`}
+                                                        >
+                                                            <div className="flex items-center gap-2.5">
+                                                                {isOptCorrect ? (
+                                                                    <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
+                                                                ) : isSelected ? (
+                                                                    <X className="h-4 w-4 text-destructive shrink-0 font-bold" />
+                                                                ) : (
+                                                                    <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/30 shrink-0" />
+                                                                )}
+                                                                <span
+                                                                    dangerouslySetInnerHTML={{
+                                                                        __html: sanitizeHtml(opt.ans, {
+                                                                            allowedTags: [
+                                                                                ...sanitizeHtml.defaults.allowedTags,
+                                                                                "sub",
+                                                                                "sup",
+                                                                            ],
+                                                                        }),
+                                                                    }}
+                                                                />
+                                                            </div>
+
+                                                            {/* Choice indicator badge */}
+                                                            {isSelected && isOptCorrect && (
+                                                                <Badge className="bg-emerald-600 text-white dark:bg-emerald-500 text-[10px] shrink-0">
+                                                                    ✓ Student's Choice (Correct)
+                                                                </Badge>
+                                                            )}
+                                                            {isSelected && !isOptCorrect && (
+                                                                <Badge
+                                                                    variant="destructive"
+                                                                    className="text-[10px] shrink-0"
+                                                                >
+                                                                    ✗ Student's Choice (Incorrect)
+                                                                </Badge>
+                                                            )}
+                                                            {!isSelected && isOptCorrect && (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="border-emerald-500 text-emerald-600 dark:text-emerald-400 text-[10px] shrink-0"
+                                                                >
+                                                                    ✓ Correct Option
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-between gap-3">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        nativeButton={false}
+                        render={<Link href={`/student/attempts/${item.attempt_id}`} target="_blank" />}
+                        className="text-xs gap-1.5"
+                    >
+                        <span>Full Attempt View</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="default" size="sm" onClick={onClose} className="text-xs cursor-pointer">
+                        Close
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }

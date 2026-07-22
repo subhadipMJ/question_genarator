@@ -115,6 +115,56 @@ export default function TopicManager({ initialTopics, userRole }: TopicManagerPr
     }
   }
 
+  const globalTopics = topics.filter((topic) => topic.org_id === 0);
+  const organizationTopics = topics.filter((topic) => topic.org_id !== 0);
+
+  function renderTopicCards(topicList: Topic[]) {
+    return topicList.map((topic) => (
+      <Card key={topic.id} className="relative overflow-hidden transition-all hover:shadow-md">
+        <div
+          className="absolute top-0 left-0 w-full h-1.5"
+          style={{ backgroundColor: topic.color }}
+        />
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <span
+              className="inline-block w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+              style={{ backgroundColor: topic.color }}
+            />
+            {topic.name}
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              (ID: {topic.id})
+            </span>
+          </CardTitle>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+              topic.org_id === 0
+                ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50"
+                : "bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800"
+            }`}
+          >
+            {topic.org_id === 0 ? "Global" : "Organization"}
+          </span>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="outline" size="sm" onClick={() => openEditModal(topic)}>
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => handleDelete(topic.id)}
+            >
+              Delete
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    ));
+  }
+
   return (
     <main className="p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -127,58 +177,43 @@ export default function TopicManager({ initialTopics, userRole }: TopicManagerPr
         <Button onClick={openCreateModal}>Create topic</Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {topics.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-muted-foreground border rounded-xl border-dashed">
-            No topics found. Click "Create topic" to get started.
-          </div>
-        ) : (
-          topics.map((topic) => (
-            <Card key={topic.id} className="relative overflow-hidden transition-all hover:shadow-md">
-              <div
-                className="absolute top-0 left-0 w-full h-1.5"
-                style={{ backgroundColor: topic.color }}
-              />
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <span
-                    className="inline-block w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
-                    style={{ backgroundColor: topic.color }}
-                  />
-                  {topic.name}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
-                    (ID: {topic.id})
-                  </span>
-                </CardTitle>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    topic.org_id === 0
-                      ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50"
-                      : "bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800"
-                  }`}
-                >
-                  {topic.org_id === 0 ? "Global" : "Org Topic"}
-                </span>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <div className="flex gap-2 justify-end mt-4">
-                  <Button variant="outline" size="sm" onClick={() => openEditModal(topic)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(topic.id)}
-                  >
-                    Delete
-                  </Button>
+      {topics.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border rounded-xl border-dashed">
+            No topics found. Click &quot;Create topic&quot; to get started.
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <section>
+            <div className="mb-3">
+              <h2 className="text-xl font-semibold">Global Topics</h2>
+              <p className="text-sm text-muted-foreground">Topics available to every organization (org_id: 0).</p>
+            </div>
+            {globalTopics.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {renderTopicCards(globalTopics)}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No global topics found.</p>
+            )}
+          </section>
+
+          {userRole !== "0" && (
+            <section>
+              <div className="mb-3">
+                <h2 className="text-xl font-semibold">Organization Topics</h2>
+                <p className="text-sm text-muted-foreground">Topics created for your organization.</p>
+              </div>
+              {organizationTopics.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {renderTopicCards(organizationTopics)}
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+              ) : (
+                <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No organization topics found.</p>
+              )}
+            </section>
+          )}
+        </div>
+      )}
 
       {/* Modal Dialog */}
       {isModalOpen && (

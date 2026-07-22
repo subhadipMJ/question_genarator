@@ -9,12 +9,9 @@ import {
   FolderOpen,
   Layers,
   History,
-  Building2,
   PlusCircle,
-  LogOut,
   User,
   GraduationCap,
-  Sparkles,
   Settings,
   Mail,
 } from "lucide-react";
@@ -22,12 +19,10 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 
 interface AppSidebarProps {
@@ -88,6 +83,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: Layers,
           },
           {
+            title: "Users",
+            href: "/users",
+            icon: User,
+          },
+          {
             title: "Settings",
             href: "/settings",
             icon: Settings,
@@ -135,18 +135,7 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
   };
 
   const navItems = getNavItems();
-  const roleName =
-    role === "0"
-      ? "Super Admin"
-      : role === "1"
-        ? "Admin"
-        : role === "2"
-          ? "Teacher"
-          : role === "3"
-            ? "Student"
-            : "User";
 
-  const brandName = role === "0" ? "Super Admin" : organizationName || userName || "QMaster";
 
   return (
     <Sidebar collapsible="icon">

@@ -10,7 +10,10 @@ export default async function TopicsPage() {
     const role = cookieStore.get("user_role")?.value ?? "";
     if (role === "3") redirect("/student/tests");
 
-    const topics = await getAllTopics();
+    const allTopics = await getAllTopics();
+    const topics = role === "0"
+        ? allTopics.filter((topic) => topic.org_id === 0)
+        : allTopics;
 
     return <TopicManager initialTopics={topics} userRole={role} />;
 }
