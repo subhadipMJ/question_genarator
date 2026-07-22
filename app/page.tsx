@@ -34,10 +34,10 @@ export default function Home() {
           <Button
             size="lg"
             nativeButton={false}
-            render={<Link href="/student/join" />}
+            render={<Link href="/dashboard" />}
             className="h-12 min-w-36 rounded-full bg-white px-9 text-base font-semibold text-black shadow-xl shadow-black/25 hover:bg-white/85"
           >
-            Join
+            Start
           </Button>
         </div>
       </section>
