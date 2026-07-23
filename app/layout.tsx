@@ -7,7 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LogOut } from "lucide-react";
+import { LogOut, KeyRound } from "lucide-react";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,6 +97,13 @@ export default async function RootLayout({
                                       : "User"}
                             </p>
                           </div>
+                          <Link
+                            href="/reset-password"
+                            className="w-full cursor-pointer flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent focus:bg-accent rounded-md mb-1 transition-colors text-foreground"
+                          >
+                            <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span>Reset Password</span>
+                          </Link>
                           <form action="/api/auth/logout" method="post" className="w-full">
                             <button
                               type="submit"
