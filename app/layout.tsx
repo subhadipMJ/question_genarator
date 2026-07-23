@@ -114,7 +114,7 @@ export default async function RootLayout({
                   </main>
                   <footer data-app-shell="footer" className="bg-background/95 sticky bottom-0 z-40 border-t backdrop-blur flex h-10 px-6 items-center justify-between shrink-0">
                     <p className="text-muted-foreground text-xs">
-                      QMaster - The Smart Assessment Platform
+                      @QMaster - The Smart Assessment Platform
                     </p>
                     {/* <p className="text-muted-foreground text-xs">
                       &copy; {new Date().getFullYear()}
