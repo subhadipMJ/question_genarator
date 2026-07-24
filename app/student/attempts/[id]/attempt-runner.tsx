@@ -59,20 +59,25 @@ function safeParseUTC(dateStr: string): number {
 export default function AttemptRunner({
     initialAttempt,
     readOnly = false,
+    skipInstructions = false,
 }: {
     initialAttempt: Attempt;
     readOnly?: boolean;
+    skipInstructions?: boolean;
 }) {
     const [attempt, setAttempt] = useState<Attempt>(initialAttempt);
     const [now, setNow] = useState(() => Date.now());
     const [savingId, setSavingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [instructionsOpen, setInstructionsOpen] = useState(!readOnly && initialAttempt.status === "in_progress");
+    const [instructionsOpen, setInstructionsOpen] = useState(
+        !readOnly && !skipInstructions && initialAttempt.status === "in_progress",
+    );
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [submitModalOpen, setSubmitModalOpen] = useState(false);
     const [fullscreenWarningOpen, setFullscreenWarningOpen] = useState(false);
     const [fullscreenCountdown, setFullscreenCountdown] = useState(10);
+    const [instructionsAccepted, setInstructionsAccepted] = useState(false);
     const router = useRouter();
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
@@ -260,6 +265,8 @@ export default function AttemptRunner({
     const currentQuestion = attempt.questions[currentQuestionIndex];
 
     async function enterTest() {
+        if (!instructionsAccepted) return;
+
         try {
             if (!document.fullscreenElement) {
                 document.documentElement.classList.add("exam-fullscreen");
@@ -292,13 +299,29 @@ export default function AttemptRunner({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
                     <Card className="w-full max-w-lg border-primary/20 shadow-2xl">
                         <CardHeader>
-                            <CardTitle className="text-2xl">Before you begin</CardTitle>
+                            <CardTitle className="text-2xl">Start this test</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-lg border bg-muted/40 p-3 text-center">
+                                    <p className="text-xl font-bold">{attempt.questions.length}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Question{attempt.questions.length === 1 ? "" : "s"}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border bg-muted/40 p-3 text-center">
+                                    <p className="font-mono text-xl font-bold">
+                                        {formatTime(Math.max(0, Math.floor((expiresAt - startedAt) / 1000)))}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">Test duration</p>
+                                </div>
+                            </div>
                             <div className="space-y-3 text-sm">
                                 <div className="rounded-lg border bg-muted/40 p-4">
                                     <p className="font-semibold">You will enter fullscreen mode</p>
-                                    <p className="mt-1 text-muted-foreground">Remain in fullscreen until you submit the test.</p>
+                                    <p className="mt-1 text-muted-foreground">
+                                        Remain in fullscreen until you submit. If you exit, you must return within 10 seconds or the test submits automatically.
+                                    </p>
                                 </div>
                                 <div className="rounded-lg border bg-muted/40 p-4">
                                     <p className="font-semibold">Do not switch tabs or windows</p>
@@ -308,9 +331,39 @@ export default function AttemptRunner({
                             <p className="text-xs font-medium text-foreground/80">
                                 Your test timer will officially start when you click the button below.
                             </p>
-                            <Button className="w-full cursor-pointer" size="lg" onClick={enterTest}>
-                                Start in fullscreen
-                            </Button>
+                            <label
+                                htmlFor="accept-test-instructions"
+                                className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 p-4 text-sm"
+                            >
+                                <input
+                                    id="accept-test-instructions"
+                                    type="checkbox"
+                                    checked={instructionsAccepted}
+                                    onChange={(event) => setInstructionsAccepted(event.target.checked)}
+                                    className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                                />
+                                <span>
+                                    I have read and understood the instructions and agree to follow the test rules.
+                                </span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 cursor-pointer"
+                                    size="lg"
+                                    onClick={() => router.push("/student/tests")}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    className="flex-1 cursor-pointer"
+                                    size="lg"
+                                    onClick={enterTest}
+                                    disabled={!instructionsAccepted}
+                                >
+                                    Start test in fullscreen
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

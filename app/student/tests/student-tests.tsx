@@ -43,6 +43,7 @@ export default function StudentTests({
 }: StudentTestsProps) {
     const [busy, setBusy] = useState<number | null>(null);
     const [pendingTestId, setPendingTestId] = useState<number | null>(null);
+    const [instructionsAccepted, setInstructionsAccepted] = useState(false);
     const [searchQuery, setSearchQuery] = useState(initialParams.q);
     const [selectedTopic, setSelectedTopic] = useState(initialParams.topic);
     const [selectedOrg, setSelectedOrg] = useState(initialParams.org_id);
@@ -50,6 +51,7 @@ export default function StudentTests({
     const [pageSize, setPageSize] = useState(initialParams.limit);
 
     const router = useRouter();
+    const pendingTest = paginatedTests.items.find((test) => test.id === pendingTestId);
 
     // Build a map: series_id → most recent attempt
     const attemptBySeriesId = useMemo(() => {
@@ -171,9 +173,13 @@ export default function StudentTests({
             return;
         }
 
-        setPendingTestId(null);
         setBusy(seriesId);
         try {
+            if (!document.fullscreenElement) {
+                document.documentElement.classList.add("exam-fullscreen");
+                await document.documentElement.requestFullscreen();
+            }
+
             const res = await fetch("/api/backend/student/test-series/start", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -197,8 +203,26 @@ export default function StudentTests({
                 throw new Error(msg);
             }
 
-            router.push(`/student/attempts/${(data as { id: number }).id}`);
+            const attemptId = (data as { id: number }).id;
+            const timerRes = await fetch(`/api/backend/student/attempts/${attemptId}/start-timer`, {
+                method: "POST",
+            });
+            const timerData = await timerRes.json().catch(() => null);
+            if (!timerRes.ok) {
+                throw new Error(
+                    typeof timerData?.detail === "string"
+                        ? timerData.detail
+                        : "Unable to start the test timer.",
+                );
+            }
+
+            setPendingTestId(null);
+            router.push(`/student/attempts/${attemptId}?started=1`);
         } catch (err) {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen().catch(() => undefined);
+            }
+            document.documentElement.classList.remove("exam-fullscreen");
             toast.error(err instanceof Error ? err.message : "Unable to start test.");
         } finally {
             setBusy(null);
@@ -216,26 +240,75 @@ export default function StudentTests({
 
     return (
         <>
-        {pendingTestId !== null && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-                <Card className="w-full max-w-md shadow-2xl">
+        {pendingTest && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+                <Card className="w-full max-w-lg border-primary/20 shadow-2xl">
                     <CardHeader>
-                        <CardTitle>Start this test now?</CardTitle>
-                        <CardDescription>
-                            The timer begins immediately after you start the test.
-                        </CardDescription>
+                        <CardTitle className="text-2xl">Start this test</CardTitle>
+                        <CardDescription>{pendingTest.name}</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex gap-3">
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => setPendingTestId(null)}
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+                                <p className="text-xl font-bold">{pendingTest.question_count}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Question{pendingTest.question_count === 1 ? "" : "s"}
+                                </p>
+                            </div>
+                            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+                                <p className="text-xl font-bold">{formatDuration(pendingTest.duration_seconds)}</p>
+                                <p className="text-xs text-muted-foreground">Test duration</p>
+                            </div>
+                        </div>
+                        <div className="space-y-3 text-sm">
+                            <div className="rounded-lg border bg-muted/40 p-4">
+                                <p className="font-semibold">You will enter fullscreen mode</p>
+                                <p className="mt-1 text-muted-foreground">
+                                    Remain in fullscreen until you submit. If you exit, return within 10 seconds or the test submits automatically.
+                                </p>
+                            </div>
+                            <div className="rounded-lg border bg-muted/40 p-4">
+                                <p className="font-semibold">Do not switch tabs or windows</p>
+                                <p className="mt-1 text-muted-foreground">
+                                    Leaving the test screen will be detected and recorded.
+                                </p>
+                            </div>
+                        </div>
+                        <label
+                            htmlFor="accept-test-instructions"
+                            className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 p-4 text-sm"
                         >
-                            Cancel
-                        </Button>
-                        <Button className="flex-1" onClick={() => start(pendingTestId)}>
-                            Start test
-                        </Button>
+                            <input
+                                id="accept-test-instructions"
+                                type="checkbox"
+                                checked={instructionsAccepted}
+                                onChange={(event) => setInstructionsAccepted(event.target.checked)}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                            />
+                            <span>
+                                I have read and understood the instructions and agree to follow the test rules.
+                            </span>
+                        </label>
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => {
+                                    setPendingTestId(null);
+                                    setInstructionsAccepted(false);
+                                }}
+                                disabled={busy !== null}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                onClick={() => start(pendingTest.id)}
+                                disabled={!instructionsAccepted || busy !== null}
+                            >
+                                {busy === pendingTest.id ? "Starting…" : "Start test in fullscreen"}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -457,7 +530,10 @@ export default function StudentTests({
                                         <Button
                                             className="w-full"
                                             disabled={busy === t.id || isExpired}
-                                            onClick={() => setPendingTestId(t.id)}
+                                            onClick={() => {
+                                                setPendingTestId(t.id);
+                                                setInstructionsAccepted(false);
+                                            }}
                                         >
                                             {busy === t.id ? "Starting…" : isExpired ? "Expired" : "Start test"}
                                         </Button>
