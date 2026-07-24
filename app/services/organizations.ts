@@ -50,7 +50,7 @@ export async function getOrganizationUsers(organizationId: number): Promise<User
 
     if (!token) throw new Error("AUTH_REQUIRED");
 
-    const response = await fetch(getApiUrl("users/"), {
+    const response = await fetch(getApiUrl(`organizations/${organizationId}/users`), {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
     });
