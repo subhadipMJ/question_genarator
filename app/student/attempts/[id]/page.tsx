@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AttemptRunner, { type Attempt } from "./attempt-runner";
 
-export default async function Page({ params }: PageProps<"/student/attempts/[id]">) {
+export default async function Page({ params, searchParams }: PageProps<"/student/attempts/[id]">) {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
     const role = cookieStore.get("user_role")?.value;
@@ -16,6 +16,7 @@ export default async function Page({ params }: PageProps<"/student/attempts/[id]
     if (!role || !["0", "1", "2", "3"].includes(role)) redirect("/dashboard");
 
     const { id } = await params;
+    const query = await searchParams;
     const response = await fetch(getApiUrl(`student/attempts/${id}`), {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -54,6 +55,7 @@ export default async function Page({ params }: PageProps<"/student/attempts/[id]
             <AttemptRunner
                 initialAttempt={await response.json() as Attempt}
                 readOnly={role !== "3"}
+                skipInstructions={query.started === "1"}
             />
         </main>
     );
