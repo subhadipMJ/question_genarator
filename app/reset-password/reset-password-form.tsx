@@ -100,6 +100,12 @@ function ResetPasswordFormContent() {
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      window.location.replace("/login");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
       setError(msg);
