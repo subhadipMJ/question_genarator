@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { AlertTriangle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,9 +71,13 @@ export default function AttemptRunner({
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [submitModalOpen, setSubmitModalOpen] = useState(false);
+    const [fullscreenWarningOpen, setFullscreenWarningOpen] = useState(false);
+    const [fullscreenCountdown, setFullscreenCountdown] = useState(10);
     const router = useRouter();
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
+    const fullscreenWarningTriggeredRef = useRef(false);
+    const fullscreenWarningDeadlineRef = useRef(0);
 
     // Track whether the timer was ever > 0 in this session.
     // This prevents auto-submit firing immediately when the attempt
@@ -113,11 +117,17 @@ export default function AttemptRunner({
         };
 
         const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && !fullscreenSubmitStartedRef.current) {
+            if (
+                !document.fullscreenElement
+                && !fullscreenWarningTriggeredRef.current
+                && !fullscreenSubmitStartedRef.current
+            ) {
                 document.documentElement.classList.remove("exam-fullscreen");
-                fullscreenSubmitStartedRef.current = true;
-                toast.error("Fullscreen exited. Your test is being submitted automatically.");
-                void handleSubmit(true);
+                fullscreenWarningTriggeredRef.current = true;
+                fullscreenWarningDeadlineRef.current = Date.now() + 10_000;
+                setFullscreenCountdown(10);
+                setFullscreenWarningOpen(true);
+                toast.error("Fullscreen exited. Your test will be submitted in 10 seconds.");
             }
         };
 
@@ -128,9 +138,30 @@ export default function AttemptRunner({
             document.removeEventListener("fullscreenchange", handleFullscreenChange);
             document.documentElement.classList.remove("exam-fullscreen");
         };
-        // handleSubmit intentionally uses the latest attempt state from this render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [instructionsOpen, isActive]);
+
+    useEffect(() => {
+        if (!fullscreenWarningOpen) return;
+
+        const updateCountdown = () => {
+            const secondsLeft = Math.max(
+                0,
+                Math.ceil((fullscreenWarningDeadlineRef.current - Date.now()) / 1000),
+            );
+            setFullscreenCountdown(secondsLeft);
+
+            if (secondsLeft === 0) {
+                setFullscreenWarningOpen(false);
+                void handleSubmit(true);
+            }
+        };
+
+        updateCountdown();
+        const timer = window.setInterval(updateCountdown, 250);
+        return () => window.clearInterval(timer);
+        // The warning deadline is fixed when fullscreen is exited.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fullscreenWarningOpen]);
 
     // Record that we've seen remaining > 0 at least once
     if (remaining > 0) hadTimeRef.current = true;
@@ -183,6 +214,9 @@ export default function AttemptRunner({
             setSubmitModalOpen(true);
             return;
         }
+        if (fullscreenSubmitStartedRef.current) return;
+        fullscreenSubmitStartedRef.current = true;
+        setFullscreenWarningOpen(false);
         setSubmitModalOpen(false);
         setSubmitting(true);
         try {
@@ -200,9 +234,26 @@ export default function AttemptRunner({
             toast.success("Test submitted!");
             router.refresh();
         } catch (err) {
+            fullscreenSubmitStartedRef.current = false;
             toast.error(err instanceof Error ? err.message : "Unable to submit.");
         } finally {
             setSubmitting(false);
+        }
+    }
+
+    async function reenterFullscreen() {
+        try {
+            if (!document.fullscreenElement) {
+                document.documentElement.classList.add("exam-fullscreen");
+                await document.documentElement.requestFullscreen();
+            }
+            fullscreenWarningDeadlineRef.current = 0;
+            fullscreenWarningTriggeredRef.current = false;
+            setFullscreenWarningOpen(false);
+            toast.success("Fullscreen restored. You may continue the test.");
+        } catch {
+            document.documentElement.classList.remove("exam-fullscreen");
+            toast.error("Unable to enter fullscreen. Please allow fullscreen access.");
         }
     }
 
@@ -215,6 +266,7 @@ export default function AttemptRunner({
                 await document.documentElement.requestFullscreen();
             }
             fullscreenSubmitStartedRef.current = false;
+            fullscreenWarningTriggeredRef.current = false;
             setInstructionsOpen(false);
 
             // Call backend endpoint to start the timer officially at this exact moment
@@ -287,6 +339,53 @@ export default function AttemptRunner({
                                     {submitting ? "Submitting…" : "Submit test"}
                                 </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {fullscreenWarningOpen && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+                    <Card
+                        className="w-full max-w-md border-destructive/40 shadow-2xl"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="fullscreen-warning-title"
+                    >
+                        <CardHeader className="items-center text-center">
+                            <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                                <AlertTriangle className="h-7 w-7 text-destructive" />
+                            </div>
+                            <CardTitle id="fullscreen-warning-title" className="text-destructive">
+                                Fullscreen exited
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5 text-center">
+                            <p className="text-sm text-muted-foreground">
+                                Leaving fullscreen is not allowed during the test. Your attempt will be submitted automatically.
+                            </p>
+                            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Submitting in
+                                </p>
+                                <p className="mt-1 font-mono text-5xl font-bold tabular-nums text-destructive">
+                                    {fullscreenCountdown}
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    second{fullscreenCountdown === 1 ? "" : "s"}
+                                </p>
+                            </div>
+                            <p className="text-xs font-medium text-destructive">
+                                Return to fullscreen before the countdown ends to continue.
+                            </p>
+                            <Button
+                                className="w-full"
+                                size="lg"
+                                onClick={reenterFullscreen}
+                                disabled={submitting}
+                            >
+                                Enter fullscreen
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>
