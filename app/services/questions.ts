@@ -7,6 +7,17 @@ export type QuestionOption = {
     q_id?: number;
     ans: string;
     is_correct: boolean;
+    diagram_id?: number | null;
+    diagram_path?: string | null;
+};
+
+export type DiagramItem = {
+    id: number;
+    type: number;
+    ref_id: number;
+    org_id: number;
+    user_id: number;
+    path: string;
 };
 
 export type Question = {
@@ -21,6 +32,9 @@ export type Question = {
     topic_id?: number | null;
     topic?: Topic | null;
     options?: QuestionOption[];
+    diagram_id?: number | null;
+    diagram_path?: string | null;
+    diagrams?: DiagramItem[];
 };
 
 export type CreateQuestionInput = {

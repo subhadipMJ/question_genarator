@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Upload, X, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Topic } from "../../services/topics";
 
 type QuestionOption = {
@@ -56,6 +57,36 @@ export default function QuestionForm() {
     ]);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Multiple Diagram upload states
+    const [diagramFiles, setDiagramFiles] = useState<File[]>([]);
+    const [diagramPreviews, setDiagramPreviews] = useState<string[]>([]);
+
+    // Option Diagram upload states
+    const [optionDiagramFiles, setOptionDiagramFiles] = useState<Record<number, File | null>>({});
+    const [optionDiagramPreviews, setOptionDiagramPreviews] = useState<Record<number, string | null>>({});
+
+    function handleOptionFileChange(index: number, file: File | null) {
+        setOptionDiagramFiles((prev) => ({ ...prev, [index]: file }));
+        if (file) {
+            setOptionDiagramPreviews((prev) => ({ ...prev, [index]: URL.createObjectURL(file) }));
+        } else {
+            setOptionDiagramPreviews((prev) => ({ ...prev, [index]: null }));
+        }
+    }
+
+    function handleFileChange(files: FileList | null) {
+        if (!files || files.length === 0) return;
+        const newFiles = Array.from(files);
+        setDiagramFiles((prev) => [...prev, ...newFiles]);
+        const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+        setDiagramPreviews((prev) => [...prev, ...newPreviews]);
+    }
+
+    function removeDiagramFile(index: number) {
+        setDiagramFiles((prev) => prev.filter((_, i) => i !== index));
+        setDiagramPreviews((prev) => prev.filter((_, i) => i !== index));
+    }
 
     // Topic states
     const [topics, setTopics] = useState<Topic[]>([]);
@@ -171,6 +202,56 @@ export default function QuestionForm() {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
 
+            if (diagramFiles.length > 0) {
+                try {
+                    for (const file of diagramFiles) {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        formData.append("type", "0");
+                        formData.append("ref_id", String(result.id));
+                        formData.append("org_id", "0");
+
+                        const diagRes = await fetch("/api/backend/diagrams/upload", {
+                            method: "POST",
+                            body: formData,
+                        });
+
+                        if (!diagRes.ok) {
+                            const diagErr = await diagRes.json().catch(() => ({ detail: "Failed to upload diagram" }));
+                            toast.error(`Failed to upload diagram ${file.name}: ${diagErr.detail || diagRes.statusText}`);
+                        }
+                    }
+                } catch (diagError) {
+                    console.error("Diagram upload failed:", diagError);
+                    toast.error("Question created, but some diagrams failed to upload.");
+                }
+            }
+
+            // Upload option diagrams (type = 1)
+            if (result.options && Array.isArray(result.options)) {
+                for (let i = 0; i < result.options.length; i++) {
+                    const optFile = optionDiagramFiles[i];
+                    const optId = result.options[i]?.id;
+                    if (optFile && optId) {
+                        try {
+                            const optFormData = new FormData();
+                            optFormData.append("file", optFile);
+                            optFormData.append("type", "1"); // 1 = Option diagram
+                            optFormData.append("ref_id", String(optId));
+                            optFormData.append("org_id", "0");
+
+                            await fetch("/api/backend/diagrams/upload", {
+                                method: "POST",
+                                body: optFormData,
+                            });
+                        } catch (optDiagErr) {
+                            console.error(`Option ${i + 1} diagram upload failed:`, optDiagErr);
+                        }
+                    }
+                }
+            }
+
+            toast.success("Question created successfully!");
             router.push(`/questions/${result.id}`);
             router.refresh();
         } catch (submissionError: unknown) {
@@ -194,6 +275,50 @@ export default function QuestionForm() {
                         modules={QUILL_MODULES}
                         formats={QUILL_FORMATS}
                     />
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="diagram-file" className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    Question Diagrams / Images (Optional - Upload Multiple)
+                </Label>
+                <div className="flex flex-col gap-3 rounded-lg border border-dashed p-4 bg-muted/20">
+                    <Input
+                        id="diagram-file"
+                        type="file"
+                        multiple
+                        accept="image/png, image/jpeg, image/gif, image/svg+xml, image/webp"
+                        onChange={(e) => handleFileChange(e.target.files)}
+                        className="cursor-pointer max-w-sm"
+                    />
+                    {diagramPreviews.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-4">
+                            {diagramPreviews.map((preview, index) => (
+                                <div key={index} className="relative rounded-md border bg-background p-2.5 w-fit shadow-xs flex flex-col gap-2">
+                                    <img
+                                        src={preview}
+                                        alt={`Diagram preview ${index + 1}`}
+                                        className="max-h-44 max-w-full rounded object-contain bg-muted/10 p-1"
+                                    />
+                                    <div className="pt-2 border-t flex items-center justify-between gap-2">
+                                        <span className="text-[11px] text-muted-foreground truncate max-w-[130px]">
+                                            {diagramFiles[index]?.name}
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => removeDiagramFile(index)}
+                                            className="h-7 px-2 text-xs"
+                                        >
+                                            <Trash2 className="h-3 w-3 mr-1" /> Remove
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -236,26 +361,66 @@ export default function QuestionForm() {
                 <legend className="mb-2 font-medium">Answer options</legend>
                 <RadioGroup value={String(options.findIndex((option) => option.is_correct))} onValueChange={(value) => selectCorrectOption(Number(value))}>
                 {options.map((option, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                        <RadioGroupItem value={String(index)}
-                            aria-label={`Mark option ${index + 1} as correct`}
-                        />
-                        <Input
-                            type="text"
-                            value={option.ans}
-                            onChange={(event) => updateOption(index, event.target.value)}
-                            placeholder={`Option ${index + 1}`}
-                            className="flex-1"
-                        />
-                        <Button
-                            variant="ghost"
-                            type="button"
-                            onClick={() => removeOption(index)}
-                            disabled={options.length <= 2}
-                            className="text-destructive"
-                        >
-                            Remove
-                        </Button>
+                    <div key={index} className="flex flex-col gap-2 rounded-lg border p-3 bg-card">
+                        <div className="flex items-center gap-3">
+                            <RadioGroupItem value={String(index)}
+                                aria-label={`Mark option ${index + 1} as correct`}
+                            />
+                            <Input
+                                type="text"
+                                value={option.ans}
+                                onChange={(event) => updateOption(index, event.target.value)}
+                                placeholder={`Option ${index + 1}`}
+                                className="flex-1"
+                            />
+                            <Button
+                                variant="ghost"
+                                type="button"
+                                onClick={() => removeOption(index)}
+                                disabled={options.length <= 2}
+                                className="text-destructive"
+                            >
+                                Remove
+                            </Button>
+                        </div>
+
+                        {/* Option Diagram attachment */}
+                        <div className="flex items-center gap-3 pl-7">
+                            <Label htmlFor={`option-file-${index}`} className="text-xs text-muted-foreground flex items-center gap-1.5 cursor-pointer hover:text-foreground">
+                                <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                                {optionDiagramFiles[index] ? "Change Option Diagram" : "Attach Option Diagram (Optional)"}
+                            </Label>
+                            <input
+                                id={`option-file-${index}`}
+                                type="file"
+                                accept="image/png, image/jpeg, image/gif, image/svg+xml, image/webp"
+                                className="hidden"
+                                onChange={(e) => handleOptionFileChange(index, e.target.files?.[0] || null)}
+                            />
+                            {optionDiagramFiles[index] && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOptionFileChange(index, null)}
+                                    className="h-6 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                >
+                                    <X className="h-3 w-3 mr-1" /> Clear
+                                </Button>
+                            )}
+                        </div>
+
+                        {optionDiagramPreviews[index] && (
+                            <div className="pl-7 mt-1">
+                                <div className="rounded border bg-background p-2 w-fit">
+                                    <img
+                                        src={optionDiagramPreviews[index]!}
+                                        alt={`Option ${index + 1} diagram preview`}
+                                        className="max-h-32 max-w-full rounded object-contain bg-muted/10 p-1"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ))}
                 </RadioGroup>

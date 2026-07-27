@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
-type AttemptOption = { id: number; ans: string };
+type AttemptOption = { id: number; ans: string; diagram_path?: string | null };
 
 type AttemptQuestion = {
     id: number;
@@ -22,6 +22,8 @@ type AttemptQuestion = {
     options: AttemptOption[];
     selected_option_id: number | null;
     correct_option_id?: number | null;
+    diagram_path?: string | null;
+    diagrams?: { id: number; path: string }[];
 };
 
 export type Attempt = {
@@ -512,6 +514,26 @@ export default function AttemptRunner({
                                             }),
                                         }}
                                     />
+                                    {q.diagrams && q.diagrams.length > 0 ? (
+                                        <div className="mt-3 flex flex-wrap gap-3">
+                                            {q.diagrams.map((d) => (
+                                                <img
+                                                    key={d.id}
+                                                    src={`/api/backend/${d.path}`}
+                                                    alt="Question Diagram"
+                                                    className="max-h-80 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : q.diagram_path ? (
+                                        <div className="mt-3">
+                                            <img
+                                                src={`/api/backend/${q.diagram_path}`}
+                                                alt="Question Diagram"
+                                                className="max-h-80 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
+                                            />
+                                        </div>
+                                    ) : null}
                                     <span className="text-muted-foreground ml-2 text-sm font-normal">
                                         ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
                                     </span>
@@ -587,13 +609,24 @@ export default function AttemptRunner({
                                                     className="h-4 w-4 shrink-0 accent-primary"
                                                 />
                                             )}
-                                            <span
-                                                dangerouslySetInnerHTML={{
-                                                    __html: sanitizeHtml(opt.ans, {
-                                                        allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
-                                                    }),
-                                                }}
-                                            />
+                                            <div className="flex-1 space-y-1.5">
+                                                <span
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: sanitizeHtml(opt.ans, {
+                                                            allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
+                                                        }),
+                                                    }}
+                                                />
+                                                {opt.diagram_path && (
+                                                    <div>
+                                                        <img
+                                                            src={`/api/backend/${opt.diagram_path}`}
+                                                            alt="Option Diagram"
+                                                            className="max-h-40 max-w-full rounded border bg-background p-1 object-contain shadow-xs"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                             {isSubmitted && isCorrect && (
                                                 <Badge variant="outline" className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                                                     {isSelected ? "Correct (Selected)" : "Correct Option"}
