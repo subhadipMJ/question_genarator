@@ -548,6 +548,26 @@ function StudentAttemptModal({
                                                                 }),
                                                             }}
                                                         />
+                                                        {q.diagrams && q.diagrams.length > 0 ? (
+                                                            <div className="mt-2 flex flex-wrap gap-3">
+                                                                {q.diagrams.map((d: any) => (
+                                                                    <img
+                                                                        key={d.id}
+                                                                        src={`/api/backend/${d.path}`}
+                                                                        alt="Question Diagram"
+                                                                        className="max-h-72 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        ) : q.diagram_path ? (
+                                                            <div className="mt-2">
+                                                                <img
+                                                                    src={`/api/backend/${q.diagram_path}`}
+                                                                    alt="Question Diagram"
+                                                                    className="max-h-72 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
+                                                                />
+                                                            </div>
+                                                        ) : null}
                                                         <span className="text-xs text-muted-foreground font-normal whitespace-nowrap">
                                                             ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
                                                         </span>
@@ -605,17 +625,28 @@ function StudentAttemptModal({
                                                                 ) : (
                                                                     <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/30 shrink-0" />
                                                                 )}
-                                                                <span
-                                                                    dangerouslySetInnerHTML={{
-                                                                        __html: sanitizeHtml(opt.ans, {
-                                                                            allowedTags: [
-                                                                                ...sanitizeHtml.defaults.allowedTags,
-                                                                                "sub",
-                                                                                "sup",
-                                                                            ],
-                                                                        }),
-                                                                    }}
-                                                                />
+                                                                <div className="flex flex-col gap-1.5">
+                                                                    <span
+                                                                        dangerouslySetInnerHTML={{
+                                                                            __html: sanitizeHtml(opt.ans, {
+                                                                                allowedTags: [
+                                                                                    ...sanitizeHtml.defaults.allowedTags,
+                                                                                    "sub",
+                                                                                    "sup",
+                                                                                ],
+                                                                            }),
+                                                                        }}
+                                                                    />
+                                                                    {opt.diagram_path && (
+                                                                        <div>
+                                                                            <img
+                                                                                src={`/api/backend/${opt.diagram_path}`}
+                                                                                alt="Option Diagram"
+                                                                                className="max-h-36 max-w-full rounded border bg-background p-1 object-contain shadow-xs"
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
 
                                                             {/* Choice indicator badge */}

@@ -11,19 +11,21 @@ async function forward(request: NextRequest, context: RouteContext<"/api/backend
     const url = new URL(getApiUrl(upstreamPath));
     url.search = request.nextUrl.search;
     const hasBody = !["GET", "HEAD"].includes(request.method);
+    const contentType = request.headers.get("content-type");
     const response = await fetch(url, {
         method: request.method,
         headers: {
             Authorization: `Bearer ${token}`,
-            ...(hasBody ? { "Content-Type": request.headers.get("content-type") ?? "application/json" } : {}),
+            ...(hasBody && contentType ? { "Content-Type": contentType } : {}),
         },
-        body: hasBody ? await request.text() : undefined,
+        body: hasBody ? await request.arrayBuffer() : undefined,
         cache: "no-store",
     });
-    const body = response.status === 204 ? null : await response.text();
+    const body = response.status === 204 ? null : await response.arrayBuffer();
+    const responseContentType = response.headers.get("content-type");
     const nextResponse = new NextResponse(body, {
         status: response.status,
-        headers: body ? { "Content-Type": response.headers.get("content-type") ?? "application/json" } : undefined,
+        headers: body && responseContentType ? { "Content-Type": responseContentType } : undefined,
     });
     if (response.status === 401) clearSession(nextResponse);
     return nextResponse;

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import sanitizeHtml from "sanitize-html";
-import { Search, ChevronLeft, ChevronRight, Edit3, Trash2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Edit3, Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,6 +169,12 @@ export default function QuestionsTable({
                                         <TableCell className="px-4 py-3.5 font-mono text-muted-foreground">#{q.id}</TableCell>
                                         <TableCell className="px-4 py-3.5 max-w-md whitespace-normal">
                                             <div className="space-y-1.5">
+                                                {q.diagram_path && (
+                                                    <div className="flex items-center gap-1 text-[11px] text-blue-600 font-medium bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded w-fit">
+                                                        <ImageIcon className="h-3 w-3" />
+                                                        <span>Diagram</span>
+                                                    </div>
+                                                )}
                                                 <div
                                                     className="font-medium line-clamp-2 leading-relaxed"
                                                     dangerouslySetInnerHTML={{
