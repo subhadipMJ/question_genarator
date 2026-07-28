@@ -44,13 +44,13 @@ export async function POST(request: NextRequest) {
 
         const createdQuestion = await createQuestion({ question, marks: String(marks), is_active, topic_id });
 
-        await Promise.all(
+        const createdOptions = await Promise.all(
             options.map((option) =>
                 createQuestionOption(createdQuestion.id, option),
             ),
         );
 
-        return NextResponse.json(createdQuestion, { status: 201 });
+        return NextResponse.json({ ...createdQuestion, options: createdOptions }, { status: 201 });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unable to create question.";
         const status = message === "AUTH_REQUIRED" ? 401 : 500;
