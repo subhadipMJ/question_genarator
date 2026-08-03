@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Search, X, Tag, Filter, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
-import type { PaginatedTests, AttemptSummary } from "./page";
+import type { PaginatedTests } from "./page";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,6 @@ function formatDuration(seconds: number) {
 
 type StudentTestsProps = {
     paginatedTests: PaginatedTests;
-    history: AttemptSummary[];
     organizations?: Record<number, string>;
     allTopicNames?: string[];
     initialParams: {
@@ -36,7 +35,6 @@ type StudentTestsProps = {
 
 export default function StudentTests({
     paginatedTests,
-    history,
     organizations = {},
     allTopicNames = [],
     initialParams,
@@ -52,19 +50,12 @@ export default function StudentTests({
 
     const router = useRouter();
     const pendingTest = paginatedTests.items.find((test) => test.id === pendingTestId);
+    const attemptBySeriesId = new Map<
+        number,
+        { id: number; status: string; score: string; total_marks: string }
+    >();
 
     // Build a map: series_id → most recent attempt
-    const attemptBySeriesId = useMemo(() => {
-        const map = new Map<number, AttemptSummary>();
-        for (const a of history) {
-            const existing = map.get(a.series_id);
-            if (!existing || a.id > existing.id) {
-                map.set(a.series_id, a);
-            }
-        }
-        return map;
-    }, [history]);
-
     // Available topic names
     const availableTopics = useMemo(() => {
         const set = new Set<string>(allTopicNames);
@@ -90,12 +81,7 @@ export default function StudentTests({
     }, [paginatedTests.items, organizations]);
 
     // Filter unattempted items from current page
-    const availableItems = useMemo(() => {
-        return paginatedTests.items.filter((t) => {
-            const existing = attemptBySeriesId.get(t.id);
-            return !existing || existing.status === "in_progress";
-        });
-    }, [paginatedTests.items, attemptBySeriesId]);
+    const availableItems = paginatedTests.items;
 
     const isFilterActive =
         searchQuery.trim() !== "" ||
@@ -167,12 +153,6 @@ export default function StudentTests({
     }
 
     async function start(seriesId: number) {
-        const existing = attemptBySeriesId.get(seriesId);
-        if (existing && existing.status === "in_progress") {
-            router.push(`/student/attempts/${existing.id}`);
-            return;
-        }
-
         setBusy(seriesId);
         try {
             if (!document.fullscreenElement) {
@@ -189,17 +169,6 @@ export default function StudentTests({
 
             if (!res.ok) {
                 const msg = typeof data?.detail === "string" ? data.detail : "Unable to start test.";
-                if (
-                    msg.toLowerCase().includes("already") ||
-                    msg.toLowerCase().includes("finished") ||
-                    msg.toLowerCase().includes("attempted")
-                ) {
-                    if (existing) {
-                        toast.info("Redirecting to your existing attempt.");
-                        router.push(`/student/attempts/${existing.id}`);
-                        return;
-                    }
-                }
                 throw new Error(msg);
             }
 
@@ -447,30 +416,14 @@ export default function StudentTests({
                                 {/* Accent stripe */}
                                 <div
                                     className={`absolute inset-y-0 left-0 w-1 rounded-l-xl ${
-                                        isExpired
-                                            ? "bg-muted"
-                                            : isSubmitted
-                                            ? "bg-green-500"
-                                            : isInProgress
-                                            ? "bg-amber-500"
-                                            : "bg-primary"
+                                        isExpired ? "bg-muted" : "bg-primary"
                                     }`}
                                 />
 
                                 <CardHeader className="pl-5 pb-3">
                                     <div className="flex items-start justify-between gap-2">
                                         <CardTitle className="text-lg leading-snug">{t.name}</CardTitle>
-                                        {isInProgress && (
-                                            <Badge variant="secondary" className="shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                                                In progress
-                                            </Badge>
-                                        )}
-                                        {isSubmitted && (
-                                            <Badge variant="secondary" className="shrink-0 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                Completed
-                                            </Badge>
-                                        )}
-                                        {isExpired && !existingAttempt && (
+                                        {isExpired && (
                                             <Badge variant="outline" className="shrink-0 text-muted-foreground">
                                                 Expired
                                             </Badge>

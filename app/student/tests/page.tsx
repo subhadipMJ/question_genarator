@@ -22,18 +22,6 @@ export type PaginatedTests = {
     total_pages: number;
 };
 
-export type AttemptSummary = {
-    id: number;
-    series_id: number;
-    series_name: string;
-    started_at: string;
-    expires_at: string;
-    submitted_at: string | null;
-    status: string;
-    score: string;
-    total_marks: string;
-};
-
 export default async function Page({
     searchParams,
 }: {
@@ -62,16 +50,14 @@ export default async function Page({
 
     const headers = { Authorization: `Bearer ${token}` };
 
-    const [testsRes, historyRes, topicsRes] = await Promise.all([
+    const [testsRes, topicsRes] = await Promise.all([
         fetch(getApiUrl(`student/test-series?${queryStr.toString()}`), { headers, cache: "no-store" }),
-        fetch(getApiUrl("student/attempt-history"), { headers, cache: "no-store" }),
         fetch(getApiUrl("topics/"), { headers, cache: "no-store" }),
     ]);
 
     const paginatedTests: PaginatedTests = testsRes.ok
         ? await testsRes.json()
         : { items: [], total: 0, page: 1, limit: 10, total_pages: 1 };
-    const history: AttemptSummary[] = historyRes.ok ? await historyRes.json() : [];
     const allTopicsData: { id: number; name: string }[] = topicsRes.ok ? await topicsRes.json() : [];
 
     const orgIds = [...new Set(paginatedTests.items.map((t) => t.org_id).filter((id) => id > 0))];
@@ -88,7 +74,6 @@ export default async function Page({
         <main className="p-6">
             <StudentTests
                 paginatedTests={paginatedTests}
-                history={history}
                 organizations={organizations}
                 allTopicNames={topicNames}
                 initialParams={{
