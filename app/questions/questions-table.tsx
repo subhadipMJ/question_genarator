@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import sanitizeHtml from "sanitize-html";
+import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { Search, ChevronLeft, ChevronRight, Edit3, Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +70,7 @@ export default function QuestionsTable({
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             result = result.filter((q) => {
-                const plain = sanitizeHtml(q.question ?? q.title ?? "", { allowedTags: [] }).toLowerCase();
+                const plain = (q.question ?? q.title ?? "").replace(/<[^>]*>/g, "").toLowerCase();
                 const topicName = q.topic?.name.toLowerCase() ?? "";
                 const idStr = String(q.id);
                 return plain.includes(query) || topicName.includes(query) || idStr.includes(query);
@@ -160,7 +160,7 @@ export default function QuestionsTable({
                         </TableHeader>
                         <TableBody className="text-xs">
                             {paginatedQuestions.map((q) => {
-                                const plain = sanitizeHtml(q.question ?? q.title ?? "", { allowedTags: [] });
+                                const plain = (q.question ?? q.title ?? "").replace(/<[^>]*>/g, "");
                                 const creator = q.is_global ? "Global" : users[q.user_id] ?? `User #${q.user_id}`;
                                 const org = q.is_global ? "" : organizations[q.organization_id] ?? `Org #${q.organization_id}`;
 
@@ -178,26 +178,26 @@ export default function QuestionsTable({
                                                 <div
                                                     className="font-medium line-clamp-2 leading-relaxed"
                                                     dangerouslySetInnerHTML={{
-                                                        __html: sanitizeHtml(q.question ?? q.title ?? "", {
-                                                            allowedTags: [
-                                                                ...sanitizeHtml.defaults.allowedTags,
-                                                                "sub",
-                                                                "sup",
-                                                            ],
-                                                        }),
+                                                        __html: sanitizeHtmlContent(q.question ?? q.title ?? ""),
                                                     }}
                                                     title={plain}
                                                 />
                                                 {q.options && q.options.length > 0 && (
                                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-mono">
-                                                        {q.options.slice(0, 4).map((opt, i) => (
-                                                            <span
-                                                                key={opt.id ?? i}
-                                                                className={opt.is_correct ? "text-green-600 font-semibold" : ""}
-                                                            >
-                                                                {String.fromCharCode(65 + i)}. {opt.ans}
-                                                            </span>
-                                                        ))}
+                                                        {q.options.slice(0, 4).map((opt, i) => {
+                                                            const cleanAns = opt.ans ? opt.ans.replace(/<[^>]*>/g, "").trim() : "";
+                                                            const label = cleanAns
+                                                                ? `${cleanAns}${opt.diagram_path ? " [Diagram]" : ""}`
+                                                                : (opt.diagram_path ? "[Diagram]" : "");
+                                                            return (
+                                                                <span
+                                                                    key={opt.id ?? i}
+                                                                    className={opt.is_correct ? "text-green-600 font-semibold" : ""}
+                                                                >
+                                                                    {String.fromCharCode(65 + i)}. {label}
+                                                                </span>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                             </div>

@@ -171,8 +171,12 @@ export default function QuestionForm() {
         setError("");
 
         const plainQuestion = question.replace(/<[^>]*>/g, "").trim();
-        if (!plainQuestion || options.some((option) => !option.ans.trim())) {
-            setError("Enter the question and complete every option.");
+        const isOptionValid = (option: QuestionOption, index: number) => {
+            return option.ans.trim().length > 0 || !!optionDiagramFiles[index];
+        };
+
+        if (!plainQuestion || options.some((option, index) => !isOptionValid(option, index))) {
+            setError("An option text can only be left empty if an option diagram image is attached.");
             return;
         }
 

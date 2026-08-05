@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import sanitizeHtml from "sanitize-html";
+import { sanitizeHtmlContent } from "@/lib/sanitize";
 import {
     ArrowLeft,
     Search,
@@ -539,13 +539,7 @@ function StudentAttemptModal({
                                                         <span className="text-primary font-bold">{q.position}.</span>
                                                         <span
                                                             dangerouslySetInnerHTML={{
-                                                                __html: sanitizeHtml(q.question, {
-                                                                    allowedTags: [
-                                                                        ...sanitizeHtml.defaults.allowedTags,
-                                                                        "sub",
-                                                                        "sup",
-                                                                    ],
-                                                                }),
+                                                                __html: sanitizeHtmlContent(q.question),
                                                             }}
                                                         />
                                                         {q.diagrams && q.diagrams.length > 0 ? (
@@ -628,13 +622,7 @@ function StudentAttemptModal({
                                                                 <div className="flex flex-col gap-1.5">
                                                                     <span
                                                                         dangerouslySetInnerHTML={{
-                                                                            __html: sanitizeHtml(opt.ans, {
-                                                                                allowedTags: [
-                                                                                    ...sanitizeHtml.defaults.allowedTags,
-                                                                                    "sub",
-                                                                                    "sup",
-                                                                                ],
-                                                                            }),
+                                                                            __html: sanitizeHtmlContent(opt.ans),
                                                                         }}
                                                                     />
                                                                     {opt.diagram_path && (

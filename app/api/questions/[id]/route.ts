@@ -45,10 +45,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             is_correct: option.is_correct === true,
         }));
 
-        if (options.some((option) => !option.ans)) {
-            return NextResponse.json({ message: "Complete every answer option." }, { status: 400 });
-        }
-
         if (options.filter((option) => option.is_correct).length !== 1) {
             return NextResponse.json({ message: "Select exactly one correct option." }, { status: 400 });
         }
