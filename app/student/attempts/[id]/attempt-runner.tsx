@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import sanitizeHtml from "sanitize-html";
+import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
 import { AlertTriangle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -509,9 +509,7 @@ export default function AttemptRunner({
                                     <span className="mr-2 font-bold">{q.position}.</span>
                                     <span
                                         dangerouslySetInnerHTML={{
-                                            __html: sanitizeHtml(q.question, {
-                                                allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
-                                            }),
+                                            __html: sanitizeHtmlContent(q.question),
                                         }}
                                     />
                                     {q.diagrams && q.diagrams.length > 0 ? (
@@ -612,9 +610,7 @@ export default function AttemptRunner({
                                             <div className="flex-1 space-y-1.5">
                                                 <span
                                                     dangerouslySetInnerHTML={{
-                                                        __html: sanitizeHtml(opt.ans, {
-                                                            allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
-                                                        }),
+                                                        __html: sanitizeHtmlContent(opt.ans),
                                                     }}
                                                 />
                                                 {opt.diagram_path && (

@@ -1,6 +1,7 @@
 declare module "sanitize-html" {
     type SanitizeOptions = {
         allowedTags?: string[];
+        disallowedTagsMode?: string;
     };
 
     type SanitizeHtml = {

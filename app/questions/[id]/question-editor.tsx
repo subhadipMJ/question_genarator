@@ -150,8 +150,16 @@ export default function QuestionEditor({ question: initialQuestion }: { question
         event.preventDefault();
         setError("");
 
-        if (!question.replace(/<[^>]*>/g, "").trim() || options.some((option) => !option.ans.trim())) {
-            setError("Enter the question and complete every option.");
+        const isOptionValid = (option: { ans: string }, index: number) => {
+            return (
+                option.ans.trim().length > 0 ||
+                !!optionDiagramFiles[index] ||
+                !!currentOptionDiagrams[index]
+            );
+        };
+
+        if (!question.replace(/<[^>]*>/g, "").trim() || options.some((option, index) => !isOptionValid(option, index))) {
+            setError("An option text can only be left empty if an option diagram image is attached.");
             return;
         }
 
