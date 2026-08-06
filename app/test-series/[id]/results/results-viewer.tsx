@@ -305,8 +305,8 @@ export default function ResultsViewer({
                         </TableHeader>
                         <TableBody className="text-xs">
                             {filteredResults.map((item) => {
-                                const isSubmitted = item.status === "submitted";
-                                const isInProgress = item.status === "in_progress";
+                                const isSubmitted = item.status === "submitted" || item.status === 2 || item.status === 3;
+                                const isInProgress = item.status === "in_progress" || item.status === 0;
 
                                 // Badge color based on percentage
                                 let pctBadgeColor = "bg-muted text-muted-foreground";
@@ -335,7 +335,7 @@ export default function ResultsViewer({
                                                     In progress
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline">{item.status}</Badge>
+                                                <Badge variant="outline">{isSubmitted ? "Submitted" : isInProgress ? "In Progress" : isExpiredItem ? "Expired" : String(item.status)}</Badge>
                                             )}
                                         </TableCell>
 
@@ -452,8 +452,8 @@ function StudentAttemptModal({
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <h3 className="text-lg font-bold">{item.student_name}</h3>
-                            <Badge variant={item.status === "submitted" ? "default" : "secondary"}>
-                                {item.status === "submitted" ? "Submitted" : item.status}
+                            <Badge variant={isSubmitted ? "default" : "secondary"}>
+                                {isSubmitted ? "Submitted" : isInProgress ? "In Progress" : String(item.status)}
                             </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground font-mono">{item.student_email}</p>

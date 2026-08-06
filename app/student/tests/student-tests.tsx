@@ -406,8 +406,8 @@ export default function StudentTests({
                 <div className="grid gap-4 sm:grid-cols-2">
                     {availableItems.map((t) => {
                         const existingAttempt = attemptBySeriesId.get(t.id);
-                        const isInProgress = existingAttempt?.status === "in_progress";
-                        const isSubmitted = existingAttempt?.status === "submitted";
+                        const isInProgress = existingAttempt?.status === "in_progress" || existingAttempt?.status === 0;
+                        const isSubmitted = existingAttempt?.status === "submitted" || existingAttempt?.status === 2 || existingAttempt?.status === 3;
                         const isExpired = new Date(t.valid_until) < new Date();
                         const orgName = t.org_id === 0 ? "QMaster" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
 

@@ -33,11 +33,32 @@ export type Attempt = {
     started_at: string;
     expires_at: string;
     submitted_at: string | null;
-    status: string;
+    status: number | string;
     score: string;
     total_marks: string;
     questions: AttemptQuestion[];
 };
+
+// ─── status helpers (backend returns int: 0=IN_PROGRESS 1=EXPIRED 2=SUBMITTED 3=FORCE_SUBMITTED) ───
+
+function isInProgress(s: number | string | null | undefined): boolean {
+    return s === 0 || s === "0" || s === "in_progress";
+}
+
+function isExpired(s: number | string | null | undefined): boolean {
+    return s === 1 || s === "1" || s === "expired";
+}
+
+function isSubmitted(s: number | string | null | undefined): boolean {
+    return s === 2 || s === "2" || s === "submitted" || s === 3 || s === "3" || s === "force_submitted";
+}
+
+function statusLabel(s: number | string | null | undefined): string {
+    if (isInProgress(s)) return "In Progress";
+    if (isExpired(s)) return "Expired";
+    if (isSubmitted(s)) return "Submitted";
+    return String(s ?? "");
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,7 +93,7 @@ export default function AttemptRunner({
     const [savingId, setSavingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [instructionsOpen, setInstructionsOpen] = useState(
-        !readOnly && !skipInstructions && initialAttempt.status === "in_progress",
+        !readOnly && !skipInstructions && isInProgress(initialAttempt.status),
     );
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -105,7 +126,7 @@ export default function AttemptRunner({
     const remaining = (instructionsOpen && answeredCount === 0)
         ? Math.max(0, Math.floor((expiresAt - startedAt) / 1000))
         : Math.max(0, Math.floor((expiresAt - now) / 1000));
-    const isActive = !readOnly && attempt.status === "in_progress" && remaining > 0;
+    const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
 
     useEffect(() => {
         if (!isActive || instructionsOpen) return;
@@ -175,7 +196,7 @@ export default function AttemptRunner({
 
     // Auto-submit ONLY when timer transitions from > 0 → 0, not on initial mount
     useEffect(() => {
-        if (!readOnly && attempt.status === "in_progress" && remaining === 0 && hadTimeRef.current && !instructionsOpen) {
+        if (!readOnly && isInProgress(attempt.status) && remaining === 0 && hadTimeRef.current && !instructionsOpen) {
             handleSubmit(true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,6 +250,8 @@ export default function AttemptRunner({
         try {
             const res = await fetch(`/api/backend/student/attempts/${attempt.id}/submit`, {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ force_submit: auto ? 1 : 0 }),
             });
             const data = await res.json().catch(() => null);
             if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Unable to submit.");
@@ -466,9 +489,9 @@ export default function AttemptRunner({
                     <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
                     <div className="mt-1 flex items-center gap-2">
                         <Badge variant={isActive ? "default" : "secondary"} className="text-xs capitalize">
-                            {attempt.status.replace("_", " ")}
+                            {statusLabel(attempt.status)}
                         </Badge>
-                        {attempt.status !== "in_progress" && (
+                        {!isInProgress(attempt.status) && (
                             <span className="text-sm font-medium">
                                 Score: {attempt.score} / {attempt.total_marks}
                             </span>
@@ -500,7 +523,7 @@ export default function AttemptRunner({
             {currentQuestion && (() => {
                 const q = currentQuestion;
                 const isSaving = savingId === q.id;
-                const isSubmitted = readOnly || attempt.status === "submitted" || attempt.status === "expired";
+                const isDone = readOnly || isSubmitted(attempt.status) || isExpired(attempt.status);
                 return (
                     <Card key={q.id} className={isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}>
                         <CardHeader className="pb-3">
@@ -679,16 +702,16 @@ export default function AttemptRunner({
             )}
 
             {/* ── Result after submission / expiry ── */}
-            {(attempt.status === "submitted" || attempt.status === "expired") && (
+            {(isSubmitted(attempt.status) || isExpired(attempt.status)) && (
                 <Card
                     className={`text-center ${
-                        attempt.status === "submitted"
+                        isSubmitted(attempt.status)
                             ? "border-primary/30 bg-primary/5"
                             : "border-destructive/30 bg-destructive/5"
                     }`}
                 >
                     <CardContent className="py-8">
-                        {attempt.status === "submitted" ? (
+                        {isSubmitted(attempt.status) ? (
                             <>
                                 <p className="text-muted-foreground text-sm">Final score</p>
                                 <p className="mt-1 text-4xl font-bold">
