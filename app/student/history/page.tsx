@@ -49,9 +49,9 @@ export default async function Page() {
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                     {history.map((a) => {
-                        const isSubmitted = a.status === "submitted";
-                        const isInProgress = a.status === "in_progress";
-                        const isExpired = a.status === "expired";
+                        const isSubmitted = a.status === "submitted" || a.status === 2 || a.status === 3;
+                        const isInProgress = a.status === "in_progress" || a.status === 0;
+                        const isExpired = a.status === "expired" || a.status === 1;
 
                         return (
                             <Link key={a.id} href={`/student/attempts/${a.id}`} className="group block">
