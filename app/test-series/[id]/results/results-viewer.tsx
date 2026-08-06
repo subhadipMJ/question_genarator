@@ -305,8 +305,9 @@ export default function ResultsViewer({
                         </TableHeader>
                         <TableBody className="text-xs">
                             {filteredResults.map((item) => {
-                                const isSubmitted = item.status === "submitted" || item.status === 2 || item.status === 3;
-                                const isInProgress = item.status === "in_progress" || item.status === 0;
+                                const isSubmitted = item.status === "submitted" || String(item.status) === "2" || String(item.status) === "3";
+                                const isInProgress = item.status === "in_progress" || String(item.status) === "0";
+                                const isExpiredItem = item.status === "expired" || String(item.status) === "1";
 
                                 // Badge color based on percentage
                                 let pctBadgeColor = "bg-muted text-muted-foreground";
@@ -443,6 +444,9 @@ function StudentAttemptModal({
         (q) => q.selected_option_id !== null && q.selected_option_id !== q.correct_option_id,
     ).length;
     const unansweredCount = questions.filter((q) => q.selected_option_id === null).length;
+    const isSubmitted = item.status === "submitted" || String(item.status) === "2" || String(item.status) === "3";
+    const isInProgress = item.status === "in_progress" || String(item.status) === "0";
+    const isExpiredItem = item.status === "expired" || String(item.status) === "1";
 
     return (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
