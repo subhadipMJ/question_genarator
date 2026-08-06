@@ -173,17 +173,6 @@ export default function StudentTests({
             }
 
             const attemptId = (data as { id: number }).id;
-            const timerRes = await fetch(`/api/backend/student/attempts/${attemptId}/start-timer`, {
-                method: "POST",
-            });
-            const timerData = await timerRes.json().catch(() => null);
-            if (!timerRes.ok) {
-                throw new Error(
-                    typeof timerData?.detail === "string"
-                        ? timerData.detail
-                        : "Unable to start the test timer.",
-                );
-            }
 
             setPendingTestId(null);
             router.push(`/student/attempts/${attemptId}?started=1`);
@@ -453,7 +442,7 @@ export default function StudentTests({
                                 </CardHeader>
 
                                 <CardContent className="pl-5 space-y-3">
-                                    <p className="text-muted-foreground text-xs">
+                                    <p className="text-muted-foreground text-xs" suppressHydrationWarning>
                                         Available until {new Date(t.valid_until).toLocaleString()}
                                     </p>
 
