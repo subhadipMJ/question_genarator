@@ -112,20 +112,16 @@ export default function AttemptRunner({
     // is already expired on page load (remaining starts at 0).
     const hadTimeRef = useRef(false);
 
-    // Tick every second only when instructions are closed
+    // Tick every second
     useEffect(() => {
-        if (instructionsOpen) return;
         const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
-    }, [instructionsOpen]);
+    }, []);
 
     const answeredCount = attempt.questions.filter((q) => q.selected_option_id !== null).length;
     const expiresAt = safeParseUTC(attempt.expires_at);
     const startedAt = safeParseUTC(attempt.started_at);
-    // While instructions are open on initial start, display full duration without ticking down
-    const remaining = (instructionsOpen && answeredCount === 0)
-        ? Math.max(0, Math.floor((expiresAt - startedAt) / 1000))
-        : Math.max(0, Math.floor((expiresAt - now) / 1000));
+    const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
     const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
 
     useEffect(() => {
@@ -300,18 +296,7 @@ export default function AttemptRunner({
             fullscreenSubmitStartedRef.current = false;
             fullscreenWarningTriggeredRef.current = false;
             setInstructionsOpen(false);
-
-            // Call backend endpoint to start the timer officially at this exact moment
-            const res = await fetch(`/api/backend/student/attempts/${attempt.id}/start-timer`, {
-                method: "POST",
-            });
-            if (res.ok) {
-                const data = await res.json().catch(() => null);
-                if (data) {
-                    setAttempt(data as Attempt);
-                    setNow(Date.now());
-                }
-            }
+            setNow(Date.now());
         } catch {
             document.documentElement.classList.remove("exam-fullscreen");
             toast.error("Fullscreen permission is required to start the test.");
@@ -324,7 +309,7 @@ export default function AttemptRunner({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
                     <Card className="w-full max-w-lg border-primary/20 shadow-2xl">
                         <CardHeader>
-                            <CardTitle className="text-2xl">Start this test</CardTitle>
+                            <CardTitle className="text-2xl">Resume this test</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-2 gap-3">
@@ -354,7 +339,7 @@ export default function AttemptRunner({
                                 </div>
                             </div>
                             <p className="text-xs font-medium text-foreground/80">
-                                Your test timer will officially start when you click the button below.
+                                You are resuming an active test. Enter fullscreen to continue.
                             </p>
                             <label
                                 htmlFor="accept-test-instructions"
@@ -386,7 +371,7 @@ export default function AttemptRunner({
                                     onClick={enterTest}
                                     disabled={!instructionsAccepted}
                                 >
-                                    Start test in fullscreen
+                                    Resume test in fullscreen
                                 </Button>
                             </div>
                         </CardContent>

@@ -38,7 +38,7 @@ export default function JoinTest() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.detail ?? "Unable to join test.");
       history.replaceState(null, "", location.pathname);
-      router.push(`/student/attempts/${d.id}`);
+      router.push(`/student/attempts/${d.id}?started=1`);
     } catch (x) {
       toast.error(x instanceof Error ? x.message : "Unable to join test.");
     } finally {
