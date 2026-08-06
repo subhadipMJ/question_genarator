@@ -52,7 +52,7 @@ export default function StudentTests({
     const pendingTest = paginatedTests.items.find((test) => test.id === pendingTestId);
     const attemptBySeriesId = new Map<
         number,
-        { id: number; status: string; score: string; total_marks: string }
+        { id: number; status: number | string; score: string; total_marks: string }
     >();
 
     // Build a map: series_id → most recent attempt
