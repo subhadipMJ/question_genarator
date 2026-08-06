@@ -523,7 +523,8 @@ export default function AttemptRunner({
             {currentQuestion && (() => {
                 const q = currentQuestion;
                 const isSaving = savingId === q.id;
-                const isDone = readOnly || isSubmitted(attempt.status) || isExpired(attempt.status);
+                const isSubmittedState = isSubmitted(attempt.status);
+                const isDone = readOnly || isSubmittedState || isExpired(attempt.status);
                 return (
                     <Card key={q.id} className={isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}>
                         <CardHeader className="pb-3">
@@ -559,7 +560,7 @@ export default function AttemptRunner({
                                         ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
                                     </span>
                                 </div>
-                                {isSubmitted && (
+                                {isSubmittedState && (
                                     <span className="shrink-0">
                                         {q.selected_option_id === null ? (
                                             <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -588,7 +589,7 @@ export default function AttemptRunner({
 
                                     let containerClasses = "flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors";
                                     
-                                    if (isSubmitted) {
+                                    if (isSubmittedState) {
                                         containerClasses += " cursor-default";
                                         if (isCorrect) {
                                             containerClasses += " border-emerald-500 bg-emerald-500/5 font-medium dark:bg-emerald-950/20";
@@ -605,10 +606,10 @@ export default function AttemptRunner({
                                     return (
                                         <label
                                             key={opt.id}
-                                            htmlFor={isSubmitted ? undefined : `opt-${q.id}-${opt.id}`}
+                                            htmlFor={isSubmittedState ? undefined : `opt-${q.id}-${opt.id}`}
                                             className={containerClasses}
                                         >
-                                            {isSubmitted ? (
+                                            {isSubmittedState ? (
                                                 isCorrect ? (
                                                     <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
                                                 ) : isSelected ? (
@@ -646,12 +647,12 @@ export default function AttemptRunner({
                                                     </div>
                                                 )}
                                             </div>
-                                            {isSubmitted && isCorrect && (
+                                            {isSubmittedState && isCorrect && (
                                                 <Badge variant="outline" className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                                                     {isSelected ? "Correct (Selected)" : "Correct Option"}
                                                 </Badge>
                                             )}
-                                            {isSubmitted && !isCorrect && isSelected && (
+                                            {isSubmittedState && !isCorrect && isSelected && (
                                                 <Badge variant="outline" className="ml-auto border-destructive/30 bg-destructive/10 text-destructive">
                                                     Incorrect Selection
                                                 </Badge>

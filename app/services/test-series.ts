@@ -83,7 +83,7 @@ export type TestSeriesResultItem = {
     student_email: string;
     started_at: string;
     submitted_at: string | null;
-    status: string;
+    status: number | string;
     score: number;
     total_marks: number;
     percentage: number;

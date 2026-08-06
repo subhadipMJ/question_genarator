@@ -11,7 +11,7 @@ type History = {
     series_name: string;
     started_at: string;
     submitted_at: string | null;
-    status: string;
+    status: number | string;
     score: string;
     total_marks: string;
 };

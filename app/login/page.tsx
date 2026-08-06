@@ -15,10 +15,11 @@ export default async function LoginPage({
     searchParams: Promise<{ registered?: string }>;
 }) {
     if ((await cookies()).has("access_token")) {
-        redirect("/questions");
+        redirect("/dashboard");
     }
 
-    const { registered } = await searchParams;
+    const params = searchParams ? await searchParams : {};
+    const registered = params?.registered;
 
     return (
         <main
