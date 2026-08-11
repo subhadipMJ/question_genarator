@@ -28,9 +28,12 @@ export default async function Page() {
     const allHistory = r.ok ? (await r.json() as History[]) : [];
 
     return (
-        <main className="mx-auto max-w-4xl p-6 space-y-3">
+        <main className="mx-auto max-w-7xl p-6 space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Attempt history</h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                    Review your completed assessments, scores, and answer keys.
+                </p>
             </div>
 
             <HistorySearch allHistory={allHistory} />
