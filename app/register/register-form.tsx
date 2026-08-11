@@ -12,6 +12,7 @@ export default function RegisterForm() {
     const router = useRouter();
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -49,8 +50,8 @@ export default function RegisterForm() {
                     typeof data?.detail === "string"
                         ? data.detail
                         : Array.isArray(data?.detail)
-                        ? data.detail.map((d: { msg: string }) => d.msg).join(" ")
-                        : data?.message ?? "Registration failed. Please try again.";
+                            ? data.detail.map((d: { msg: string }) => d.msg).join(" ")
+                            : data?.message ?? "Registration failed. Please try again.";
                 throw new Error(msg);
             }
 
