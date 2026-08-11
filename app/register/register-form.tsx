@@ -6,11 +6,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterForm() {
     const router = useRouter();
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -37,8 +39,8 @@ export default function RegisterForm() {
                     typeof data?.detail === "string"
                         ? data.detail
                         : Array.isArray(data?.detail)
-                        ? data.detail.map((d: { msg: string }) => d.msg).join(" ")
-                        : data?.message ?? "Registration failed. Please try again.";
+                            ? data.detail.map((d: { msg: string }) => d.msg).join(" ")
+                            : data?.message ?? "Registration failed. Please try again.";
                 throw new Error(msg);
             }
 
@@ -81,15 +83,30 @@ export default function RegisterForm() {
 
             <div className="space-y-2">
                 <Label htmlFor="reg-password">Password</Label>
-                <Input
-                    id="reg-password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    placeholder="At least 8 characters"
-                />
+                <div className="relative">
+                    <Input
+                        id="reg-password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                        placeholder="At least 8 characters"
+                        className="pr-10"
+                    />
+                    <button
+                        type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground focus:outline-none"
+                    >
+                        {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                        ) : (
+                            <Eye className="h-4 w-4" />
+                        )}
+                    </button>
+                </div>
             </div>
 
             {error && (
