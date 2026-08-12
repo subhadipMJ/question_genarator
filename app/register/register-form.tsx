@@ -141,6 +141,9 @@ export default function RegisterForm() {
                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                 </div>
+                {confirmPassword && password !== confirmPassword && (
+                    <p className="text-sm font-medium text-destructive">Passwords do not match</p>
+                )}
             </div>
 
             {error && (
@@ -149,7 +152,11 @@ export default function RegisterForm() {
                 </Alert>
             )}
 
-            <Button type="submit" disabled={busy} className="w-full">
+            <Button 
+                type="submit" 
+                disabled={busy || (confirmPassword !== "" && password !== confirmPassword)} 
+                className="w-full"
+            >
                 {busy ? "Creating account…" : "Create account"}
             </Button>
         </form>
