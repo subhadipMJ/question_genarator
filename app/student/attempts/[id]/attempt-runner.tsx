@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
-import { AlertTriangle, Check, LayoutGrid, List, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Check, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -104,6 +104,7 @@ export default function AttemptRunner({
     const [instructionsAccepted, setInstructionsAccepted] = useState(false);
     const [userViewMode, setUserViewMode] = useState<"single" | "list">("list");
     const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
+    const [isEnteringTest, setIsEnteringTest] = useState(false);
     const router = useRouter();
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
@@ -351,7 +352,8 @@ export default function AttemptRunner({
     const currentQuestion = attempt.questions[currentQuestionIndex];
 
     async function enterTest() {
-        if (!instructionsAccepted || isDevToolsOpen) return;
+        if (!instructionsAccepted || isDevToolsOpen || isEnteringTest) return;
+        setIsEnteringTest(true);
 
         try {
             if (!document.fullscreenElement) {
@@ -360,11 +362,17 @@ export default function AttemptRunner({
             }
             fullscreenSubmitStartedRef.current = false;
             fullscreenWarningTriggeredRef.current = false;
+            
+            // Brief delay for fullscreen browser transition to settle smoothly
+            await new Promise((resolve) => setTimeout(resolve, 400));
+
             setInstructionsOpen(false);
             setNow(Date.now());
         } catch {
             document.documentElement.classList.remove("exam-fullscreen");
             toast.error("Fullscreen permission is required to start the test.");
+        } finally {
+            setIsEnteringTest(false);
         }
     }
 
@@ -615,13 +623,32 @@ export default function AttemptRunner({
                                     className="flex-1 cursor-pointer"
                                     size="lg"
                                     onClick={enterTest}
-                                    disabled={!instructionsAccepted || isDevToolsOpen}
+                                    disabled={!instructionsAccepted || isDevToolsOpen || isEnteringTest}
                                 >
-                                    Resume test in fullscreen
+                                    {isEnteringTest ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Entering fullscreen…
+                                        </>
+                                    ) : (
+                                        "Resume test in fullscreen"
+                                    )}
                                 </Button>
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+            )}
+
+            {isEnteringTest && (
+                <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-background/95 backdrop-blur-md space-y-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                    <div className="text-center space-y-1">
+                        <h3 className="text-lg font-bold">Entering Secure Exam Mode</h3>
+                        <p className="text-sm text-muted-foreground">Setting up fullscreen environment and loading question workspace…</p>
+                    </div>
                 </div>
             )}
 
