@@ -35,8 +35,8 @@ export default function JoinTest() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invite_token: token })
       });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.detail ?? "Unable to join test.");
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d) throw new Error(d?.detail ?? "Unable to join test.");
       history.replaceState(null, "", location.pathname);
       router.push(`/student/attempts/${d.id}?started=1`);
     } catch (x) {

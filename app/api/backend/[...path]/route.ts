@@ -12,15 +12,25 @@ async function forward(request: NextRequest, context: RouteContext<"/api/backend
     url.search = request.nextUrl.search;
     const hasBody = !["GET", "HEAD"].includes(request.method);
     const contentType = request.headers.get("content-type");
-    const response = await fetch(url, {
-        method: request.method,
-        headers: {
-            Authorization: `Bearer ${token}`,
-            ...(hasBody && contentType ? { "Content-Type": contentType } : {}),
-        },
-        body: hasBody ? await request.arrayBuffer() : undefined,
-        cache: "no-store",
-    });
+    let response: Response;
+    try {
+        response = await fetch(url, {
+            method: request.method,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                ...(hasBody && contentType ? { "Content-Type": contentType } : {}),
+            },
+            body: hasBody ? await request.arrayBuffer() : undefined,
+            cache: "no-store",
+        });
+    } catch {
+        // Upstream unreachable (network error/timeout). Return JSON so callers that
+        // parse the response body don't choke on an HTML error page.
+        return NextResponse.json(
+            { detail: "Unable to reach the server. Please check your connection and try again." },
+            { status: 502 },
+        );
+    }
     const body = response.status === 204 ? null : await response.arrayBuffer();
     const responseContentType = response.headers.get("content-type");
     const nextResponse = new NextResponse(body, {

@@ -124,6 +124,17 @@ export default function AttemptRunner({
     const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
     const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
 
+    // Re-apply the chrome-hiding class after entering the test.
+    // Navigating from the start page (?started=1) re-renders the server layout,
+    // which strips the imperatively-added class from <html> even though the page
+    // is still in fullscreen — leaving the sidebar/header visible during the exam.
+    useEffect(() => {
+        if (readOnly || instructionsOpen || !isInProgress(attempt.status)) return;
+        if (typeof document !== "undefined" && document.fullscreenElement) {
+            document.documentElement.classList.add("exam-fullscreen");
+        }
+    }, [instructionsOpen, attempt.status, readOnly]);
+
     useEffect(() => {
         if (!isActive || instructionsOpen) return;
 
@@ -454,7 +465,7 @@ export default function AttemptRunner({
                 </div>
             )}
 
-            <div className="mx-auto max-w-3xl space-y-5 pb-24">
+            <div className="mx-auto max-w-6xl space-y-5 pb-24">
 
             {readOnly && (
                 <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">
@@ -504,6 +515,9 @@ export default function AttemptRunner({
                 </div>
             </div>
 
+            {/* ── Two-panel test workspace ── */}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <div className="space-y-5">
             {/* ── Questions ── */}
             {currentQuestion && (() => {
                 const q = currentQuestion;
@@ -566,7 +580,7 @@ export default function AttemptRunner({
                         </CardHeader>
 
                         <CardContent>
-                            <div className="space-y-2" role="radiogroup" aria-label={`Options for question ${q.position}`}>
+                            <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label={`Options for question ${q.position}`}>
                                 {q.options.map((opt) => {
                                     const isSelected = q.selected_option_id === opt.id;
                                     const isDisabled = !isActive || isSaving;
@@ -673,20 +687,6 @@ export default function AttemptRunner({
                 </div>
             )}
 
-            {/* ── Submit button ── */}
-            {isActive && (
-                <div className="pt-4 flex justify-center">
-                    <Button
-                        onClick={() => handleSubmit(false)}
-                        disabled={submitting}
-                        size="lg"
-                        className="w-full shadow-md"
-                    >
-                        {submitting ? "Submitting…" : `Submit test (${answeredCount}/${attempt.questions.length} answered)`}
-                    </Button>
-                </div>
-            )}
-
             {/* ── Result after submission / expiry ── */}
             {(isSubmitted(attempt.status) || isExpired(attempt.status)) && (
                 <Card
@@ -720,6 +720,80 @@ export default function AttemptRunner({
                     </CardContent>
                 </Card>
             )}
+            </div>
+            {/* ── end left column ── */}
+
+            {/* ── Question palette / navigator ── */}
+            <aside className="lg:sticky lg:top-32">
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-semibold">Questions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div
+                            className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6"
+                            role="navigation"
+                            aria-label="Question navigator"
+                        >
+                            {attempt.questions.map((q, index) => {
+                                const answered = q.selected_option_id !== null;
+                                const isCurrent = index === currentQuestionIndex;
+                                let bubbleClasses =
+                                    "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors ";
+                                if (answered) {
+                                    bubbleClasses += "border-emerald-500 bg-emerald-500 text-white ";
+                                } else {
+                                    bubbleClasses += "border-border bg-muted text-muted-foreground hover:bg-muted/70 ";
+                                }
+                                if (isCurrent) {
+                                    bubbleClasses += "ring-2 ring-primary ring-offset-2 ring-offset-background ";
+                                }
+                                return (
+                                    <button
+                                        key={q.id}
+                                        type="button"
+                                        onClick={() => setCurrentQuestionIndex(index)}
+                                        className={bubbleClasses}
+                                        aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
+                                        aria-current={isCurrent ? "true" : undefined}
+                                    >
+                                        {q.position}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="space-y-2 border-t pt-4 text-sm">
+                            <div className="flex items-center gap-3">
+                                <span className="h-4 w-4 shrink-0 rounded-full border border-border bg-muted" />
+                                <span className="text-muted-foreground">Not answered</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="h-4 w-4 shrink-0 rounded-full border border-emerald-500 bg-emerald-500" />
+                                <span className="text-muted-foreground">Answered</span>
+                            </div>
+                        </div>
+
+                        {isActive && (
+                            <div className="space-y-2 border-t pt-4">
+                                <p className="text-center text-sm text-muted-foreground">
+                                    {answeredCount}/{attempt.questions.length} answered
+                                </p>
+                                <Button
+                                    onClick={() => handleSubmit(false)}
+                                    disabled={submitting}
+                                    size="lg"
+                                    className="w-full shadow-md"
+                                >
+                                    {submitting ? "Submitting…" : "Submit test"}
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </aside>
+            </div>
+            {/* ── end two-panel grid ── */}
             </div>
         </>
     );
