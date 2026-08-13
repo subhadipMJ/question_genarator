@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
-import { AlertTriangle, Check, X } from "lucide-react";
+import { AlertTriangle, Check, LayoutGrid, List, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,7 @@ function isSubmitted(s: number | string | null | undefined): boolean {
 function statusLabel(s: number | string | null | undefined): string {
     if (isInProgress(s)) return "In Progress";
     if (isExpired(s)) return "Expired";
+    if (s === 3 || s === "3" || s === "force_submitted") return "Force Submitted";
     if (isSubmitted(s)) return "Submitted";
     return String(s ?? "");
 }
@@ -101,18 +102,14 @@ export default function AttemptRunner({
     const [fullscreenWarningOpen, setFullscreenWarningOpen] = useState(false);
     const [fullscreenCountdown, setFullscreenCountdown] = useState(10);
     const [instructionsAccepted, setInstructionsAccepted] = useState(false);
+    const [userViewMode, setUserViewMode] = useState<"single" | "list">("list");
     const router = useRouter();
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
     const fullscreenWarningTriggeredRef = useRef(false);
     const fullscreenWarningDeadlineRef = useRef(0);
-
-    // Track whether the timer was ever > 0 in this session.
-    // This prevents auto-submit firing immediately when the attempt
-    // is already expired on page load (remaining starts at 0).
     const hadTimeRef = useRef(false);
 
-    // Tick every second
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
@@ -123,6 +120,7 @@ export default function AttemptRunner({
     const startedAt = safeParseUTC(attempt.started_at);
     const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
     const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
+    const effectiveViewMode = isActive ? "single" : userViewMode;
 
     // Re-apply the chrome-hiding class after entering the test.
     // Navigating from the start page (?started=1) re-renders the server layout,
@@ -139,41 +137,61 @@ export default function AttemptRunner({
         if (!isActive || instructionsOpen) return;
 
         const handleVisibilityChange = () => {
-            if (document.visibilityState === "hidden") {
-                tabWasHiddenRef.current = true;
-                return;
-            }
-
-            if (tabWasHiddenRef.current) {
-                tabWasHiddenRef.current = false;
+            if (document.visibilityState === "hidden" && !fullscreenSubmitStartedRef.current) {
                 setTabSwitchCount((count) => count + 1);
-                toast.warning("Tab switching is not allowed during the test.");
+                toast.error("Tab switch detected. Your test is being force submitted.");
+                void handleSubmit(true);
             }
         };
 
         const handleFullscreenChange = () => {
-            if (
-                !document.fullscreenElement
-                && !fullscreenWarningTriggeredRef.current
-                && !fullscreenSubmitStartedRef.current
-            ) {
+            if (!document.fullscreenElement && !fullscreenSubmitStartedRef.current) {
                 document.documentElement.classList.remove("exam-fullscreen");
-                fullscreenWarningTriggeredRef.current = true;
-                fullscreenWarningDeadlineRef.current = Date.now() + 10_000;
-                setFullscreenCountdown(10);
-                setFullscreenWarningOpen(true);
-                toast.error("Fullscreen exited. Your test will be submitted in 10 seconds.");
+                toast.error("Fullscreen exited. Your test is being force submitted.");
+                void handleSubmit(true);
             }
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const allowedKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"];
+            if (allowedKeys.includes(e.key)) {
+                if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
+                } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setCurrentQuestionIndex((prev) => Math.min(attempt.questions.length - 1, prev + 1));
+                }
+                return;
+            }
+
+            // Block all other keys (F1-F12, Esc, Tab, letters, numbers, shortcuts) and show warning toast
+            e.preventDefault();
+            e.stopPropagation();
+            toast.warning("Keyboard key disabled. Only Arrow keys and Enter are allowed during the exam.", {
+                id: "disabled-key-toast",
+            });
+        };
+
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+            toast.warning("Right click is disabled during the exam.", {
+                id: "disabled-context-menu-toast",
+            });
         };
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
         document.addEventListener("fullscreenchange", handleFullscreenChange);
+        window.addEventListener("keydown", handleKeyDown, true);
+        window.addEventListener("contextmenu", handleContextMenu, true);
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             document.removeEventListener("fullscreenchange", handleFullscreenChange);
+            window.removeEventListener("keydown", handleKeyDown, true);
+            window.removeEventListener("contextmenu", handleContextMenu, true);
             document.documentElement.classList.remove("exam-fullscreen");
         };
-    }, [instructionsOpen, isActive]);
+    }, [instructionsOpen, isActive, attempt.questions.length]);
 
     useEffect(() => {
         if (!fullscreenWarningOpen) return;
@@ -210,7 +228,7 @@ export default function AttemptRunner({
     }, [remaining, instructionsOpen]);
 
     const handleAnswer = useCallback(
-        async (attemptQuestionId: number, optionId: number) => {
+        async (attemptQuestionId: number, optionId: number | null) => {
             if (readOnly) return;
             // Optimistic UI update
             setAttempt((prev) => ({
@@ -314,11 +332,178 @@ export default function AttemptRunner({
         }
     }
 
+    function renderQuestionCard(q: AttemptQuestion) {
+        const isSaving = savingId === q.id;
+        const isSubmittedState = isSubmitted(attempt.status);
+
+        return (
+            <Card key={q.id} id={`question-${q.id}`} className={`scroll-mt-24 ${isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}`}>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-medium leading-relaxed flex items-start justify-between gap-3">
+                        <div>
+                            <span className="mr-2 font-bold">{q.position}.</span>
+                            <span
+                                dangerouslySetInnerHTML={{
+                                    __html: sanitizeHtmlContent(q.question),
+                                }}
+                            />
+                            {q.diagrams && q.diagrams.length > 0 ? (
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    {q.diagrams.map((d) => (
+                                        <img
+                                            key={d.id}
+                                            src={`/api/backend/${d.path}`}
+                                            alt="Question Diagram"
+                                            className="max-h-80 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
+                                        />
+                                    ))}
+                                </div>
+                            ) : q.diagram_path ? (
+                                <div className="mt-3">
+                                    <img
+                                        src={`/api/backend/${q.diagram_path}`}
+                                        alt="Question Diagram"
+                                        className="max-h-80 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
+                                    />
+                                </div>
+                            ) : null}
+                            <span className="text-muted-foreground ml-2 text-sm font-normal">
+                                ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
+                            </span>
+                        </div>
+                        {isSubmittedState && (
+                            <span className="shrink-0">
+                                {q.selected_option_id === null ? (
+                                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                        Unanswered
+                                    </Badge>
+                                ) : q.correct_option_id != null && String(q.selected_option_id) === String(q.correct_option_id) ? (
+                                    <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                        Correct
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+                                        Incorrect
+                                    </Badge>
+                                )}
+                            </span>
+                        )}
+                    </CardTitle>
+                </CardHeader>
+
+                <CardContent>
+                    <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label={`Options for question ${q.position}`}>
+                        {q.options.map((opt) => {
+                            const isSelected = q.selected_option_id != null && String(q.selected_option_id) === String(opt.id);
+                            const isDisabled = !isActive || isSaving;
+                            const isCorrect = q.correct_option_id != null && String(q.correct_option_id) === String(opt.id);
+
+                            let containerClasses = "flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors";
+                            
+                            if (isSubmittedState) {
+                                containerClasses += " cursor-default";
+                                if (isCorrect) {
+                                    containerClasses += " border-emerald-500 bg-emerald-500/5 font-medium dark:bg-emerald-950/20";
+                                } else if (isSelected) {
+                                    containerClasses += " border-destructive bg-destructive/5 dark:bg-destructive/10";
+                                } else {
+                                    containerClasses += " border-border opacity-60";
+                                }
+                            } else {
+                                containerClasses += isDisabled ? " cursor-not-allowed opacity-60" : " cursor-pointer hover:bg-muted/50";
+                                containerClasses += isSelected ? " border-primary bg-primary/5 font-medium" : " border-border";
+                            }
+
+                            return (
+                                <label
+                                    key={opt.id}
+                                    htmlFor={isSubmittedState ? undefined : `opt-${q.id}-${opt.id}`}
+                                    className={containerClasses}
+                                    onClick={(e) => {
+                                        if (isSubmittedState || isDisabled) return;
+                                        if (isSelected) {
+                                            e.preventDefault();
+                                            handleAnswer(q.id, null);
+                                        }
+                                    }}
+                                >
+                                    {isSubmittedState ? (
+                                        isCorrect ? (
+                                            <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
+                                        ) : isSelected ? (
+                                            <X className="h-4 w-4 text-destructive shrink-0 font-bold" />
+                                        ) : (
+                                            <div className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                        )
+                                    ) : (
+                                        <input
+                                            id={`opt-${q.id}-${opt.id}`}
+                                            type="radio"
+                                            name={`question-${q.id}`}
+                                            value={String(opt.id)}
+                                            checked={isSelected}
+                                            disabled={isDisabled}
+                                            onChange={() => {
+                                                if (!isDisabled) handleAnswer(q.id, opt.id);
+                                            }}
+                                            className="h-4 w-4 shrink-0 accent-primary"
+                                        />
+                                    )}
+                                    <div className="flex-1 space-y-1.5">
+                                        <span
+                                            dangerouslySetInnerHTML={{
+                                                __html: sanitizeHtmlContent(opt.ans),
+                                            }}
+                                        />
+                                        {opt.diagram_path && (
+                                            <div>
+                                                <img
+                                                    src={`/api/backend/${opt.diagram_path}`}
+                                                    alt="Option Diagram"
+                                                    className="max-h-40 max-w-full rounded border bg-background p-1 object-contain shadow-xs"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {isSubmittedState && isCorrect && (
+                                        <Badge variant="outline" className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                            {isSelected ? "Correct (Selected)" : "Correct Option"}
+                                        </Badge>
+                                    )}
+                                    {isSubmittedState && !isCorrect && isSelected && (
+                                        <Badge variant="outline" className="ml-auto border-destructive/30 bg-destructive/10 text-destructive">
+                                            Incorrect Selection
+                                        </Badge>
+                                    )}
+                                </label>
+                            );
+                        })}
+                    </div>
+                    {q.selected_option_id !== null && isActive && !readOnly && (
+                        <div className="mt-4 flex justify-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="text-xs border-dashed text-muted-foreground hover:text-destructive hover:border-destructive/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                onClick={() => handleAnswer(q.id, null)}
+                                disabled={isSaving}
+                            >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Clear selection
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <>
             {instructionsOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-                    <Card className="w-full max-w-lg border-primary/20 shadow-2xl">
+                    <Card className="w-full max-w-3xl border-primary/20 shadow-2xl">
                         <CardHeader>
                             <CardTitle className="text-2xl">Resume this test</CardTitle>
                         </CardHeader>
@@ -337,16 +522,24 @@ export default function AttemptRunner({
                                     <p className="text-xs text-muted-foreground">Test duration</p>
                                 </div>
                             </div>
-                            <div className="space-y-3 text-sm">
+                            <div className="grid gap-3 sm:grid-cols-3 text-sm">
                                 <div className="rounded-lg border bg-muted/40 p-4">
-                                    <p className="font-semibold">You will enter fullscreen mode</p>
-                                    <p className="mt-1 text-muted-foreground">
-                                        Remain in fullscreen until you submit. If you exit, you must return within 10 seconds or the test submits automatically.
+                                    <p className="font-semibold">Fullscreen mode required</p>
+                                    <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                                        You must remain in fullscreen mode. If you exit fullscreen at any point, your test will be <strong>force submitted</strong> immediately.
                                     </p>
                                 </div>
                                 <div className="rounded-lg border bg-muted/40 p-4">
                                     <p className="font-semibold">Do not switch tabs or windows</p>
-                                    <p className="mt-1 text-muted-foreground">Leaving this test screen will be detected and recorded.</p>
+                                    <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                                        Switching tabs or leaving this test window will trigger an immediate <strong>force submission</strong>.
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border bg-muted/40 p-4">
+                                    <p className="font-semibold">Keyboard restrictions</p>
+                                    <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                                        Only <strong>Arrow keys</strong> (to navigate questions) and <strong>Enter key</strong> are allowed. All other keyboard keys are disabled.
+                                    </p>
                                 </div>
                             </div>
                             <p className="text-xs font-medium text-foreground/80">
@@ -480,7 +673,7 @@ export default function AttemptRunner({
             )}
 
             {/* ── Sticky header bar ── */}
-            <div className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-4 shadow-sm backdrop-blur">
+            <div data-exam-header className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background p-4 shadow-sm backdrop-blur">
                 <div className="min-w-0">
                     <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
                     <div className="mt-1 flex items-center gap-2">
@@ -515,176 +708,73 @@ export default function AttemptRunner({
                 </div>
             </div>
 
-            {/* ── Two-panel test workspace ── */}
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            {/* ── Test workspace ── */}
+            <div className={effectiveViewMode === "list" ? "space-y-5 w-full" : "grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"}>
             <div className="space-y-5">
-            {/* ── Questions ── */}
-            {currentQuestion && (() => {
-                const q = currentQuestion;
-                const isSaving = savingId === q.id;
-                const isSubmittedState = isSubmitted(attempt.status);
-                const isDone = readOnly || isSubmittedState || isExpired(attempt.status);
-                return (
-                    <Card key={q.id} className={isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base font-medium leading-relaxed flex items-start justify-between gap-3">
-                                <div>
-                                    <span className="mr-2 font-bold">{q.position}.</span>
-                                    <span
-                                        dangerouslySetInnerHTML={{
-                                            __html: sanitizeHtmlContent(q.question),
-                                        }}
-                                    />
-                                    {q.diagrams && q.diagrams.length > 0 ? (
-                                        <div className="mt-3 flex flex-wrap gap-3">
-                                            {q.diagrams.map((d) => (
-                                                <img
-                                                    key={d.id}
-                                                    src={`/api/backend/${d.path}`}
-                                                    alt="Question Diagram"
-                                                    className="max-h-80 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
-                                                />
-                                            ))}
-                                        </div>
-                                    ) : q.diagram_path ? (
-                                        <div className="mt-3">
-                                            <img
-                                                src={`/api/backend/${q.diagram_path}`}
-                                                alt="Question Diagram"
-                                                className="max-h-80 max-w-full rounded border bg-background p-1.5 object-contain shadow-xs"
-                                            />
-                                        </div>
-                                    ) : null}
-                                    <span className="text-muted-foreground ml-2 text-sm font-normal">
-                                        ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
-                                    </span>
-                                </div>
-                                {isSubmittedState && (
-                                    <span className="shrink-0">
-                                        {q.selected_option_id === null ? (
-                                            <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                                Unanswered
-                                            </Badge>
-                                        ) : q.correct_option_id && q.selected_option_id === q.correct_option_id ? (
-                                            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                                Correct
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
-                                                Incorrect
-                                            </Badge>
-                                        )}
-                                    </span>
-                                )}
-                            </CardTitle>
-                        </CardHeader>
+            {/* ── View Mode Toggle & Questions Header ── */}
+            <div className="flex items-center justify-between gap-3 pb-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {effectiveViewMode === "list"
+                        ? `All Questions (${attempt.questions.length})`
+                        : `Question ${currentQuestionIndex + 1} of ${attempt.questions.length}`}
+                </span>
+                {!isActive && (
+                    <div className="flex items-center rounded-lg border bg-muted/40 p-1">
+                        <Button
+                            type="button"
+                            variant={effectiveViewMode === "single" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-7 px-2.5 text-xs cursor-pointer"
+                            onClick={() => setUserViewMode("single")}
+                        >
+                            <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
+                            Single Question
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={effectiveViewMode === "list" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-7 px-2.5 text-xs cursor-pointer"
+                            onClick={() => setUserViewMode("list")}
+                        >
+                            <List className="mr-1.5 h-3.5 w-3.5" />
+                            List View (All)
+                        </Button>
+                    </div>
+                )}
+            </div>
 
-                        <CardContent>
-                            <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label={`Options for question ${q.position}`}>
-                                {q.options.map((opt) => {
-                                    const isSelected = q.selected_option_id === opt.id;
-                                    const isDisabled = !isActive || isSaving;
-                                    const isCorrect = q.correct_option_id === opt.id;
-
-                                    let containerClasses = "flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors";
-                                    
-                                    if (isSubmittedState) {
-                                        containerClasses += " cursor-default";
-                                        if (isCorrect) {
-                                            containerClasses += " border-emerald-500 bg-emerald-500/5 font-medium dark:bg-emerald-950/20";
-                                        } else if (isSelected) {
-                                            containerClasses += " border-destructive bg-destructive/5 dark:bg-destructive/10";
-                                        } else {
-                                            containerClasses += " border-border opacity-60";
-                                        }
-                                    } else {
-                                        containerClasses += isDisabled ? " cursor-not-allowed opacity-60" : " cursor-pointer hover:bg-muted/50";
-                                        containerClasses += isSelected ? " border-primary bg-primary/5 font-medium" : " border-border";
-                                    }
-
-                                    return (
-                                        <label
-                                            key={opt.id}
-                                            htmlFor={isSubmittedState ? undefined : `opt-${q.id}-${opt.id}`}
-                                            className={containerClasses}
-                                        >
-                                            {isSubmittedState ? (
-                                                isCorrect ? (
-                                                    <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
-                                                ) : isSelected ? (
-                                                    <X className="h-4 w-4 text-destructive shrink-0 font-bold" />
-                                                ) : (
-                                                    <div className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
-                                                )
-                                            ) : (
-                                                <input
-                                                    id={`opt-${q.id}-${opt.id}`}
-                                                    type="radio"
-                                                    name={`question-${q.id}`}
-                                                    value={String(opt.id)}
-                                                    checked={isSelected}
-                                                    disabled={isDisabled}
-                                                    onChange={() => {
-                                                        if (!isDisabled) handleAnswer(q.id, opt.id);
-                                                    }}
-                                                    className="h-4 w-4 shrink-0 accent-primary"
-                                                />
-                                            )}
-                                            <div className="flex-1 space-y-1.5">
-                                                <span
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: sanitizeHtmlContent(opt.ans),
-                                                    }}
-                                                />
-                                                {opt.diagram_path && (
-                                                    <div>
-                                                        <img
-                                                            src={`/api/backend/${opt.diagram_path}`}
-                                                            alt="Option Diagram"
-                                                            className="max-h-40 max-w-full rounded border bg-background p-1 object-contain shadow-xs"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {isSubmittedState && isCorrect && (
-                                                <Badge variant="outline" className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                                                    {isSelected ? "Correct (Selected)" : "Correct Option"}
-                                                </Badge>
-                                            )}
-                                            {isSubmittedState && !isCorrect && isSelected && (
-                                                <Badge variant="outline" className="ml-auto border-destructive/30 bg-destructive/10 text-destructive">
-                                                    Incorrect Selection
-                                                </Badge>
-                                            )}
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                );
-            })()}
-
-            {attempt.questions.length > 1 && (
-                <div className="flex items-center justify-between gap-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
-                        disabled={currentQuestionIndex === 0}
-                    >
-                        Previous
-                    </Button>
-                    <span className="text-sm font-medium text-muted-foreground">
-                        Question {currentQuestionIndex + 1} of {attempt.questions.length}
-                    </span>
-                    <Button
-                        variant="outline"
-                        onClick={() => setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1))}
-                        disabled={currentQuestionIndex === attempt.questions.length - 1}
-                    >
-                        Next
-                    </Button>
+            {/* ── Questions List or Single View ── */}
+            {effectiveViewMode === "list" ? (
+                <div className="space-y-5">
+                    {attempt.questions.map((q) => renderQuestionCard(q))}
                 </div>
+            ) : (
+                <>
+                    {currentQuestion && renderQuestionCard(currentQuestion)}
+
+                    {attempt.questions.length > 1 && (
+                        <div className="flex items-center justify-between gap-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
+                                disabled={currentQuestionIndex === 0}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm font-medium text-muted-foreground">
+                                Question {currentQuestionIndex + 1} of {attempt.questions.length}
+                            </span>
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1))}
+                                disabled={currentQuestionIndex === attempt.questions.length - 1}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* ── Result after submission / expiry ── */}
@@ -723,75 +813,77 @@ export default function AttemptRunner({
             </div>
             {/* ── end left column ── */}
 
-            {/* ── Question palette / navigator ── */}
-            <aside className="lg:sticky lg:top-32">
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base font-semibold">Questions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div
-                            className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6"
-                            role="navigation"
-                            aria-label="Question navigator"
-                        >
-                            {attempt.questions.map((q, index) => {
-                                const answered = q.selected_option_id !== null;
-                                const isCurrent = index === currentQuestionIndex;
-                                let bubbleClasses =
-                                    "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors ";
-                                if (answered) {
-                                    bubbleClasses += "border-emerald-500 bg-emerald-500 text-white ";
-                                } else {
-                                    bubbleClasses += "border-border bg-muted text-muted-foreground hover:bg-muted/70 ";
-                                }
-                                if (isCurrent) {
-                                    bubbleClasses += "ring-2 ring-primary ring-offset-2 ring-offset-background ";
-                                }
-                                return (
-                                    <button
-                                        key={q.id}
-                                        type="button"
-                                        onClick={() => setCurrentQuestionIndex(index)}
-                                        className={bubbleClasses}
-                                        aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
-                                        aria-current={isCurrent ? "true" : undefined}
+            {/* ── Question palette / navigator (Only in single view) ── */}
+            {effectiveViewMode === "single" && (
+                <aside data-exam-sidebar className="lg:sticky lg:top-32">
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base font-semibold">Questions</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div
+                                className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6"
+                                role="navigation"
+                                aria-label="Question navigator"
+                            >
+                                {attempt.questions.map((q, index) => {
+                                    const answered = q.selected_option_id !== null;
+                                    const isCurrent = index === currentQuestionIndex;
+                                    let bubbleClasses =
+                                        "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors ";
+                                    if (answered) {
+                                        bubbleClasses += "border-emerald-500 bg-emerald-500 text-white ";
+                                    } else {
+                                        bubbleClasses += "border-border bg-muted text-muted-foreground hover:bg-muted/70 ";
+                                    }
+                                    if (isCurrent) {
+                                        bubbleClasses += "ring-2 ring-primary ring-offset-2 ring-offset-background ";
+                                    }
+                                    return (
+                                        <button
+                                            key={q.id}
+                                            type="button"
+                                            onClick={() => setCurrentQuestionIndex(index)}
+                                            className={bubbleClasses}
+                                            aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
+                                            aria-current={isCurrent ? "true" : undefined}
+                                        >
+                                            {q.position}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="space-y-2 border-t pt-4 text-sm">
+                                <div className="flex items-center gap-3">
+                                    <span className="h-4 w-4 shrink-0 rounded-full border border-border bg-muted" />
+                                    <span className="text-muted-foreground">Not answered</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="h-4 w-4 shrink-0 rounded-full border border-emerald-500 bg-emerald-500" />
+                                    <span className="text-muted-foreground">Answered</span>
+                                </div>
+                            </div>
+
+                            {isActive && (
+                                <div className="space-y-2 border-t pt-4">
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        {answeredCount}/{attempt.questions.length} answered
+                                    </p>
+                                    <Button
+                                        onClick={() => handleSubmit(false)}
+                                        disabled={submitting}
+                                        size="lg"
+                                        className="w-full shadow-md"
                                     >
-                                        {q.position}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="space-y-2 border-t pt-4 text-sm">
-                            <div className="flex items-center gap-3">
-                                <span className="h-4 w-4 shrink-0 rounded-full border border-border bg-muted" />
-                                <span className="text-muted-foreground">Not answered</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="h-4 w-4 shrink-0 rounded-full border border-emerald-500 bg-emerald-500" />
-                                <span className="text-muted-foreground">Answered</span>
-                            </div>
-                        </div>
-
-                        {isActive && (
-                            <div className="space-y-2 border-t pt-4">
-                                <p className="text-center text-sm text-muted-foreground">
-                                    {answeredCount}/{attempt.questions.length} answered
-                                </p>
-                                <Button
-                                    onClick={() => handleSubmit(false)}
-                                    disabled={submitting}
-                                    size="lg"
-                                    className="w-full shadow-md"
-                                >
-                                    {submitting ? "Submitting…" : "Submit test"}
-                                </Button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </aside>
+                                        {submitting ? "Submitting…" : "Submit test"}
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </aside>
+            )}
             </div>
             {/* ── end two-panel grid ── */}
             </div>

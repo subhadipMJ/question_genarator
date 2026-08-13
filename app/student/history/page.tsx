@@ -49,7 +49,8 @@ export default async function Page() {
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                     {history.map((a) => {
-                        const isSubmitted = a.status === "submitted" || a.status === 2 || a.status === 3;
+                        const isSubmitted = a.status === "submitted" || a.status === 2;
+                        const isForceSubmitted = a.status === "force_submitted" || a.status === 3;
                         const isInProgress = a.status === "in_progress" || a.status === 0;
                         const isExpired = a.status === "expired" || a.status === 1;
 
@@ -61,6 +62,8 @@ export default async function Page() {
                                         className={`absolute inset-y-0 left-0 w-1 rounded-l-xl ${
                                             isExpired
                                                 ? "bg-muted-foreground/30"
+                                                : isForceSubmitted
+                                                ? "bg-destructive"
                                                 : isSubmitted
                                                 ? "bg-green-500"
                                                 : isInProgress
@@ -77,6 +80,11 @@ export default async function Page() {
                                             {isInProgress && (
                                                 <Badge variant="secondary" className="shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
                                                     In progress
+                                                </Badge>
+                                            )}
+                                            {isForceSubmitted && (
+                                                <Badge variant="outline" className="shrink-0 border-destructive/40 bg-destructive/10 text-destructive dark:bg-destructive/20 font-medium">
+                                                    Force Submitted
                                                 </Badge>
                                             )}
                                             {isSubmitted && (
