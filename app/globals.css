@@ -184,19 +184,34 @@
   }
 }
 
-html.exam-fullscreen:fullscreen [data-slot="sidebar"],
-html.exam-fullscreen:fullscreen [data-app-shell="header"],
-html.exam-fullscreen:fullscreen [data-app-shell="footer"] {
-  display: none;
+html.exam-fullscreen [data-slot="sidebar"],
+html.exam-fullscreen [data-app-shell="header"],
+html.exam-fullscreen [data-app-shell="footer"],
+html:fullscreen [data-slot="sidebar"],
+html:fullscreen [data-app-shell="header"],
+html:fullscreen [data-app-shell="footer"] {
+  display: none !important;
 }
 
-html.exam-fullscreen:fullscreen [data-app-shell="content"] {
+html.exam-fullscreen [data-app-shell="content"],
+html:fullscreen [data-app-shell="content"] {
   height: 100vh;
   width: 100%;
 }
 
-html.exam-fullscreen:fullscreen [data-app-shell="main"] {
-  padding: 0;
+html.exam-fullscreen [data-app-shell="main"],
+html:fullscreen [data-app-shell="main"] {
+  padding: 1rem;
+}
+
+html.exam-fullscreen [data-exam-header],
+html:fullscreen [data-exam-header] {
+  top: 0.5rem !important;
+}
+
+html.exam-fullscreen [data-exam-sidebar],
+html:fullscreen [data-exam-sidebar] {
+  top: 5rem !important;
 }
 
 @keyframes quiz-reveal {

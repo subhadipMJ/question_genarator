@@ -200,7 +200,7 @@ export default function StudentTests({
         <>
         {pendingTest && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-                <Card className="w-full max-w-lg border-primary/20 shadow-2xl">
+                <Card className="w-full max-w-3xl border-primary/20 shadow-2xl">
                     <CardHeader>
                         <CardTitle className="text-2xl">Start this test</CardTitle>
                         <CardDescription>{pendingTest.name}</CardDescription>
@@ -218,17 +218,23 @@ export default function StudentTests({
                                 <p className="text-xs text-muted-foreground">Test duration</p>
                             </div>
                         </div>
-                        <div className="space-y-3 text-sm">
+                        <div className="grid gap-3 sm:grid-cols-3 text-sm">
                             <div className="rounded-lg border bg-muted/40 p-4">
-                                <p className="font-semibold">You will enter fullscreen mode</p>
-                                <p className="mt-1 text-muted-foreground">
-                                    Remain in fullscreen until you submit. If you exit, return within 10 seconds or the test submits automatically.
+                                <p className="font-semibold">Fullscreen mode required</p>
+                                <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                                    You must remain in fullscreen mode. Exiting fullscreen at any time will cause your test to be <strong>force submitted</strong> immediately.
                                 </p>
                             </div>
                             <div className="rounded-lg border bg-muted/40 p-4">
                                 <p className="font-semibold">Do not switch tabs or windows</p>
-                                <p className="mt-1 text-muted-foreground">
-                                    Leaving the test screen will be detected and recorded.
+                                <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                                    Switching tabs, minimizing the window, or navigating away will trigger an immediate <strong>force submission</strong>.
+                                </p>
+                            </div>
+                            <div className="rounded-lg border bg-muted/40 p-4">
+                                <p className="font-semibold">Keyboard restrictions</p>
+                                <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                                    Only <strong>Arrow keys</strong> (to navigate questions) and <strong>Enter key</strong> are allowed. All other keyboard keys are disabled.
                                 </p>
                             </div>
                         </div>

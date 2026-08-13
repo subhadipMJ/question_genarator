@@ -42,7 +42,7 @@ export default function ResultsViewer({
     initialResults: TestSeriesResults;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState<"all" | "submitted" | "in_progress">("all");
+    const [statusFilter, setStatusFilter] = useState<"all" | "submitted" | "force_submitted" | "in_progress" | "expired">("all");
     const [sortBy, setSortBy] = useState<"score_desc" | "score_asc" | "date_desc" | "name_asc">("date_desc");
     const [isQROpen, setIsQROpen] = useState(false);
     const [selectedAttemptItem, setSelectedAttemptItem] = useState<TestSeriesResultItem | null>(null);
@@ -65,7 +65,15 @@ export default function ResultsViewer({
 
             // Status filter
             if (statusFilter !== "all") {
-                if (item.status !== statusFilter) return false;
+                const isSub = item.status === "submitted" || String(item.status) === "2";
+                const isForce = item.status === "force_submitted" || String(item.status) === "3";
+                const isInProg = item.status === "in_progress" || String(item.status) === "0";
+                const isExp = item.status === "expired" || String(item.status) === "1";
+
+                if (statusFilter === "submitted" && !isSub) return false;
+                if (statusFilter === "force_submitted" && !isForce) return false;
+                if (statusFilter === "in_progress" && !isInProg) return false;
+                if (statusFilter === "expired" && !isExp) return false;
             }
 
             return true;
@@ -235,8 +243,10 @@ export default function ResultsViewer({
                         className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[140px]"
                     >
                         <option value="all">All Statuses</option>
-                        <option value="submitted">Completed</option>
+                        <option value="submitted">Completed (Normal)</option>
+                        <option value="force_submitted">Force Submitted</option>
                         <option value="in_progress">In Progress</option>
+                        <option value="expired">Expired</option>
                     </select>
 
                     {/* Sort Order */}
@@ -305,13 +315,15 @@ export default function ResultsViewer({
                         </TableHeader>
                         <TableBody className="text-xs">
                             {filteredResults.map((item) => {
-                                const isSubmitted = item.status === "submitted" || String(item.status) === "2" || String(item.status) === "3";
+                                const isSubmitted = item.status === "submitted" || String(item.status) === "2";
+                                const isForceSubmitted = item.status === "force_submitted" || String(item.status) === "3";
                                 const isInProgress = item.status === "in_progress" || String(item.status) === "0";
                                 const isExpiredItem = item.status === "expired" || String(item.status) === "1";
+                                const isFinished = isSubmitted || isForceSubmitted;
 
                                 // Badge color based on percentage
                                 let pctBadgeColor = "bg-muted text-muted-foreground";
-                                if (isSubmitted) {
+                                if (isFinished) {
                                     if (item.percentage >= 70) pctBadgeColor = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
                                     else if (item.percentage >= 40) pctBadgeColor = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800";
                                     else pctBadgeColor = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800";
@@ -327,7 +339,11 @@ export default function ResultsViewer({
 
                                         {/* Status */}
                                         <TableCell className="px-4 py-3.5">
-                                            {isSubmitted ? (
+                                            {isForceSubmitted ? (
+                                                <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive dark:bg-destructive/20 font-medium">
+                                                    Force Submitted
+                                                </Badge>
+                                            ) : isSubmitted ? (
                                                 <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-none">
                                                     Completed
                                                 </Badge>
@@ -336,7 +352,7 @@ export default function ResultsViewer({
                                                     In progress
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline">{isSubmitted ? "Submitted" : isInProgress ? "In Progress" : isExpiredItem ? "Expired" : String(item.status)}</Badge>
+                                                <Badge variant="outline">{isExpiredItem ? "Expired" : String(item.status)}</Badge>
                                             )}
                                         </TableCell>
 
@@ -438,13 +454,14 @@ function StudentAttemptModal({
     const questions: any[] = attemptData?.questions ?? [];
     const totalQuestions = questions.length;
     const correctCount = questions.filter(
-        (q) => q.correct_option_id && q.selected_option_id === q.correct_option_id,
+        (q) => q.correct_option_id != null && q.selected_option_id != null && String(q.selected_option_id) === String(q.correct_option_id),
     ).length;
     const incorrectCount = questions.filter(
-        (q) => q.selected_option_id !== null && q.selected_option_id !== q.correct_option_id,
+        (q) => q.selected_option_id != null && String(q.selected_option_id) !== String(q.correct_option_id),
     ).length;
-    const unansweredCount = questions.filter((q) => q.selected_option_id === null).length;
-    const isSubmitted = item.status === "submitted" || String(item.status) === "2" || String(item.status) === "3";
+    const unansweredCount = questions.filter((q) => q.selected_option_id === null || q.selected_option_id === undefined).length;
+    const isSubmitted = item.status === "submitted" || String(item.status) === "2";
+    const isForceSubmitted = item.status === "force_submitted" || String(item.status) === "3";
     const isInProgress = item.status === "in_progress" || String(item.status) === "0";
     const isExpiredItem = item.status === "expired" || String(item.status) === "1";
 
@@ -456,8 +473,8 @@ function StudentAttemptModal({
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <h3 className="text-lg font-bold">{item.student_name}</h3>
-                            <Badge variant={isSubmitted ? "default" : "secondary"}>
-                                {isSubmitted ? "Submitted" : isInProgress ? "In Progress" : String(item.status)}
+                            <Badge variant={isForceSubmitted ? "destructive" : isSubmitted ? "default" : "secondary"}>
+                                {isForceSubmitted ? "Force Submitted" : isSubmitted ? "Submitted" : isInProgress ? "In Progress" : String(item.status)}
                             </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground font-mono">{item.student_email}</p>
@@ -532,8 +549,8 @@ function StudentAttemptModal({
                             <div className="space-y-4">
                                 {questions.map((q: any) => {
                                     const isCorrect =
-                                        q.correct_option_id && q.selected_option_id === q.correct_option_id;
-                                    const isUnanswered = q.selected_option_id === null;
+                                        q.correct_option_id != null && q.selected_option_id != null && String(q.selected_option_id) === String(q.correct_option_id);
+                                    const isUnanswered = q.selected_option_id === null || q.selected_option_id === undefined;
 
                                     return (
                                         <Card key={q.id} className="border shadow-xs overflow-hidden">
@@ -598,8 +615,8 @@ function StudentAttemptModal({
                                             </CardHeader>
                                             <CardContent className="p-4 space-y-2">
                                                 {q.options.map((opt: any) => {
-                                                    const isSelected = q.selected_option_id === opt.id;
-                                                    const isOptCorrect = q.correct_option_id === opt.id;
+                                                    const isSelected = q.selected_option_id != null && String(q.selected_option_id) === String(opt.id);
+                                                    const isOptCorrect = q.correct_option_id != null && String(q.correct_option_id) === String(opt.id);
 
                                                     let optionStyle = "border-border/60 bg-card";
                                                     if (isOptCorrect) {
