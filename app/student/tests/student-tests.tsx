@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Search, X, Tag, Filter, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, Tag, Filter, RotateCcw, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import type { PaginatedTests } from "./page";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -266,15 +266,34 @@ export default function StudentTests({
                                 Cancel
                             </Button>
                             <Button
-                                className="flex-1"
+                                className="flex-1 cursor-pointer"
                                 onClick={() => start(pendingTest.id)}
                                 disabled={!instructionsAccepted || busy !== null}
                             >
-                                {busy === pendingTest.id ? "Starting…" : "Start test in fullscreen"}
+                                {busy === pendingTest.id ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Starting test…
+                                    </>
+                                ) : (
+                                    "Start test in fullscreen"
+                                )}
                             </Button>
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+        )}
+
+        {busy !== null && (
+            <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-background/95 backdrop-blur-md space-y-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+                <div className="text-center space-y-1">
+                    <h3 className="text-lg font-bold">Initializing Exam Environment</h3>
+                    <p className="text-sm text-muted-foreground">Setting up fullscreen security and generating question attempt…</p>
+                </div>
             </div>
         )}
 
