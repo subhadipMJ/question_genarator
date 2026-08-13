@@ -103,6 +103,7 @@ export default function AttemptRunner({
     const [fullscreenCountdown, setFullscreenCountdown] = useState(10);
     const [instructionsAccepted, setInstructionsAccepted] = useState(false);
     const [userViewMode, setUserViewMode] = useState<"single" | "list">("list");
+    const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
     const router = useRouter();
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
@@ -121,6 +122,41 @@ export default function AttemptRunner({
     const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
     const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
     const effectiveViewMode = isActive ? "single" : userViewMode;
+
+    useEffect(() => {
+        if (readOnly || !isInProgress(attempt.status)) return;
+
+        const checkDevTools = () => {
+            const widthDiff = window.outerWidth - window.innerWidth > 160;
+            const heightDiff = window.outerHeight - window.innerHeight > 160;
+
+            let isConsoleOpen = false;
+            const element = new Image();
+            Object.defineProperty(element, "id", {
+                get: function () {
+                    isConsoleOpen = true;
+                },
+            });
+            console.log("%c", element);
+
+            const isOpen = widthDiff || heightDiff || isConsoleOpen;
+            setIsDevToolsOpen(isOpen);
+
+            if (isOpen && isActive && !instructionsOpen && !fullscreenSubmitStartedRef.current) {
+                toast.error("Developer tools detected. Your test is being force submitted.");
+                void handleSubmit(true, true);
+            }
+        };
+
+        checkDevTools();
+        const interval = setInterval(checkDevTools, 1000);
+        window.addEventListener("resize", checkDevTools);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener("resize", checkDevTools);
+        };
+    }, [isActive, instructionsOpen, readOnly, attempt.status]);
 
     // Re-apply the chrome-hiding class after entering the test.
     // Navigating from the start page (?started=1) re-renders the server layout,
@@ -315,7 +351,7 @@ export default function AttemptRunner({
     const currentQuestion = attempt.questions[currentQuestionIndex];
 
     async function enterTest() {
-        if (!instructionsAccepted) return;
+        if (!instructionsAccepted || isDevToolsOpen) return;
 
         try {
             if (!document.fullscreenElement) {
@@ -560,6 +596,12 @@ export default function AttemptRunner({
                                     I have read and understood the instructions and agree to follow the test rules.
                                 </span>
                             </label>
+                            {isDevToolsOpen && (
+                                <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs font-semibold text-destructive flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                                    <span>Developer Tools / Inspect Element detected. Please close Developer Tools to continue.</span>
+                                </div>
+                            )}
                             <div className="flex items-center gap-3">
                                 <Button
                                     variant="outline"
@@ -573,7 +615,7 @@ export default function AttemptRunner({
                                     className="flex-1 cursor-pointer"
                                     size="lg"
                                     onClick={enterTest}
-                                    disabled={!instructionsAccepted}
+                                    disabled={!instructionsAccepted || isDevToolsOpen}
                                 >
                                     Resume test in fullscreen
                                 </Button>
