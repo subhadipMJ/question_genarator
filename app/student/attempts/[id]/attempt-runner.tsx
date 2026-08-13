@@ -140,7 +140,7 @@ export default function AttemptRunner({
             if (document.visibilityState === "hidden" && !fullscreenSubmitStartedRef.current) {
                 setTabSwitchCount((count) => count + 1);
                 toast.error("Tab switch detected. Your test is being force submitted.");
-                void handleSubmit(true);
+                void handleSubmit(true, true);
             }
         };
 
@@ -148,7 +148,7 @@ export default function AttemptRunner({
             if (!document.fullscreenElement && !fullscreenSubmitStartedRef.current) {
                 document.documentElement.classList.remove("exam-fullscreen");
                 toast.error("Fullscreen exited. Your test is being force submitted.");
-                void handleSubmit(true);
+                void handleSubmit(true, true);
             }
         };
 
@@ -205,7 +205,7 @@ export default function AttemptRunner({
 
             if (secondsLeft === 0) {
                 setFullscreenWarningOpen(false);
-                void handleSubmit(true);
+                void handleSubmit(true, true);
             }
         };
 
@@ -222,7 +222,7 @@ export default function AttemptRunner({
     // Auto-submit ONLY when timer transitions from > 0 → 0, not on initial mount
     useEffect(() => {
         if (!readOnly && isInProgress(attempt.status) && remaining === 0 && hadTimeRef.current && !instructionsOpen) {
-            handleSubmit(true);
+            handleSubmit(true, true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [remaining, instructionsOpen]);
@@ -261,9 +261,9 @@ export default function AttemptRunner({
         [attempt.id, initialAttempt, readOnly],
     );
 
-    async function handleSubmit(auto = false) {
+    async function handleSubmit(bypassModal = false, isForce = false) {
         if (readOnly) return;
-        if (!auto) {
+        if (!bypassModal) {
             setSubmitModalOpen(true);
             return;
         }
@@ -276,7 +276,7 @@ export default function AttemptRunner({
             const res = await fetch(`/api/backend/student/attempts/${attempt.id}/submit`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ force_submit: auto ? 1 : 0 }),
+                body: JSON.stringify({ force_submit: isForce ? 1 : 0 }),
             });
             const data = await res.json().catch(() => null);
             if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Unable to submit.");
@@ -602,7 +602,7 @@ export default function AttemptRunner({
                                 >
                                     Continue test
                                 </Button>
-                                <Button className="flex-1" onClick={() => handleSubmit(true)} disabled={submitting}>
+                                <Button className="flex-1" onClick={() => handleSubmit(true, false)} disabled={submitting}>
                                     {submitting ? "Submitting…" : "Submit test"}
                                 </Button>
                             </div>
