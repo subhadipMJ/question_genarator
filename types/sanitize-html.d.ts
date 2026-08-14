@@ -1,6 +1,7 @@
 declare module "sanitize-html" {
     type SanitizeOptions = {
         allowedTags?: string[];
+        allowedAttributes?: Record<string, string[]>;
         disallowedTagsMode?: string;
     };
 
@@ -8,6 +9,7 @@ declare module "sanitize-html" {
         (html: string, options?: SanitizeOptions): string;
         defaults: {
             allowedTags: string[];
+            allowedAttributes: Record<string, string[]>;
         };
     };
 
