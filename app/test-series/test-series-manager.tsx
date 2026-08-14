@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
     Plus,
     Users,
@@ -88,6 +89,7 @@ export default function TestSeriesManager({
     userRole?: string;
     userOrgId?: number;
 }) {
+    const router = useRouter();
     const [series, setSeries] = useState(initialSeries);
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(null);
@@ -193,6 +195,7 @@ export default function TestSeriesManager({
             setNewInviteToken((responseData as TestSeries).invite_token ?? null);
             toast.success("Test series created!");
             closeModal();
+            router.push(`/test-series/${responseData.id}`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Unable to create test series.");
         } finally {
