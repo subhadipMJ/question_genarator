@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Uploa
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { TestSeries } from "../../services/test-series";
@@ -823,6 +823,15 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 </div>
                             )}
                         </CardContent>
+                        <CardFooter className="flex justify-end border-t pt-4 bg-muted/10">
+                            <Button 
+                                variant="outline" 
+                                nativeButton={false}
+                                render={<Link href={`/test-series/${series.id}/preview`} />}
+                            >
+                                View Questions
+                            </Button>
+                        </CardFooter>
                     </Card>
                 </div>
             </div>
