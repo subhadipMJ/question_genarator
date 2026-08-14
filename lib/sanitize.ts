@@ -14,7 +14,11 @@ export function sanitizeHtmlContent(html: string | null | undefined): string {
         .replace(/<\/script>/gi, "&lt;/script&gt;");
 
     return sanitizeHtml(safeHtml, {
-        allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup"],
+        allowedTags: [...sanitizeHtml.defaults.allowedTags, "sub", "sup", "img"],
+        allowedAttributes: {
+            ...sanitizeHtml.defaults.allowedAttributes,
+            img: ["src", "alt", "width", "height", "class", "style"],
+        },
         disallowedTagsMode: "escape",
     });
 }
