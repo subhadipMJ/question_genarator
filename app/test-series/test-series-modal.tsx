@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
+import { useRef } from "react";
 import type { TestSeries } from "../services/test-series";
 
 function formatDateTimeLocal(isoString?: string): string {
@@ -38,6 +39,9 @@ export default function TestSeriesModal({
     onSubmit,
     busy,
 }: TestSeriesModalProps) {
+    const lastDateRef = useRef(formatDateTimeLocal(editingSeries?.valid_until));
+    const isTypingRef = useRef(false);
+
     if (!isOpen) return null;
 
     function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -137,6 +141,30 @@ export default function TestSeriesModal({
                                     type="datetime-local"
                                     required
                                     defaultValue={formatDateTimeLocal(editingSeries?.valid_until)}
+                                    onKeyDown={() => {
+                                        isTypingRef.current = true;
+                                    }}
+                                    onKeyUp={() => {
+                                        setTimeout(() => {
+                                            isTypingRef.current = false;
+                                        }, 100);
+                                    }}
+                                    onChange={(e) => {
+                                        const newVal = e.target.value;
+                                        if (newVal && !isTypingRef.current) {
+                                            const oldVal = lastDateRef.current;
+                                            if (oldVal) {
+                                                const [oldDate, oldTime] = oldVal.split("T");
+                                                const [newDate, newTime] = newVal.split("T");
+                                                if (oldDate === newDate && oldTime !== newTime) {
+                                                    e.target.blur();
+                                                }
+                                            }
+                                            lastDateRef.current = newVal;
+                                        } else if (newVal) {
+                                            lastDateRef.current = newVal;
+                                        }
+                                    }}
                                 />
                             </div>
                             <div className="space-y-1.5">
