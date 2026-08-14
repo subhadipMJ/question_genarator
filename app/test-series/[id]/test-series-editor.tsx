@@ -91,6 +91,11 @@ export default function TestSeriesEditor({
     const [name, setName] = useState(series.name);
     const [accessType, setAccessType] = useState(series.access_type);
     const [validUntil, setValidUntil] = useState(series.valid_until);
+    
+    // Auto-close heuristic states for native datetime-local
+    const lastDateRef = useRef(formatDateTimeLocal(series.valid_until));
+    const isTypingRef = useRef(false);
+
     const [durationSeconds, setDurationSeconds] = useState(series.duration_seconds);
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
@@ -538,7 +543,32 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         type="datetime-local"
                                         required
                                         value={formatDateTimeLocal(validUntil)}
-                                        onChange={(e) => setValidUntil(new Date(e.target.value).toISOString())}
+                                        onKeyDown={() => {
+                                            isTypingRef.current = true;
+                                        }}
+                                        onKeyUp={() => {
+                                            setTimeout(() => {
+                                                isTypingRef.current = false;
+                                            }, 100);
+                                        }}
+                                        onChange={(e) => {
+                                            const newVal = e.target.value;
+                                            setValidUntil(new Date(newVal).toISOString());
+                                            
+                                            if (newVal && !isTypingRef.current) {
+                                                const oldVal = lastDateRef.current;
+                                                if (oldVal) {
+                                                    const [oldDate, oldTime] = oldVal.split("T");
+                                                    const [newDate, newTime] = newVal.split("T");
+                                                    if (oldDate === newDate && oldTime !== newTime) {
+                                                        e.target.blur();
+                                                    }
+                                                }
+                                                lastDateRef.current = newVal;
+                                            } else if (newVal) {
+                                                lastDateRef.current = newVal;
+                                            }
+                                        }}
                                     />
                                 </div>
 
