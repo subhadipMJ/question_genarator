@@ -32,9 +32,27 @@
 - **Developer Governance:** Authored `CONTEXT.md` standards and updated frontend `README.md`.
 
 ### 💪 Key Strengths
-- **Massive Feature Output:** Single-handedly authored the primary proctoring engine, service layer, backend routes, and UI components.
+- **Flawless End-to-End System Ownership:** Single-handedly authored the primary proctoring engine, centralized service layer, backend FastAPI routes, and modern Next.js UI components.
 - **High Architectural Standard:** Consistently enforces shadcn UI guidelines, server-side data fetching, and security standards.
-- **Performance Optimized:** Solved slow page loads by offloading filtering to database queries and implementing debounced loading states.
+- **Performance Optimized:** Solved slow page loads across the application by offloading filtering to database queries and implementing debounced loading states.
+
+### 🎯 Constructive Areas for Improvement (To Reach 10/10)
+
+1. **Automated End-to-End (E2E) & Unit Testing:**
+   - *Current State:* Testing is done manually via browser interaction.
+   - *Improvement:* Introduce **Playwright** for E2E tests (e.g., testing student exam attempt flow, tab-switch warning, and auto-submit) and **Pytest** for backend routes.
+
+2. **Data Fetching & State Caching (TanStack Query / SWR):**
+   - *Current State:* Local component states like `useState(initialSeries)` manually sync list state after mutations.
+   - *Improvement:* Adopt **TanStack Query (React Query)** or **SWR** for automatic cache invalidation, optimistic UI rollbacks on network failure, and background revalidation.
+
+3. **Real-Time Proctoring via WebSockets:**
+   - *Current State:* Proctoring tab-switch events and time tracking are logged via HTTP REST calls upon submission or interval ping.
+   - *Improvement:* Upgrade to **WebSockets** (FastAPI WebSocket endpoints) to stream live proctoring events directly to a live Teacher Dashboard.
+
+4. **Async Database Sessions under High Concurrency:**
+   - *Current State:* FastAPI routes use SQLAlchemy sync/async sessions.
+   - *Improvement:* Ensure 100% of student submission routes leverage `AsyncSession` with connection pooling (e.g., `asyncpg`) to handle thousands of concurrent exam submissions during peak exam hours.
 
 ---
 
@@ -56,6 +74,13 @@
 ### 💪 Key Strengths
 - **Interactive Component UX:** High proficiency with complex UI interactions (keyboard navigation, preview modes).
 - **Full-Stack Schema Work:** Successfully created Alembic database migrations and image handling endpoints.
+
+### 🎯 Constructive Areas for Improvement
+
+1. **Strict TypeScript Generic Annotations:**
+   - Ensure all data-fetching functions specify return interfaces (`getTestSeriesQuestions<PreviewData>(id)`) to avoid `any`/`unknown` build warnings.
+2. **CDN Media Asset Proxying:**
+   - Wrap diagram image URLs through the Next.js backend proxy (`/api/backend/...`) to prevent cross-origin issues in production setups.
 
 ---
 
