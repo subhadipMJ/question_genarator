@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { getApiUrl } from "../lib/api-url";
+import { createApiClient } from "../lib/api-client";
 import { Topic } from "./topics";
 
 export type QuestionOption = {
@@ -56,24 +55,13 @@ export type PaginatedQuestionResponse = {
     total_pages: number;
 };
 
-export async function getAllQuestions(page = 1, pageSize = 20, topicId?: number): Promise<PaginatedQuestionResponse> {
-    const baseUrl = getQuestionsApiUrl();
-    const separator = baseUrl.includes("?") ? "&" : "?";
-    let apiUrl = `${baseUrl}${separator}page=${page}&page_size=${pageSize}`;
+export async function getAllQuestions(page = 1, pageSize = 10, topicId?: number): Promise<PaginatedQuestionResponse> {
+    const client = await createApiClient();
+    let path = `questions/?page=${page}&page_size=${pageSize}`;
     if (topicId !== undefined && topicId !== null) {
-        apiUrl += `&topic_id=${topicId}`;
+        path += `&topic_id=${topicId}`;
     }
-
-    const response = await fetch(apiUrl, {
-        headers: await getAuthorizationHeaders(),
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch questions: ${response.status}`);
-    }
-
-    return response.json();
+    return client.get<PaginatedQuestionResponse>(path);
 }
 
 export async function getAllQuestionsList(): Promise<Question[]> {
@@ -92,95 +80,26 @@ export async function getAllQuestionsList(): Promise<Question[]> {
 }
 
 export async function getQuestion(questionId: number): Promise<Question> {
-    const response = await fetch(getQuestionApiUrl(questionId), {
-        headers: await getAuthorizationHeaders(),
-        cache: "no-store",
-    });
-
-    return readApiResponse(response, "Failed to fetch question");
+    const client = await createApiClient();
+    return client.get<Question>(`questions/${questionId}`);
 }
 
 export async function createQuestion(data: CreateQuestionInput): Promise<Question> {
-    const response = await fetch(getQuestionsApiUrl(), {
-        method: "POST",
-        headers: await getAuthorizationHeaders(true),
-        body: JSON.stringify(data),
-    });
-
-    return readApiResponse(response, "Failed to create question");
+    const client = await createApiClient();
+    return client.post<Question>("questions/", data);
 }
 
-export async function updateQuestion(
-    questionId: number,
-    data: UpdateQuestionInput,
-): Promise<Question> {
-    const response = await fetch(getQuestionApiUrl(questionId), {
-        method: "PATCH",
-        headers: await getAuthorizationHeaders(true),
-        body: JSON.stringify(data),
-    });
-
-    return readApiResponse(response, "Failed to update question");
+export async function updateQuestion(questionId: number, data: UpdateQuestionInput): Promise<Question> {
+    const client = await createApiClient();
+    return client.patch<Question>(`questions/${questionId}`, data);
 }
 
 export async function deleteQuestion(questionId: number): Promise<void> {
-    const response = await fetch(getQuestionApiUrl(questionId), {
-        method: "DELETE",
-        headers: await getAuthorizationHeaders(),
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => null) as { detail?: unknown } | null;
-        const detail = typeof error?.detail === "string" ? error.detail : null;
-        throw new Error(detail ?? `Failed to delete question: ${response.status}`);
-    }
+    const client = await createApiClient();
+    await client.delete(`questions/${questionId}`);
 }
 
-export async function createQuestionOption(
-    questionId: number,
-    data: QuestionOption,
-): Promise<QuestionOption> {
-    const optionsUrl = new URL(`${questionId}/options/`, getQuestionsApiUrl());
-    const response = await fetch(optionsUrl, {
-        method: "POST",
-        headers: await getAuthorizationHeaders(true),
-        body: JSON.stringify(data),
-    });
-
-    return readApiResponse(response, "Failed to create option");
-}
-
-async function getAuthorizationHeaders(includeJson = false): Promise<HeadersInit> {
-    const token = (await cookies()).get("access_token")?.value;
-
-    if (!token) {
-        throw new Error("AUTH_REQUIRED");
-    }
-
-    return {
-        ...(includeJson ? { "Content-Type": "application/json" } : {}),
-        Authorization: `Bearer ${token}`,
-    };
-}
-
-function getQuestionsApiUrl() {
-    return getApiUrl("questions/");
-}
-
-function getQuestionApiUrl(questionId: number) {
-    return new URL(`${questionId}/`, getQuestionsApiUrl());
-}
-
-async function readApiResponse<T>(
-    response: Response,
-    fallbackMessage: string,
-): Promise<T> {
-    if (!response.ok) {
-        const error = await response.json().catch(() => null) as { detail?: unknown } | null;
-        const detail = typeof error?.detail === "string" ? error.detail : null;
-        throw new Error(detail ?? `${fallbackMessage}: ${response.status}`);
-    }
-
-    return response.json();
+export async function createQuestionOption(questionId: number, data: QuestionOption): Promise<QuestionOption> {
+    const client = await createApiClient();
+    return client.post<QuestionOption>(`questions/${questionId}/options/`, data);
 }

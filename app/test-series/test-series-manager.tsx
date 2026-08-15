@@ -17,11 +17,22 @@ import {
     ChevronRight,
     Copy,
     QrCode,
+    Trash2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import QRCodeModal from "./qr-code-modal";
 import type { TestSeries } from "../services/test-series";
 import type { Question } from "../services/questions";
@@ -95,10 +106,13 @@ export default function TestSeriesManager({
     const [newInviteToken, setNewInviteToken] = useState<string | null>(null);
     const [origin, setOrigin] = useState("");
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Filter controls state
     const [searchQuery, setSearchQuery] = useState("");
     const [accessFilter, setAccessFilter] = useState<"all" | "public" | "invite_only">("all");
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
     const [orgFilter, setOrgFilter] = useState("all");
     const [sortBy, setSortBy] = useState<"newest" | "name_asc" | "name_desc" | "attempts_desc">("newest");
     const [currentPage, setCurrentPage] = useState(1);
@@ -135,6 +149,10 @@ export default function TestSeriesManager({
             if (accessFilter !== "all") {
                 if (s.access_type !== accessFilter) return false;
             }
+            if (statusFilter !== "all") {
+                if (statusFilter === "active" && s.is_active === false) return false;
+                if (statusFilter === "inactive" && s.is_active !== false) return false;
+            }
             if (orgFilter !== "all") {
                 if (String(s.org_id) !== orgFilter) return false;
             }
@@ -147,7 +165,7 @@ export default function TestSeriesManager({
             if (sortBy === "attempts_desc") return (b.attempt_count ?? 0) - (a.attempt_count ?? 0);
             return b.id - a.id;
         });
-    }, [series, searchQuery, accessFilter, orgFilter, sortBy]);
+    }, [series, searchQuery, accessFilter, statusFilter, orgFilter, sortBy]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredSeries.length / pageSize) || 1;
@@ -155,7 +173,7 @@ export default function TestSeriesManager({
     // Reset page on filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, accessFilter, orgFilter, sortBy, pageSize]);
+    }, [searchQuery, accessFilter, statusFilter, orgFilter, sortBy, pageSize]);
 
 
     const paginatedSeries = useMemo(() => {
@@ -163,11 +181,12 @@ export default function TestSeriesManager({
         return filteredSeries.slice(start, start + pageSize);
     }, [filteredSeries, currentPage, pageSize]);
 
-    const isFilterActive = searchQuery.trim() !== "" || accessFilter !== "all" || orgFilter !== "all" || sortBy !== "newest";
+    const isFilterActive = searchQuery.trim() !== "" || accessFilter !== "all" || statusFilter !== "all" || orgFilter !== "all" || sortBy !== "newest";
 
     function clearFilters() {
         setSearchQuery("");
         setAccessFilter("all");
+        setStatusFilter("all");
         setOrgFilter("all");
         setSortBy("newest");
         setCurrentPage(1);
@@ -185,7 +204,7 @@ export default function TestSeriesManager({
                     valid_until: data.valid_until,
                     duration_seconds: data.duration_seconds,
                     question_ids: [],
-                    is_active: true,
+                    is_active: data.is_active,
                 }),
             });
             const responseData = await res.json().catch(() => null);
@@ -203,8 +222,75 @@ export default function TestSeriesManager({
         }
     }
 
+    async function handleDelete(seriesId: number, seriesName: string) {
+        setDeleteTarget({ id: seriesId, name: seriesName });
+    }
+
+    async function handleToggleActive(seriesId: number, currentActive: boolean) {
+        try {
+            const nextActive = !currentActive;
+            const res = await fetch(`/api/backend/test-series/${seriesId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ is_active: nextActive }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(getApiError(data, res.status));
+            }
+            setSeries((prev) =>
+                prev.map((item) => (item.id === seriesId ? { ...item, is_active: nextActive } : item))
+            );
+            toast.success(`Test series marked as ${nextActive ? "Active" : "Inactive"}.`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Unable to update status.");
+        }
+    }
+
+    async function confirmDelete() {
+        if (!deleteTarget) return;
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/backend/test-series/${deleteTarget.id}`, { method: "DELETE" });
+            if (!res.ok && res.status !== 204) {
+                const data = await res.json().catch(() => null);
+                throw new Error(getApiError(data, res.status));
+            }
+            setSeries((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+            toast.success("Test series deleted.");
+            setDeleteTarget(null);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Unable to delete test series.");
+        } finally {
+            setIsDeleting(false);
+        }
+    }
+
     return (
         <div className="mx-auto max-w-7xl space-y-6">
+            {/* ── Delete Confirmation Modal ── */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete test series?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete{" "}
+                            <span className="font-semibold text-foreground">&ldquo;{deleteTarget?.name}&rdquo;</span>.
+                            This action cannot be undone. Any student attempts will be preserved but the series will no longer be accessible.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDelete}
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             {/* ── Page Header ── */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -222,7 +308,8 @@ export default function TestSeriesManager({
                         Create Test Series
                     </Button>
                     <StatPill label="Total Series" value={series.length} />
-                    <StatPill label="Active" value={series.filter((s) => new Date(s.valid_until) >= new Date()).length} />
+                    <StatPill label="Active" value={series.filter((s) => s.is_active !== false && new Date(s.valid_until) >= new Date()).length} />
+                    <StatPill label="Inactive" value={series.filter((s) => s.is_active === false).length} />
                 </div>
             </div>
 
@@ -297,6 +384,17 @@ export default function TestSeriesManager({
                         <option value="all">All Access Types</option>
                         <option value="public">Public</option>
                         <option value="invite_only">Invite Only</option>
+                    </select>
+
+                    {/* Status Filter */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[120px]"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
                     </select>
 
                     {/* Organization Filter */}
@@ -392,8 +490,6 @@ export default function TestSeriesManager({
                                 (userOrgId !== undefined && s.org_id === userOrgId) ||
                                 s.created_by === userId;
 
-
-
                             return (
                                 <SeriesCard
                                     key={s.id}
@@ -401,6 +497,8 @@ export default function TestSeriesManager({
                                     origin={origin}
                                     canEdit={canEdit}
                                     organizations={organizations}
+                                    onDelete={handleDelete}
+                                    onToggleActive={handleToggleActive}
                                 />
                             );
                         })}
@@ -458,16 +556,19 @@ export default function TestSeriesManager({
 }
 
 function SeriesCard({
-
     s,
     origin,
     canEdit,
     organizations,
+    onDelete,
+    onToggleActive,
 }: {
     s: TestSeries;
     origin: string;
     canEdit: boolean;
     organizations: Record<number, string>;
+    onDelete: (id: number, name: string) => void;
+    onToggleActive: (id: number, currentActive: boolean) => void;
 }) {
     const [isQROpen, setIsQROpen] = useState(false);
     const expired = new Date(s.valid_until) < new Date();
@@ -486,12 +587,35 @@ function SeriesCard({
                                 {s.name}
                             </Link>
                         </h3>
-                        <Badge
-                            variant={s.access_type === "public" ? "secondary" : "outline"}
-                            className="shrink-0 text-[10px] capitalize"
-                        >
-                            {s.access_type.replace("_", " ")}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {s.is_active === false ? (
+                                <Badge
+                                    variant="destructive"
+                                    className={`text-[10px] ${canEdit ? "cursor-pointer hover:opacity-80" : ""}`}
+                                    title={canEdit ? "Click to toggle active status" : "Inactive"}
+                                    onClick={() => canEdit && onToggleActive(s.id, false)}
+                                >
+                                    Inactive
+                                </Badge>
+                            ) : (
+                                <Badge
+                                    variant="outline"
+                                    className={`text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10 ${
+                                        canEdit ? "cursor-pointer hover:opacity-80" : ""
+                                    }`}
+                                    title={canEdit ? "Click to toggle active status" : "Active"}
+                                    onClick={() => canEdit && onToggleActive(s.id, true)}
+                                >
+                                    Active
+                                </Badge>
+                            )}
+                            <Badge
+                                variant={s.access_type === "public" ? "secondary" : "outline"}
+                                className="text-[10px] capitalize"
+                            >
+                                {s.access_type.replace("_", " ")}
+                            </Badge>
+                        </div>
                     </div>
 
                     <p className="text-muted-foreground text-xs">
@@ -565,6 +689,17 @@ function SeriesCard({
                             className="flex-1 h-8 text-xs font-semibold"
                         >
                             Edit
+                        </Button>
+                    )}
+                    {canEdit && (
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:border-destructive/50 shrink-0"
+                            title="Delete test series"
+                            onClick={() => onDelete(s.id, s.name)}
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                     )}
                 </div>

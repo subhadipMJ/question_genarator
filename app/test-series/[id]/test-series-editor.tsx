@@ -97,6 +97,7 @@ export default function TestSeriesEditor({
     const isTypingRef = useRef(false);
 
     const [durationSeconds, setDurationSeconds] = useState(series.duration_seconds);
+    const [isActive, setIsActive] = useState(series.is_active !== false);
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
     const [origin, setOrigin] = useState("");
@@ -223,7 +224,7 @@ export default function TestSeriesEditor({
                     valid_until: validUntilDate.toISOString(),
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
-                    is_active: true,
+                    is_active: isActive,
                 }),
             });
             const data = await res.json().catch(() => null);
@@ -582,6 +583,19 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         value={Math.round(durationSeconds / 60)}
                                         onChange={(e) => setDurationSeconds(Math.round(Number(e.target.value) * 60))}
                                     />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="s-status">Status</Label>
+                                    <select
+                                        id="s-status"
+                                        className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={isActive ? "true" : "false"}
+                                        onChange={(e) => setIsActive(e.target.value === "true")}
+                                    >
+                                        <option value="true">Active — students can view and join</option>
+                                        <option value="false">Inactive — hidden from students</option>
+                                    </select>
                                 </div>
 
                                 <div className="pt-4 border-t flex flex-col gap-2">

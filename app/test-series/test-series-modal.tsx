@@ -22,6 +22,7 @@ export type TestSeriesModalFormData = {
     access_type: "public" | "invite_only";
     valid_until: string;
     duration_seconds: number;
+    is_active: boolean;
 };
 
 type TestSeriesModalProps = {
@@ -63,6 +64,7 @@ export default function TestSeriesModal({
             access_type: f.get("access_type") as "public" | "invite_only",
             valid_until: validUntil.toISOString(),
             duration_seconds: Math.round(durationMinutes * 60),
+            is_active: f.get("is_active") === "true",
         });
     }
 
@@ -183,6 +185,20 @@ export default function TestSeriesModal({
                                     }
                                 />
                             </div>
+                        </div>
+
+                        {/* Row 3: Status (Active / Inactive) */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="ts-status">Status</Label>
+                            <select
+                                id="ts-status"
+                                name="is_active"
+                                className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                defaultValue={editingSeries?.is_active !== false ? "true" : "false"}
+                            >
+                                <option value="true">Active — students can view and join</option>
+                                <option value="false">Inactive — hidden from students</option>
+                            </select>
                         </div>
                     </div>
 

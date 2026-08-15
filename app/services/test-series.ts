@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { getApiUrl } from "../lib/api-url";
+import { createApiClient } from "../lib/api-client";
 
 export type TestSeries = {
     id: number;
@@ -16,7 +15,6 @@ export type TestSeries = {
     attempt_count?: number;
 };
 
-
 export type TestSeriesCreate = {
     name: string;
     access_type: "public" | "invite_only";
@@ -26,37 +24,6 @@ export type TestSeriesCreate = {
     is_active?: boolean;
 };
 
-async function getAuthHeaders(includeJson = false): Promise<HeadersInit> {
-    const token = (await cookies()).get("access_token")?.value;
-    if (!token) throw new Error("AUTH_REQUIRED");
-    return {
-        ...(includeJson ? { "Content-Type": "application/json" } : {}),
-        Authorization: `Bearer ${token}`,
-    };
-}
-
-export async function getAllTestSeries(): Promise<TestSeries[]> {
-    const response = await fetch(getApiUrl("test-series/"), {
-        headers: await getAuthHeaders(),
-        cache: "no-store",
-    });
-    if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        throw new Error(`Failed to fetch test series: ${response.status} — ${errorText}`);
-    }
-    return response.json();
-}
-
-
-export async function getTestSeries(seriesId: number): Promise<TestSeries> {
-    const response = await fetch(getApiUrl(`test-series/${seriesId}`), {
-        headers: await getAuthHeaders(),
-        cache: "no-store",
-    });
-    if (!response.ok) throw new Error(`Failed to fetch test series: ${response.status}`);
-    return response.json();
-}
-
 export type TestSeriesUpdate = {
     name?: string;
     access_type?: "public" | "invite_only";
@@ -65,16 +32,6 @@ export type TestSeriesUpdate = {
     question_ids?: number[];
     is_active?: boolean;
 };
-
-export async function updateTestSeries(seriesId: number, data: TestSeriesUpdate): Promise<TestSeries> {
-    const response = await fetch(getApiUrl(`test-series/${seriesId}`), {
-        method: "PATCH",
-        headers: await getAuthHeaders(true),
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error(`Failed to update test series: ${response.status}`);
-    return response.json();
-}
 
 export type TestSeriesResultItem = {
     attempt_id: number;
@@ -100,13 +57,28 @@ export type TestSeriesResults = {
     results: TestSeriesResultItem[];
 };
 
+export async function getAllTestSeries(): Promise<TestSeries[]> {
+    const client = await createApiClient();
+    return client.get<TestSeries[]>("test-series/");
+}
+
+export async function getTestSeries(seriesId: number): Promise<TestSeries> {
+    const client = await createApiClient();
+    return client.get<TestSeries>(`test-series/${seriesId}`);
+}
+
+export async function updateTestSeries(seriesId: number, data: TestSeriesUpdate): Promise<TestSeries> {
+    const client = await createApiClient();
+    return client.patch<TestSeries>(`test-series/${seriesId}`, data);
+}
 
 export async function getTestSeriesResults(seriesId: number): Promise<TestSeriesResults> {
-    const response = await fetch(getApiUrl(`test-series/${seriesId}/results`), {
-        headers: await getAuthHeaders(),
-        cache: "no-store",
-    });
-    if (!response.ok) throw new Error(`Failed to fetch test series results: ${response.status}`);
-    return response.json();
+    const client = await createApiClient();
+    return client.get<TestSeriesResults>(`test-series/${seriesId}/results`);
+}
+
+export async function deleteTestSeries(seriesId: number): Promise<void> {
+    const client = await createApiClient();
+    await client.delete(`test-series/${seriesId}`);
 }
 
