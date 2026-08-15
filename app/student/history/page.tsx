@@ -1,38 +1,20 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { getApiUrl } from "../../lib/api-url";
-import { HistorySearch } from "./history-search"; // adjust path to wherever you save File 1
-
-type History = {
-    id: number;
-    series_name: string;
-    started_at: string;
-    submitted_at: string | null;
-    status: number | string;
-    score: string;
-    total_marks: string;
-};
+import { HistorySearch } from "./history-search";
+import { getAttemptHistory, type AttemptHistory } from "../../services/student";
 
 export default async function Page() {
     const s = await cookies();
-    const token = s.get("access_token")?.value;
-
-    if (!token) redirect("/login");
+    if (!s.has("access_token")) redirect("/login");
     if (s.get("user_role")?.value !== "3") redirect("/dashboard");
 
-    const r = await fetch(getApiUrl("student/attempt-history"), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-    });
-
-    const allHistory = r.ok ? (await r.json() as History[]) : [];
+    const allHistory: AttemptHistory[] = await getAttemptHistory().catch(() => []);
 
     return (
         <main className="mx-auto max-w-4xl p-6 space-y-3">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Attempt history</h1>
             </div>
-
             <HistorySearch allHistory={allHistory} />
         </main>
     );

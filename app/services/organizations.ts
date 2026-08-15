@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { getApiUrl } from "../lib/api-url";
+import { createApiClient } from "../lib/api-client";
 import type { User } from "./users";
 
 export type Organization = {
@@ -12,53 +11,16 @@ export type Organization = {
 };
 
 export async function getAllOrganizations(): Promise<Organization[]> {
-    const token = (await cookies()).get("access_token")?.value;
-
-    if (!token) throw new Error("AUTH_REQUIRED");
-
-    const response = await fetch(getApiUrl("organizations/"), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch organizations: ${response.status}`);
-    }
-
-    return response.json() as Promise<Organization[]>;
+    const client = await createApiClient();
+    return client.get<Organization[]>("organizations/");
 }
 
 export async function getOrganization(organizationId: number): Promise<Organization> {
-    const token = (await cookies()).get("access_token")?.value;
-
-    if (!token) throw new Error("AUTH_REQUIRED");
-
-    const response = await fetch(getApiUrl(`organizations/${organizationId}`), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch organization: ${response.status}`);
-    }
-
-    return response.json() as Promise<Organization>;
+    const client = await createApiClient();
+    return client.get<Organization>(`organizations/${organizationId}`);
 }
 
 export async function getOrganizationUsers(organizationId: number): Promise<User[]> {
-    const token = (await cookies()).get("access_token")?.value;
-
-    if (!token) throw new Error("AUTH_REQUIRED");
-
-    const response = await fetch(getApiUrl(`organizations/${organizationId}/users`), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => null) as { detail?: string } | null;
-        throw new Error(error?.detail ?? `Failed to fetch organization users: ${response.status}`);
-    }
-
-    return response.json() as Promise<User[]>;
+    const client = await createApiClient();
+    return client.get<User[]>(`organizations/${organizationId}/users`);
 }

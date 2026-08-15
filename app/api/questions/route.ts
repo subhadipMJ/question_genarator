@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { createBackendProxy, unauthorizedResponse, errorResponse } from "../../lib/backend-proxy";
 import {
     createQuestion,
     createQuestionOption,
 } from "../../services/questions";
+
+export async function GET(request: NextRequest) {
+    try {
+        const proxy = await createBackendProxy();
+        if (!proxy) return unauthorizedResponse();
+        return proxy.forward("questions/", { searchParams: request.nextUrl.searchParams });
+    } catch {
+        return errorResponse("Failed to fetch questions.");
+    }
+}
 
 type CreateQuestionRequest = {
     question: string;

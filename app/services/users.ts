@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { getApiUrl } from "../lib/api-url";
+import { createApiClient } from "../lib/api-client";
 
 export type User = {
     id: number;
@@ -11,40 +10,11 @@ export type User = {
 };
 
 export async function getAllUsers(): Promise<User[]> {
-    const token = (await cookies()).get("access_token")?.value;
-
-    if (!token) throw new Error("AUTH_REQUIRED");
-
-    const response = await fetch(getUsersApiUrl(), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => null) as { detail?: string } | null;
-        throw new Error(error?.detail ?? `Failed to fetch users: ${response.status}`);
-    }
-
-    return response.json() as Promise<User[]>;
+    const client = await createApiClient();
+    return client.get<User[]>("users/");
 }
 
 export async function getUser(userId: number): Promise<User> {
-    const token = (await cookies()).get("access_token")?.value;
-
-    if (!token) throw new Error("AUTH_REQUIRED");
-
-    const response = await fetch(getApiUrl(`users/${userId}`), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch user: ${response.status}`);
-    }
-
-    return response.json() as Promise<User>;
-}
-
-function getUsersApiUrl(): string {
-    return getApiUrl("users/");
+    const client = await createApiClient();
+    return client.get<User>(`users/${userId}`);
 }

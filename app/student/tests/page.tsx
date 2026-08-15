@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getApiUrl } from "../../lib/api-url";
+import { getStudentTests } from "../../services/student";
+import { getAllTopics } from "../../services/topics";
 import { getOrganization } from "../../services/organizations";
 import StudentTests from "./student-tests";
 
@@ -35,30 +36,15 @@ export default async function Page({
     }>;
 }) {
     const s = await cookies();
-    const token = s.get("access_token")?.value;
-    if (!token) redirect("/login");
+    if (!s.has("access_token")) redirect("/login");
     if (s.get("user_role")?.value !== "3") redirect("/dashboard");
 
     const params = await searchParams;
-    const queryStr = new URLSearchParams();
-    if (params.q) queryStr.set("q", params.q);
-    if (params.topic) queryStr.set("topic", params.topic);
-    if (params.org_id) queryStr.set("org_id", params.org_id);
-    if (params.sort_order) queryStr.set("sort_order", params.sort_order);
-    if (params.page) queryStr.set("page", params.page);
-    if (params.limit) queryStr.set("limit", params.limit);
 
-    const headers = { Authorization: `Bearer ${token}` };
-
-    const [testsRes, topicsRes] = await Promise.all([
-        fetch(getApiUrl(`student/test-series?${queryStr.toString()}`), { headers, cache: "no-store" }),
-        fetch(getApiUrl("topics/"), { headers, cache: "no-store" }),
+    const [paginatedTests, allTopicsData] = await Promise.all([
+        getStudentTests(params).catch(() => ({ items: [], total: 0, page: 1, limit: 10, total_pages: 1 } as PaginatedTests)),
+        getAllTopics().catch(() => []),
     ]);
-
-    const paginatedTests: PaginatedTests = testsRes.ok
-        ? await testsRes.json()
-        : { items: [], total: 0, page: 1, limit: 10, total_pages: 1 };
-    const allTopicsData: { id: number; name: string }[] = topicsRes.ok ? await topicsRes.json() : [];
 
     const orgIds = [...new Set(paginatedTests.items.map((t) => t.org_id).filter((id) => id > 0))];
     const orgResults = await Promise.allSettled(orgIds.map((id) => getOrganization(id)));
@@ -68,14 +54,12 @@ export default async function Page({
         )
     );
 
-    const topicNames = allTopicsData.map((t) => t.name);
-
     return (
         <main className="p-6">
             <StudentTests
                 paginatedTests={paginatedTests}
                 organizations={organizations}
-                allTopicNames={topicNames}
+                allTopicNames={allTopicsData.map((t) => t.name)}
                 initialParams={{
                     q: params.q ?? "",
                     topic: params.topic ?? "",
@@ -88,5 +72,3 @@ export default async function Page({
         </main>
     );
 }
-
-

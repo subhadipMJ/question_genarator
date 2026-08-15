@@ -1,41 +1,40 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getOrganization } from "../services/organizations";
-import { getAllQuestionsList } from "../services/questions";
+import { getAllQuestions } from "../services/questions";
 import { getAllTopics } from "../services/topics";
+import { getOrganization } from "../services/organizations";
 import { getUser } from "../services/users";
 import { Button } from "@/components/ui/button";
 import QuestionsTable from "./questions-table";
+
+export const metadata = { title: "All Questions | QMaster" };
 
 export default async function QuestionsPage() {
     const cookieStore = await cookies();
     if (!cookieStore.has("access_token")) redirect("/login");
     if (cookieStore.get("user_role")?.value === "3") redirect("/student/tests");
 
-    const [questions, topics] = await Promise.all([
-        getAllQuestionsList(),
+    const [paginated, topics] = await Promise.all([
+        getAllQuestions(1, 10),
         getAllTopics().catch(() => []),
     ]);
 
-    const nonGlobalQuestions = questions.filter((question) => !question.is_global);
-    const userIds = [...new Set(nonGlobalQuestions.map((question) => question.user_id))];
-    const organizationIds = [...new Set(nonGlobalQuestions.map((question) => question.organization_id))];
+    // Resolve user/org names only for the first page
+    const nonGlobalQuestions = paginated.items.filter((q) => !q.is_global);
+    const userIds = [...new Set(nonGlobalQuestions.map((q) => q.user_id))];
+    const organizationIds = [...new Set(nonGlobalQuestions.map((q) => q.organization_id))];
+
     const [userResults, organizationResults] = await Promise.all([
         Promise.allSettled(userIds.map((id) => getUser(id))),
         Promise.allSettled(organizationIds.map((id) => getOrganization(id))),
     ]);
 
     const users = Object.fromEntries(
-        userResults.flatMap((result) =>
-            result.status === "fulfilled" ? [[result.value.id, result.value.name]] : [],
-        )
+        userResults.flatMap((r) => (r.status === "fulfilled" ? [[r.value.id, r.value.name]] : []))
     );
-
     const organizations = Object.fromEntries(
-        organizationResults.flatMap((result) =>
-            result.status === "fulfilled" ? [[result.value.id, result.value.name]] : [],
-        )
+        organizationResults.flatMap((r) => (r.status === "fulfilled" ? [[r.value.id, r.value.name]] : []))
     );
 
     return (
@@ -58,10 +57,10 @@ export default async function QuestionsPage() {
             </div>
 
             <QuestionsTable
-                initialQuestions={questions}
+                initialData={paginated}
                 topics={topics}
-                users={users}
-                organizations={organizations}
+                initialUsers={users}
+                initialOrganizations={organizations}
                 userRole={cookieStore.get("user_role")?.value ?? ""}
             />
         </main>
