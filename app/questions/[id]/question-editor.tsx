@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { FormEvent, useState, useMemo, useEffect } from "react";
+import { FormEvent, useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, X, Image as ImageIcon, Trash2 } from "lucide-react";
 import type { Question, DiagramItem } from "../../services/questions";
@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { DictationButton } from "@/components/ui/dictation-button";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
@@ -49,6 +50,19 @@ export default function QuestionEditor({ question: initialQuestion }: { question
     );
     const [error, setError] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const quillRef = useRef<any>(null);
+
+    const handleDictation = (text: string) => {
+        const editor = quillRef.current?.getEditor();
+        if (editor) {
+            const selection = editor.getSelection();
+            const cursorPosition = selection ? selection.index : editor.getLength() - 1;
+            editor.insertText(cursorPosition, text + " ");
+            editor.setSelection(cursorPosition + text.length + 1);
+        } else {
+            setQuestion((prev) => prev + " " + text);
+        }
+    };
 
     // Initial diagrams list setup
     const initialDiagramList = useMemo(() => {
@@ -327,8 +341,12 @@ export default function QuestionEditor({ question: initialQuestion }: { question
         <form onSubmit={handleSubmit} className="space-y-6">
             <div>
                 <Label className="mb-2">Question</Label>
-                <div className="overflow-hidden rounded-lg bg-white text-black">
+                <div className="relative overflow-hidden rounded-lg bg-white text-black">
+                    <div className="absolute top-1.5 right-1.5 z-10">
+                        <DictationButton onResult={handleDictation} />
+                    </div>
                     <ReactQuill
+                        ref={quillRef}
                         theme="snow"
                         value={question}
                         onChange={setQuestion}

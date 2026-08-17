@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload, X, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Topic } from "../../services/topics";
+import { DictationButton } from "@/components/ui/dictation-button";
 
 type QuestionOption = {
     ans: string;
@@ -57,6 +58,19 @@ export default function QuestionForm() {
     ]);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const quillRef = useRef<any>(null);
+
+    const handleDictation = (text: string) => {
+        const editor = quillRef.current?.getEditor();
+        if (editor) {
+            const selection = editor.getSelection();
+            const cursorPosition = selection ? selection.index : editor.getLength() - 1;
+            editor.insertText(cursorPosition, text + " ");
+            editor.setSelection(cursorPosition + text.length + 1);
+        } else {
+            setQuestion((prev) => prev + " " + text);
+        }
+    };
 
     // Multiple Diagram upload states
     const [diagramFiles, setDiagramFiles] = useState<File[]>([]);
@@ -280,8 +294,12 @@ export default function QuestionForm() {
         <form onSubmit={handleSubmit} className="space-y-8">
             <div>
                 <Label className="mb-2">Question</Label>
-                <div className="overflow-hidden rounded-lg bg-white text-black">
+                <div className="relative overflow-hidden rounded-lg bg-white text-black">
+                    <div className="absolute top-1.5 right-1.5 z-10">
+                        <DictationButton onResult={handleDictation} />
+                    </div>
                     <ReactQuill
+                        ref={quillRef}
                         theme="snow"
                         value={question}
                         onChange={setQuestion}
