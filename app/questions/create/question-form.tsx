@@ -180,6 +180,16 @@ export default function QuestionForm() {
             return;
         }
 
+        if (options.length < 2) {
+            setError("Add at least two answer options.");
+            return;
+        }
+
+        if (options.length > 5) {
+            setError("You can add a maximum of 5 answer options.");
+            return;
+        }
+
         if (!Number.isFinite(Number(marks)) || Number(marks) <= 0) {
             setError("Marks must be greater than zero.");
             return;
@@ -433,6 +443,7 @@ export default function QuestionForm() {
                     variant="outline"
                     type="button"
                     onClick={() => setOptions((current) => [...current, { ...EMPTY_OPTION }])}
+                    disabled={options.length >= 5}
                 >
                     Add option
                 </Button>
