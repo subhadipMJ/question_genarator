@@ -219,6 +219,11 @@ export default function QuestionEditor({ question: initialQuestion }: { question
             return;
         }
 
+        if (options.length > 5) {
+            setError("You can add a maximum of 5 answer options.");
+            return;
+        }
+
         if (!Number.isFinite(Number(marks)) || Number(marks) <= 0) {
             setError("Marks must be greater than zero.");
             return;
@@ -556,6 +561,7 @@ export default function QuestionEditor({ question: initialQuestion }: { question
                         ...current,
                         { ans: "", is_correct: current.length === 0 },
                     ])}
+                    disabled={options.length >= 5}
                 >
                     Add option
                 </Button>
