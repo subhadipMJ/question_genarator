@@ -84,7 +84,7 @@ export default function TopicManager({ initialTopics, userRole }: TopicManagerPr
         });
         const created = await res.json();
         if (!res.ok) throw new Error(created.detail ?? "Failed to create topic.");
-        setTopics((current) => [...current, created]);
+        setTopics((current) => [created, ...current]);
         toast.success("Topic created successfully!");
       }
       setIsModalOpen(false);
