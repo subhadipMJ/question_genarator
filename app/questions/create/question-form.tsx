@@ -23,7 +23,7 @@ type QuestionOption = {
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
     loading: () => <div className="bg-muted h-40 animate-pulse rounded" />,
-});
+}) as unknown as typeof import("react-quill-new").default;
 
 const EMPTY_OPTION = { ans: "", is_correct: false };
 const QUILL_MODULES = {

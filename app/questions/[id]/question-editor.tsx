@@ -18,7 +18,7 @@ import { DictationButton } from "@/components/ui/dictation-button";
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
     loading: () => <div className="bg-muted h-40 animate-pulse rounded" />,
-});
+}) as unknown as typeof import("react-quill-new").default;
 
 const QUILL_MODULES = {
     toolbar: [
