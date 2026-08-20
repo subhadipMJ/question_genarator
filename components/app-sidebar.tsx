@@ -168,7 +168,7 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
                   tooltip={item.title}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200"
                 >
-                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary font-bold" : "text-muted-foreground group-hover/menu-button:text-foreground"}`} />
+                  <Icon className={`h-4 w-4 shrink-0 text-md ${isActive ? "text-primary font-bold" : "text-muted-foreground group-hover/menu-button:text-foreground"}`} />
                   <span className="font-medium text-md group-data-[collapsible=icon]:hidden truncate">
                     {item.title}
                   </span>
