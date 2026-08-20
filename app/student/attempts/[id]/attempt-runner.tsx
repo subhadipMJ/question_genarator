@@ -384,7 +384,7 @@ export default function AttemptRunner({
             <Card key={q.id} id={`question-${q.id}`} className={`scroll-mt-24 ${isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}`}>
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base font-medium leading-relaxed flex items-start justify-between gap-3">
-                        <div>
+                        <div className="flex items-center flex-wrap">
                             <span className="mr-2 font-bold">{q.position}.</span>
                             <span
                                 dangerouslySetInnerHTML={{
@@ -411,11 +411,14 @@ export default function AttemptRunner({
                                     />
                                 </div>
                             ) : null}
-                            <span className="text-muted-foreground ml-2 text-sm font-normal">
-                                ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
-                            </span>
+                            
                         </div>
                         {isSubmittedState && (
+                            <div className="flex items-center gap-2 flex-wrap ">
+                            <span className="text-muted-foreground text-sm font-normal">
+                                ({q.marks} mark{q.marks !== "1.00" ? "s" : ""})
+                            </span>
+                            
                             <span className="shrink-0">
                                 {q.selected_option_id === null ? (
                                     <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -431,7 +434,10 @@ export default function AttemptRunner({
                                     </Badge>
                                 )}
                             </span>
-                        )}
+                            
+                            </div>
+                            
+                            )}
                     </CardTitle>
                 </CardHeader>
 
