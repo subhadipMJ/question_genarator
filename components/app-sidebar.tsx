@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+import logo from "../public/logo.png";
 interface AppSidebarProps {
   role: string;
   userName: string;
@@ -141,12 +142,7 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
     <Sidebar collapsible="icon">
       <SidebarHeader className="h-16 flex flex-row items-center justify-between p-0 px-4 group-data-[collapsible=icon]:justify-center border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold group-data-[collapsible=icon]:mx-auto">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-base shadow-md transition-transform hover:scale-105 shrink-0 select-none">
-            Q
-          </div>
-          <div className="flex flex-col justify-center min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold leading-none truncate">QMaster </span>
-          </div>
+         {logo && <img src={logo.src} alt="Logo" className="h-8 w-8" />}
         </Link>
       </SidebarHeader>
 
