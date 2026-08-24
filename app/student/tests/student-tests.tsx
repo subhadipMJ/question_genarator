@@ -467,7 +467,7 @@ export default function StudentTests({
                                 </CardHeader>
 
                                 <CardContent className="pl-5 space-y-3">
-                                    <p className="text-muted-foreground text-xs" suppressHydrationWarning>
+                                    <p className="text-muted-foreground text-sm" suppressHydrationWarning>
                                         Available until {new Date(t.valid_until).toLocaleString()}
                                     </p>
 
