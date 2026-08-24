@@ -458,7 +458,7 @@ export default function StudentTests({
                                                     variant="outline"
                                                     className="text-[13px] font-normal bg-muted/40 gap-1 text-muted-foreground p-2.5"
                                                 >
-                                                    <Tag className="h-3 w-3 text-primary/70" />
+                                                    <Tag className="h-3 w-3 text-primary/70 pb-0.5" />
                                                     {tp}
                                                 </Badge>
                                             ))}

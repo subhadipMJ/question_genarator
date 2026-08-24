@@ -101,11 +101,11 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="text-xs">
+                                        <CardDescription className="text-[14px] text-orange">
                                             Attempt #{a.id}
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardContent className="pl-5 text-xs text-muted-foreground space-y-2">
+                                    <CardContent className="pl-5 text-[13px] text-muted-foreground space-y-2">
                                         <div className="space-y-0.5">
                                             <p>Started: {new Date(a.started_at).toLocaleString("en-US")}</p>
                                             {a.submitted_at && (
