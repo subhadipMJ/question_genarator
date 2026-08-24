@@ -456,7 +456,7 @@ export default function StudentTests({
                                                 <Badge
                                                     key={tp}
                                                     variant="outline"
-                                                    className="text-[11px] font-normal bg-muted/40 gap-1 text-muted-foreground"
+                                                    className="text-[13px] font-normal bg-muted/40 gap-1 text-muted-foreground p-2.5"
                                                 >
                                                     <Tag className="h-3 w-3 text-primary/70" />
                                                     {tp}
@@ -467,7 +467,7 @@ export default function StudentTests({
                                 </CardHeader>
 
                                 <CardContent className="pl-5 space-y-3">
-                                    <p className="text-muted-foreground text-xs" suppressHydrationWarning>
+                                    <p className="text-muted-foreground text-sm" suppressHydrationWarning>
                                         Available until {new Date(t.valid_until).toLocaleString()}
                                     </p>
 
