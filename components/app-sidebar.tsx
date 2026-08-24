@@ -165,7 +165,7 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200"
                 >
                   <Icon className={`!h-5 !w-5 shrink-0 ${isActive ? "text-primary font-bold" : "text-muted-foreground group-hover/menu-button:text-foreground"}`} />
-                  <span className="font-medium group-data-[collapsible=icon]:hidden truncate text-base">
+                  <span className={`font-medium group-data-[collapsible=icon]:hidden truncate ${isActive ? "text-primary font-bold" : "text-muted-foreground group-hover/menu-button:text-foreground"} text-base`}>
                     {item.title}
                   </span>
                 </SidebarMenuButton>

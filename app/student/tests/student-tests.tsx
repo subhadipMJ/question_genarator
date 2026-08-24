@@ -446,7 +446,7 @@ export default function StudentTests({
                                     <CardDescription>
                                         {t.question_count} question{t.question_count !== 1 ? "s" : ""} ·{" "}
                                         {formatDuration(t.duration_seconds)} ·{" "}
-                                        <span className="font-semibold text-primary">{orgName}</span>
+                                        <span className="font-semibold text-orange">{orgName}</span>
                                     </CardDescription>
 
                                     {/* Topic Badges */}
