@@ -117,7 +117,7 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                                                 Test Score:
                                             </span>
                                             <span className="text-sm font-bold text-foreground">
-                                                {a.score} <span className="text-muted-foreground text-xs font-normal">/ {a.total_marks}</span>
+                                                {a.score} <span className="text-muted-foreground text-sm font-normal">/ {a.total_marks}</span>
                                             </span>
                                         </div>
                                     </CardContent>
