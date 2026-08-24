@@ -436,7 +436,7 @@ export default function StudentTests({
 
                                 <CardHeader className="pl-5 pb-3">
                                     <div className="flex items-start justify-between gap-2">
-                                        <CardTitle className="text-lg leading-snug">{t.name}</CardTitle>
+                                        <CardTitle className="text-xl leading-snug">{t.name}</CardTitle>
                                         {isExpired && (
                                             <Badge variant="outline" className="shrink-0 text-muted-foreground">
                                                 Expired
