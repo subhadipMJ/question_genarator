@@ -456,7 +456,7 @@ export default function StudentTests({
                                                 <Badge
                                                     key={tp}
                                                     variant="outline"
-                                                    className="text-[11px] font-normal bg-muted/40 gap-1 text-muted-foreground"
+                                                    className="text-[13px] font-normal bg-muted/40 gap-1 text-muted-foreground p-2.5"
                                                 >
                                                     <Tag className="h-3 w-3 text-primary/70" />
                                                     {tp}
