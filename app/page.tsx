@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import logo from "../public/logos/safalya-logo-new-1.png";
+import logo from "../public/logos/safalya-logo-white.png";
 import Loader from "@/components/loader";
 export default function Home() {
   return (
