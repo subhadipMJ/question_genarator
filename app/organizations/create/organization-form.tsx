@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ export default function OrganizationForm() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -35,6 +37,7 @@ export default function OrganizationForm() {
                     admin: {
                         name: formData.get("adminName"),
                         email: formData.get("adminEmail"),
+                        password: formData.get("adminPassword"),
                     },
                 }),
             });
@@ -70,12 +73,34 @@ export default function OrganizationForm() {
 
             <Separator />
             <fieldset className="grid gap-5 sm:grid-cols-2">
-                <legend className="mb-4 text-lg font-semibold">Administrator account</legend>
+                <legend className="mb-4 text-lg font-semibold sm:col-span-2">Administrator account</legend>
                 <Field label="Full name" htmlFor="adminName">
                     <Input id="adminName" name="adminName" required autoComplete="name" placeholder="Alex Morgan" />
                 </Field>
                 <Field label="Email address" htmlFor="adminEmail">
                     <Input id="adminEmail" name="adminEmail" type="email" required autoComplete="email" placeholder="admin@example.com" />
+                </Field>
+                <Field label="Password" htmlFor="adminPassword">
+                    <div className="relative">
+                        <Input
+                            id="adminPassword"
+                            name="adminPassword"
+                            type={showPassword ? "text" : "password"}
+                            required
+                            minLength={6}
+                            autoComplete="new-password"
+                            placeholder="••••••••"
+                            className="pr-10"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            tabIndex={-1}
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </Field>
             </fieldset>
 

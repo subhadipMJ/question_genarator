@@ -81,22 +81,22 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                                                 {a.series_name}
                                             </CardTitle>
                                             {isInProgress && (
-                                                <Badge variant="secondary" className="shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                                <Badge variant="secondary" className="w-32 justify-center shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
                                                     In progress
                                                 </Badge>
                                             )}
                                             {isForceSubmitted && (
-                                                <Badge variant="outline" className="shrink-0 border-destructive/40 bg-destructive/10 text-destructive dark:bg-destructive/20 font-medium">
+                                                <Badge variant="outline" className="w-32 justify-center shrink-0 border-destructive/40 bg-destructive text-white dark:bg-destructive/20 font-medium">
                                                     Force Submitted
                                                 </Badge>
                                             )}
                                             {isSubmitted && (
-                                                <Badge variant="secondary" className="shrink-0 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                                <Badge variant="secondary" className="w-32 justify-center shrink-0 bg-green-500 text-white dark:bg-green-900/30 dark:text-green-400">
                                                     Completed
                                                 </Badge>
                                             )}
                                             {isExpired && (
-                                                <Badge variant="outline" className="shrink-0 text-muted-foreground">
+                                                <Badge variant="outline" className="w-32 justify-center shrink-0 text-muted-foreground">
                                                     Expired
                                                 </Badge>
                                             )}
