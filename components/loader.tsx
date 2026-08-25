@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import logo from "../public/logos/safalya-logo-new-1.png";
 interface LoaderProps {
     /** Size of the spinner icon */
     size?: "sm" | "md" | "lg";
@@ -25,11 +25,10 @@ export default function Loader({ size = "md", label, className, fullPage = false
     // ── Full-page branded loader ──────────────────────────────────────
     if (fullPage) {
         return (
-            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background">
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-white/60">
                 {/* App name */}
                 <div className="flex items-center gap-2 select-none">
-                    <span className="text-4xl font-extrabold tracking-tight text-primary">Q</span>
-                    <span className="text-4xl font-extrabold tracking-tight">Master</span>
+                    <img className="h-72" src={logo.src} alt="" />
                 </div>
 
                 {/* Spinner */}
