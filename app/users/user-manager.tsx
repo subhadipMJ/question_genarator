@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, UserPlus, GraduationCap, School, Mail, KeyRound, User as UserIcon, X, Loader2 } from "lucide-react";
+import { Search, UserPlus, GraduationCap, School, Mail, KeyRound, User as UserIcon, X, Loader2, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface UserManagerProps {
     initialUsers: User[];
@@ -17,6 +18,7 @@ interface UserManagerProps {
 }
 
 export default function UserManager({ initialUsers, organizationId }: UserManagerProps) {
+    const router = useRouter();
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<"student" | "teacher">("student");
@@ -159,6 +161,7 @@ export default function UserManager({ initialUsers, organizationId }: UserManage
                                         <TableHead className="pl-6">Name</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Role</TableHead>
+                                        <TableHead>Analysis</TableHead>
                                         <TableHead className="pr-6 text-right">Joined</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -176,6 +179,20 @@ export default function UserManager({ initialUsers, organizationId }: UserManage
                                                 <Badge variant={user.role === 2 ? "default" : "secondary"}>
                                                     {user.role === 2 ? "Teacher" : "Student"}
                                                 </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {user.role === 3 ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => router.push(`/users/${user.id}/analysis`)}
+                                                    >
+                                                        <Eye className="h-4 w-4 mr-2" />
+                                                        View Analysis
+                                                    </Button>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="pr-6 text-right text-muted-foreground text-xs">
                                                 {new Intl.DateTimeFormat("en", {
