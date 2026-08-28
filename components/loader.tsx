@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import logo from "../public/logos/safalya-logo-new-1.png";
+import logo from "../public/safalya-logo-icon-animated.gif";
 interface LoaderProps {
     /** Size of the spinner icon */
     size?: "sm" | "md" | "lg";
@@ -32,7 +32,7 @@ export default function Loader({ size = "md", label, className, fullPage = false
                 </div>
 
                 {/* Spinner */}
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                {/* <Loader2 className="h-8 w-8 animate-spin text-primary" /> */}
 
                 {/* Optional label */}
                 {label && (
