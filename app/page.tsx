@@ -12,6 +12,7 @@ export default function Home() {
           "url('https://cdn.pixabay.com/photo/2024/12/28/01/27/ai-generated-9295105_1280.jpg')",
       }}
     >
+      {/* <Loader fullPage /> */}
       <section className="text-center h-screen w-screen bg-black/60 flex flex-col items-center justify-center">
         <img src={logo.src} alt="Safalya Logo" className=" brightness-0 invert h-72"/>
 
