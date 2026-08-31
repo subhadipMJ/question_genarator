@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Table,
     TableHeader,
@@ -44,6 +45,11 @@ export default function QuestionsTable({
     const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [deletingQuestionId, setDeletingQuestionId] = useState<number | null>(null);
+    const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
+    
+    // Bulk action state
+    const [bulkTopicId, setBulkTopicId] = useState("");
+    const [bulkMarks, setBulkMarks] = useState("");
 
     // Track user/org names across pages
     const [users] = useState<Record<number, string>>(initialUsers);
@@ -126,6 +132,31 @@ export default function QuestionsTable({
         }
     }
 
+    // ── Checkbox Selection ──────────────────────────────────────────────
+    const visibleQuestionIds = questions.map((q) => q.id);
+    const isAllSelected = visibleQuestionIds.length > 0 && visibleQuestionIds.every(id => selectedQuestionIds.includes(id));
+    const isIndeterminate = !isAllSelected && visibleQuestionIds.some(id => selectedQuestionIds.includes(id));
+
+    const toggleSelectAll = (checked: boolean | "indeterminate") => {
+        if (checked === true) {
+            // Select all visible questions
+            setSelectedQuestionIds(prev => {
+                const newIds = new Set(prev);
+                visibleQuestionIds.forEach(id => newIds.add(id));
+                return Array.from(newIds);
+            });
+        } else {
+            // Deselect all visible questions
+            setSelectedQuestionIds(prev => prev.filter(id => !visibleQuestionIds.includes(id)));
+        }
+    };
+
+    const toggleQuestionSelect = (id: number) => {
+        setSelectedQuestionIds(prev => 
+            prev.includes(id) ? prev.filter(qId => qId !== id) : [...prev, id]
+        );
+    };
+
     return (
         <div className="space-y-4">
             {/* ── Controls ── */}
@@ -163,6 +194,41 @@ export default function QuestionsTable({
                             ))}
                         </select>
                     )}
+
+                    {/* Bulk Actions */}
+                    <div className="h-5 w-px bg-border mx-1"></div>
+                    <select
+                        value={bulkTopicId}
+                        onChange={(e) => setBulkTopicId(e.target.value)}
+                        disabled={selectedQuestionIds.length === 0}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring shrink-0 min-w-[140px] disabled:opacity-50"
+                    >
+                        <option value="">Set Topic...</option>
+                        {topics.map((t) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                    </select>
+                    <Input
+                        type="number"
+                        placeholder="Marks"
+                        value={bulkMarks}
+                        onChange={(e) => setBulkMarks(e.target.value)}
+                        disabled={selectedQuestionIds.length === 0}
+                        className="h-9 w-24 text-sm disabled:opacity-50"
+                        min={0}
+                        step={0.5}
+                    />
+                    <Button 
+                        size="sm" 
+                        variant="secondary"
+                        className="h-9"
+                        disabled={selectedQuestionIds.length === 0}
+                        onClick={() => {
+                            toast.info("Bulk update functionality will be implemented in Phase 2.");
+                        }}
+                    >
+                        Apply
+                    </Button>
                 </div>
 
                 {/* Page size + total */}
@@ -203,6 +269,13 @@ export default function QuestionsTable({
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                <TableHead className="px-4 py-3 w-12 text-center">
+                                    <Checkbox
+                                        checked={isAllSelected || (isIndeterminate ? "indeterminate" : false)}
+                                        onCheckedChange={toggleSelectAll}
+                                        aria-label="Select all questions"
+                                    />
+                                </TableHead>
                                 <TableHead className="px-4 py-3 w-16">ID</TableHead>
                                 <TableHead className="px-4 py-3 min-w-[200px]">Question text</TableHead>
                                 <TableHead className="px-4 py-3 w-28">Topic</TableHead>
@@ -220,6 +293,13 @@ export default function QuestionsTable({
 
                                 return (
                                     <TableRow key={q.id} className="hover:bg-muted/10 transition-colors">
+                                        <TableCell className="px-4 py-3.5 text-center">
+                                            <Checkbox
+                                                checked={selectedQuestionIds.includes(q.id)}
+                                                onCheckedChange={() => toggleQuestionSelect(q.id)}
+                                                aria-label={`Select question ${q.id}`}
+                                            />
+                                        </TableCell>
                                         <TableCell className="px-4 py-3.5 font-mono text-muted-foreground">#{q.id}</TableCell>
                                         <TableCell className="px-4 py-3.5 max-w-md whitespace-normal">
                                             <div className="space-y-1.5">
