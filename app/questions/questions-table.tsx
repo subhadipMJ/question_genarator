@@ -323,7 +323,8 @@ export default function QuestionsTable({
                             <TableRow className="bg-muted/40 hover:bg-muted/40">
                                 <TableHead className="px-4 py-3 w-12 text-center">
                                     <Checkbox
-                                        checked={isAllSelected || (isIndeterminate ? "indeterminate" : false)}
+                                        checked={isAllSelected}
+                                        indeterminate={isIndeterminate}
                                         onCheckedChange={toggleSelectAll}
                                         aria-label="Select all questions"
                                     />
