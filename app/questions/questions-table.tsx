@@ -17,6 +17,16 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Loader from "@/components/loader";
 import type { Question, PaginatedQuestionResponse } from "../services/questions";
 import type { Topic } from "../services/topics";
@@ -50,6 +60,8 @@ export default function QuestionsTable({
     // Bulk action state
     const [bulkTopicId, setBulkTopicId] = useState("");
     const [bulkMarks, setBulkMarks] = useState("");
+    const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
+    const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
     // Track user/org names across pages
     const [users] = useState<Record<number, string>>(initialUsers);
@@ -157,6 +169,46 @@ export default function QuestionsTable({
         );
     };
 
+    // ── Bulk Actions ────────────────────────────────────────────────────
+    const canBulkUpdate = selectedQuestionIds.length > 0 && (bulkTopicId !== "" || bulkMarks !== "");
+
+    const handleBulkUpdate = async () => {
+        setIsBulkUpdating(true);
+        try {
+            const payload: any = { question_ids: selectedQuestionIds };
+            if (bulkTopicId) payload.topic_id = Number(bulkTopicId);
+            if (bulkMarks) payload.marks = parseFloat(bulkMarks);
+
+            const res = await fetch("/api/backend/questions/bulk", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => null);
+                throw new Error(errorData?.message || errorData?.detail || "Bulk update failed.");
+            }
+
+            const result = await res.json();
+            toast.success(result.message || `${selectedQuestionIds.length} questions updated successfully.`);
+            
+            // Clear selection and fields
+            setSelectedQuestionIds([]);
+            setBulkTopicId("");
+            setBulkMarks("");
+            setIsBulkUpdateModalOpen(false);
+            
+            // Refresh current page
+            fetchPage(currentPage, pageSize, selectedTopicId, searchQuery);
+            
+        } catch (error: any) {
+            toast.error(error.message || "Failed to update questions");
+        } finally {
+            setIsBulkUpdating(false);
+        }
+    };
+
     return (
         <div className="space-y-4">
             {/* ── Controls ── */}
@@ -196,39 +248,39 @@ export default function QuestionsTable({
                     )}
 
                     {/* Bulk Actions */}
-                    <div className="h-5 w-px bg-border mx-1"></div>
-                    <select
-                        value={bulkTopicId}
-                        onChange={(e) => setBulkTopicId(e.target.value)}
-                        disabled={selectedQuestionIds.length === 0}
-                        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring shrink-0 min-w-[140px] disabled:opacity-50"
-                    >
-                        <option value="">Set Topic...</option>
-                        {topics.map((t) => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                    </select>
-                    <Input
-                        type="number"
-                        placeholder="Marks"
-                        value={bulkMarks}
-                        onChange={(e) => setBulkMarks(e.target.value)}
-                        disabled={selectedQuestionIds.length === 0}
-                        className="h-9 w-24 text-sm disabled:opacity-50"
-                        min={0}
-                        step={0.5}
-                    />
-                    <Button 
-                        size="sm" 
-                        variant="secondary"
-                        className="h-9"
-                        disabled={selectedQuestionIds.length === 0}
-                        onClick={() => {
-                            toast.info("Bulk update functionality will be implemented in Phase 2.");
-                        }}
-                    >
-                        Apply
-                    </Button>
+                    {selectedQuestionIds.length > 0 && (
+                        <>
+                            <div className="h-5 w-px bg-border mx-1"></div>
+                            <select
+                                value={bulkTopicId}
+                                onChange={(e) => setBulkTopicId(e.target.value)}
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring shrink-0 min-w-[140px]"
+                            >
+                                <option value="">Select Topic</option>
+                                {topics.map((t) => (
+                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                            </select>
+                            <Input
+                                type="number"
+                                placeholder="Marks"
+                                value={bulkMarks}
+                                onChange={(e) => setBulkMarks(e.target.value)}
+                                className="h-9 w-24 text-sm"
+                                min={0}
+                                step={0.5}
+                            />
+                            <Button 
+                                size="sm" 
+                                variant="secondary"
+                                className="h-9"
+                                disabled={!canBulkUpdate || isBulkUpdating}
+                                onClick={() => setIsBulkUpdateModalOpen(true)}
+                            >
+                                Update Questions
+                            </Button>
+                        </>
+                    )}
                 </div>
 
                 {/* Page size + total */}
@@ -271,7 +323,8 @@ export default function QuestionsTable({
                             <TableRow className="bg-muted/40 hover:bg-muted/40">
                                 <TableHead className="px-4 py-3 w-12 text-center">
                                     <Checkbox
-                                        checked={isAllSelected || (isIndeterminate ? "indeterminate" : false)}
+                                        checked={isAllSelected}
+                                        indeterminate={isIndeterminate}
                                         onCheckedChange={toggleSelectAll}
                                         aria-label="Select all questions"
                                     />
@@ -421,6 +474,29 @@ export default function QuestionsTable({
                     </div>
                 </div>
             )}
+            
+            {/* Bulk Update Modal */}
+            <AlertDialog open={isBulkUpdateModalOpen} onOpenChange={setIsBulkUpdateModalOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Bulk Update</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {bulkTopicId && !bulkMarks && `Do you want to change the topic of the selected questions to ${topics.find(t => String(t.id) === bulkTopicId)?.name}?`}
+                            {!bulkTopicId && bulkMarks && `Do you want to change the marks of the selected questions to ${parseFloat(bulkMarks).toFixed(2)}?`}
+                            {bulkTopicId && bulkMarks && `Do you want to update the topic to ${topics.find(t => String(t.id) === bulkTopicId)?.name} and marks to ${parseFloat(bulkMarks).toFixed(2)} for the selected questions?`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isBulkUpdating}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={(e) => { e.preventDefault(); handleBulkUpdate(); }} 
+                            disabled={isBulkUpdating}
+                        >
+                            {isBulkUpdating ? "Updating..." : "Update"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
