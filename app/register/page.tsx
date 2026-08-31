@@ -31,9 +31,11 @@ export default async function RegisterPage() {
                 <CardContent>
                     <RegisterForm />
                 </CardContent>
-                <Link href="/login" className="mb-5 block text-center text-sm underline">
-                    Already have an account? Sign in
-                </Link>
+                <div className="mt-4 mb-5 text-center">
+                    <Link href="/login" className="inline-block text-sm underline">
+                        Already have an account? Sign in
+                    </Link>
+                </div>
             </Card>
         </main>
     );

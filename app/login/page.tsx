@@ -44,9 +44,11 @@ export default async function LoginPage({
                     )}
                     <LoginForm />
                 </CardContent>
-                <Link href="/register" className="mb-5 block text-center text-sm underline">
-                    Create a student account
-                </Link>
+                <div className="mt-4 mb-5 text-center">
+                    <Link href="/register" className="inline-block text-sm underline">
+                        Create a student account
+                    </Link>
+                </div>
             </Card>
         </main>
     );
