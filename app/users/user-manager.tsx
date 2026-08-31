@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { User } from "../services/users";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,12 @@ export default function UserManager({ initialUsers, organizationId }: UserManage
     const [password, setPassword] = useState("");
     const [role, setRole] = useState<2 | 3>(3); // 2 = Teacher, 3 = Student
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (isAddModalOpen) {
+            setRole(activeTab === "student" ? 3 : 2);
+        }
+    }, [isAddModalOpen, activeTab]);
 
     // Filter users based on query and selected role
     const filteredUsers = users.filter((u) => {
