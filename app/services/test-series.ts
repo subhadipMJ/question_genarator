@@ -13,6 +13,8 @@ export type TestSeries = {
     is_active: boolean;
     question_ids: number[];
     attempt_count?: number;
+    is_result_show?: boolean;
+    is_score_show?: boolean;
 };
 
 export type TestSeriesCreate = {
@@ -31,6 +33,8 @@ export type TestSeriesUpdate = {
     duration_seconds?: number;
     question_ids?: number[];
     is_active?: boolean;
+    is_result_show?: boolean;
+    is_score_show?: boolean;
 };
 
 export type TestSeriesResultItem = {
