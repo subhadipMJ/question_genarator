@@ -472,7 +472,7 @@ export default function StudentTests({
                                     </p>
 
                                     {/* Score display for submitted attempts */}
-                                    {isSubmitted && existingAttempt && (
+                                    {t.is_score_show !== false && isSubmitted && existingAttempt && (
                                         <p className="text-sm font-medium">
                                             Score:{" "}
                                             <span className="text-primary">
@@ -490,9 +490,15 @@ export default function StudentTests({
                                             Resume test →
                                         </Button>
                                     ) : isSubmitted ? (
-                                        <Button variant="outline" className="w-full" nativeButton={false} render={<Link href={`/student/attempts/${existingAttempt!.id}`} />}>
-                                            View results
-                                        </Button>
+                                        t.is_result_show !== false ? (
+                                            <Button variant="outline" className="w-full" nativeButton={false} render={<Link href={`/student/attempts/${existingAttempt!.id}`} />}>
+                                                View results
+                                            </Button>
+                                        ) : (
+                                            <Button variant="outline" className="w-full" onClick={() => toast("Result not out yet")}>
+                                                View results
+                                            </Button>
+                                        )
                                     ) : (
                                         <Button
                                             className="w-full"
