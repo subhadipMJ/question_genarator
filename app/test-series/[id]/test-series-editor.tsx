@@ -98,8 +98,8 @@ export default function TestSeriesEditor({
 
     const [durationSeconds, setDurationSeconds] = useState(series.duration_seconds);
     const [isActive, setIsActive] = useState(series.is_active !== false);
-    const [isShowResult, setIsShowResult] = useState(false);
-    const [isShowScore, setIsShowScore] = useState(false);
+    const [isShowResult, setIsShowResult] = useState(series.is_result_show ?? false);
+    const [isShowScore, setIsShowScore] = useState(series.is_score_show ?? false);
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
     const [origin, setOrigin] = useState("");
@@ -227,6 +227,8 @@ export default function TestSeriesEditor({
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
                     is_active: isActive,
+                    is_result_show: isShowResult,
+                    is_score_show: isShowScore,
                 }),
             });
             const data = await res.json().catch(() => null);
