@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ type History = {
     status: number | string;
     score: string;
     total_marks: string;
+    is_result_show?: boolean;
+    is_score_show?: boolean;
 };
 
 export function HistorySearch({ allHistory }: { allHistory: History[] }) {
@@ -59,8 +62,10 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                         const isInProgress = a.status === "in_progress" || a.status === 0;
                         const isExpired = a.status === "expired" || a.status === 1;
 
-                        return (
-                            <Link key={a.id} href={`/student/attempts/${a.id}`} className="group block">
+                        const canViewResult = a.is_result_show !== false;
+                        const canViewScore = a.is_score_show !== false;
+
+                        const cardInner = (
                                 <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 h-full">
                                     <div
                                         className={`absolute inset-y-0 left-0 w-1 rounded-l-xl ${
@@ -112,16 +117,38 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                                                 <p>Submitted: {new Date(a.submitted_at).toLocaleString("en-US")}</p>
                                             )}
                                         </div>
-                                        <div className="border-t pt-2 flex items-center justify-between">
-                                            <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                Test Score:
-                                            </span>
-                                            <span className="text-sm font-bold text-foreground">
-                                                {a.score} <span className="text-muted-foreground text-sm font-normal">/ {a.total_marks}</span>
-                                            </span>
-                                        </div>
+                                        {canViewScore && (
+                                            <div className="border-t pt-2 flex items-center justify-between">
+                                                <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                                    Test Score:
+                                                </span>
+                                                <span className="text-sm font-bold text-foreground">
+                                                    {a.score} <span className="text-muted-foreground text-sm font-normal">/ {a.total_marks}</span>
+                                                </span>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
+                        );
+
+                        if (!canViewResult) {
+                            return (
+                                <div
+                                    key={a.id}
+                                    className="group block cursor-pointer"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        toast("Result not out yet");
+                                    }}
+                                >
+                                    {cardInner}
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <Link key={a.id} href={`/student/attempts/${a.id}`} className="group block">
+                                {cardInner}
                             </Link> 
                         );
                     })}

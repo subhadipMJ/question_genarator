@@ -98,6 +98,8 @@ export default function TestSeriesEditor({
 
     const [durationSeconds, setDurationSeconds] = useState(series.duration_seconds);
     const [isActive, setIsActive] = useState(series.is_active !== false);
+    const [isShowResult, setIsShowResult] = useState(false);
+    const [isShowScore, setIsShowScore] = useState(false);
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
     const [origin, setOrigin] = useState("");
@@ -596,6 +598,36 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         <option value="true">Active — students can view and join</option>
                                         <option value="false">Inactive — hidden from students</option>
                                     </select>
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                    <label
+                                        htmlFor="s-show-result"
+                                        className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors"
+                                    >
+                                        <input
+                                            id="s-show-result"
+                                            type="checkbox"
+                                            checked={isShowResult}
+                                            onChange={(e) => setIsShowResult(e.target.checked)}
+                                            className="h-4 w-4 shrink-0 accent-primary"
+                                        />
+                                        <span className="text-sm font-medium leading-none">Show result</span>
+                                    </label>
+                                    
+                                    <label
+                                        htmlFor="s-show-score"
+                                        className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors"
+                                    >
+                                        <input
+                                            id="s-show-score"
+                                            type="checkbox"
+                                            checked={isShowScore}
+                                            onChange={(e) => setIsShowScore(e.target.checked)}
+                                            className="h-4 w-4 shrink-0 accent-primary"
+                                        />
+                                        <span className="text-sm font-medium leading-none">Show score</span>
+                                    </label>
                                 </div>
 
                                 <div className="pt-4 border-t flex flex-col gap-2">
