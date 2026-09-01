@@ -71,6 +71,25 @@ export async function POST(request: NextRequest) {
         const organizationId = loginResult.organization_id ?? getOrganizationId(loginResult.user);
         if (organizationId !== null) {
             nextResponse.cookies.set("organization_id", String(organizationId), cookieOptions);
+            
+            // Check if organization is active by querying the backend as the source of truth
+            try {
+                const orgResponse = await fetch(getApiUrl(`organizations/${organizationId}`), {
+                    headers: { "Authorization": `Bearer ${loginResult.access_token}` },
+                    cache: "no-store",
+                });
+                if (orgResponse.ok) {
+                    const orgData = await orgResponse.json();
+                    if (orgData.is_active === false || orgData.is_active === 0) {
+                        return NextResponse.json(
+                            { message: "Account is not active, Contact to super admin" },
+                            { status: 403 }
+                        );
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch organization status", error);
+            }
         }
 
         const organizationName = loginResult.organization_name ?? getOrganizationName(loginResult.user);
@@ -108,8 +127,28 @@ function getLoginUrl() {
     return getApiUrl("auth/login");
 }
 
-function getErrorMessage(result: LoginResponse | ApiError | null): string {
+function getErrorMessage(result: any): string {
+    if (!result) return "Invalid email or password.";
+    
+    const rawError = result.error || result.message || result.detail || result.status;
+    if (rawError && typeof rawError === "string") {
+        const errorUpper = rawError.toUpperCase();
+        if (errorUpper.includes("ACCOUNT_INACTIVE") || errorUpper.includes("ORGANIZATION_INACTIVE")) {
+            return "Account is not active, Contact to super admin";
+        }
+    }
+
+    if (result.message && typeof result.message === "string") {
+        if (result.message.includes("Account is not active")) {
+            return "Account is not active, Contact to super admin";
+        }
+        return result.message;
+    }
+
     if (result && "detail" in result && typeof result.detail === "string") {
+        if (result.detail.includes("ACCOUNT_INACTIVE") || result.detail.includes("ORGANIZATION_INACTIVE")) {
+            return "Account is not active, Contact to super admin";
+        }
         return result.detail;
     }
     if (result && "detail" in result && Array.isArray(result.detail)) {
