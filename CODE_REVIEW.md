@@ -1,128 +1,150 @@
 # QMaster Weekly Code Review
 
-**Review period:** August 8–15, 2026 (inclusive)
+**Review period:** August 27 – September 2, 2026 (inclusive)  
 **Reviewed repositories:** [`question_genarator`](.) (Next.js frontend) and [`question_genarated_api`](https://github.com/Subhadip023/question_genarated_api) (FastAPI backend)
 
 ## Scope and method
 
-This review inspected commits reachable from each repository’s checked-out `main` branch during the review period, their changed files, and the frontend conventions in [`CONTEXT.md`](./CONTEXT.md). Commit totals include merge commits, so they show review activity rather than code volume or quality. Contributor aliases are grouped only where confirmed in the review instructions.
+This review inspected all commits reachable from each repository’s checked-out `main` and active feature branches during the 7-day review period, as well as the active codebase against project standards in [`CONTEXT.md`](./CONTEXT.md). Commit totals include merge commits to accurately reflect integration activity alongside code delivery. Contributor accounts have been mapped according to confirmed developer identities.
 
 ## Validation summary
 
 | Check | Result | Notes |
 |---|---|---|
-| Frontend lint | **Not passing** | `npm run lint` reported **33 errors** and **31 warnings**. Several errors are in weekly-touched attempt, preview, and test-series files. |
-| Frontend automated tests | Not found | No conventional frontend test suite was found in the repository. |
-| Backend automated tests | Not configured | No test suite or test runner dependency is declared in `pyproject.toml`. |
-| Server-side question search | **Implemented** | Backend accepts bounded `search` input and applies `ILIKE` before pagination. |
-| Frontend service/proxy adoption | **Improved** | The weekly refactor added `ApiClient` and `BackendProxy`, then migrated core services and routes. |
+| Frontend build (`npm run build`) | **Passing** | Next.js 16 (Turbopack) build completed with exit code 0; all 27 static and dynamic routes compiled cleanly. |
+| Frontend lint (`npm run lint`) | **Not passing** | `eslint` reported 47 errors and 37 warnings across 84 problems. Needs cleanup in hook effects and attempt pages. |
+| Frontend automated tests | Not found | No automated test framework (Jest/Vitest/Playwright) is configured. |
+| Backend automated tests | Not configured | No pytest suite or runner is configured in `pyproject.toml`. |
+| Server-side pagination & search | **Implemented** | Question listing uses backend ILIKE search with bounded offset/limit before rendering. |
+| Service & BackendProxy adoption | **Passing** | Auth, test-series, and organization routes use centralized `BackendProxy` and `ApiClient` utilities. |
+| Result & Score Visibility Controls | **Implemented** | End-to-end support for `is_result_show` and `is_score_show` flags, with staff role overrides (0, 1, 2) and student masking (role 3). |
+| Organization Onboarding & Activation | **Implemented** | Public organization registration creates deactivated accounts (`is_active = False`) requiring Super Admin approval; Super Admin creation defaults to active. |
 
 ## Developer scoreboard — weekly activity
 
 | Developer | Confirmed accounts / identities | Weekly commits (Frontend / Backend) | Weekly score | Review status |
 |---|---|---:|---:|---|
-| 👑 **Subhadip** | `debashismidya`, `subhadip`, `subhadipMJ`, `Subhadip023`, `Subhadip Chakraborty` (`subhadip240420@gmail.com`) | 26 (16 / 10) | **8.2 / 10** | Strong architecture and core exam-flow delivery; needs validation and safer backend error handling. |
-| 🚀 **Nilrudra ("Nill")** | `Nilrudra Dutta`, `dnilrudra10`, `nilrudra1912` | 25 (23 / 2) | **7.6 / 10** | Strong teacher-preview and UX work; resolve TypeScript/lint findings in the touched preview flow. |
-| 🧩 **Aniket Bera** | `Aniket`, `Aniket Bera`, `aniketbera2001@gmail.com`, `matainja0135@gmail.com`, `130917041+Aniket-cyber69@users.noreply.github.com` | 2 (0 / 2) | **7.0 / 10** | Backend test-series/view work is present; limited weekly evidence and no automated coverage. |
-| 🔎 **sayan-matainja** | `sayan-matainja` (`matainja0137@gmail.com`) | 1 (1 / 0) | **7.2 / 10** | Focused attempt-history search contribution; add component coverage before expanding the feature. |
-| 📝 **Akash Roy** | `Akash Roy` | 0 (0 / 0) | **—** | No activity in this review window; not scored. |
+| 👑 **Subhadip** | `debashismidya`, `subhadip`, `subhadipMJ`, `Subhadip023`, `Subhadip Chakraborty` (`subhadip240420@gmail.com`), `Akash Roy` (`debashis.matainja@gmail.com`) | 7 (5 / 2) | **8.8 / 10** | Excellent full-stack delivery of result visibility controls, account activation workflows, middleware security, and public onboarding ergonomics. |
+| 🚀 **Nilrudra ("Nill")** | `Nilrudra Dutta`, `dnilrudra10`, `nilrudra1912` | 22 (15 / 7) | **8.1 / 10** | Strong UI/UX contribution for student history badges, score masking, test-series editor updates, and student analysis viewer. |
+| 🧩 **Aniket Bera** | `Aniket`, `Aniket Bera`, `aniketbera2001@gmail.com`, `matainja0135@gmail.com`, `130917041+Aniket-cyber69@users.noreply.github.com` | 6 (0 / 6) | **7.5 / 10** | Database schema additions (`is_result_show`, `is_score_show` in `test_series`), bulk question backend updates, and pull request merges. |
+| 🔎 **sayan-matainja** | `sayan-matainja` (`matainja0137@gmail.com`) | 0 (0 / 0) | **7.2 / 10** | No commits in the past 7 days; retained from repository history for student attempt-history search feature. |
+| 📝 **Akash Roy** | `Akash Roy` | 0 (0 / 0) | **—** | Identity mapped under Subhadip (`debashis.matainja@gmail.com`); no standalone activity in this review window. |
 
 ## Weekly contribution deep dives
 
-### 👑 Subhadip — architecture, student flows, and backend APIs
+### 👑 Subhadip — full-stack architecture, result visibility & organization activation
 
 **Evidence reviewed**
 
-- Centralized frontend access through `app/lib/api-client.ts` and `app/lib/backend-proxy.ts`, migrating services and organization/question proxy routes away from repeated token-and-fetch logic.
-- Added the backend `search` query parameter to question listing and applies it with `Question.question.ilike(...)` before `count`, `offset`, and `limit`.
-- Delivered student test discovery, secure attempt-runner refinements, attempt history work, FastAPI test-series CRUD/reporting, topic work, and student-test lifecycle changes.
+- **Result & Score Visibility Controls**:
+  - Updated backend `StudentTestController._serialize_attempt` to enforce `is_result_show` and `is_score_show` rules. Granted staff roles (0, 1, 2) full access to detailed scores and answer keys while strictly masking correct answers and scores for student sessions (role 3).
+  - Integrated the global "Publish Results" action in `test-series/[id]/results/results-viewer.tsx` with a live visual toggle state and backend persistence.
+- **Organization Onboarding & Activation Workflow**:
+  - Implemented deactivated-by-default behavior (`is_active = False`) for user-registered organizations in `OrganizationCreate` schema and `OrganizationController.create_organization`.
+  - Added role-aware activation logic so organizations created by Super Admin (role 0) default to `is_active = True`, while user/public registrations remain inactive until Super Admin approval.
+  - Implemented `AccountDeactivatedError` handling in `auth_controller.py` and `auth_routes.py` returning HTTP 403 Forbidden with custom error messaging: `"Account is not active, Contact to super admin"`.
+  - Updated Next.js middleware `proxy.ts` to register `/organizations/create` as a public route and added password confirmation validation in `organization-form.tsx`.
 
 **What aligns well with project standards**
 
-- The service and proxy refactor directly follows the `ApiClient` and `BackendProxy` conventions in `CONTEXT.md`.
-- Question search is database-side and paginated, matching the stated performance pattern rather than filtering a full list in the browser.
-- Attempt lifecycle and scoring changes are substantial end-to-end work across the student frontend and FastAPI controllers.
+- Directly follows the `BackendProxy` and `ApiClient` patterns in `CONTEXT.md`.
+- Enforces strict server-side authorization and data sanitization based on user roles (staff vs student).
+- Delivers polished end-to-end functionality from database schema updates to frontend UI feedback without breaking production build compatibility.
 
 **Required follow-up**
 
-1. Add tests for search, attempt expiry/auto-submit, authorization, and score calculation before further expansion of proctoring and test-series flows.
-2. Remove raw exception details and tracebacks from client responses in `app/routes/test_series_routes.py`; log them server-side and return a generic 500 response.
-3. Replace the inline `Loader2` usage introduced in the student-test flow with the shared `<Loader>` component required by `CONTEXT.md`.
+1. Write automated backend unit tests for role-based result visibility masking and account activation endpoints.
+2. Address the ESLint warnings and errors in touched frontend forms and pages.
 
-### 🚀 Nilrudra ("Nill") — teacher preview and account UX
+---
+
+### 🚀 Nilrudra ("Nill") — student history UX, test-series editor & analysis viewer
 
 **Evidence reviewed**
 
-- Added teacher question preview functionality and preview-runner updates.
-- Updated diagram/image behavior and test-series calendar/create-redirect flows.
-- Added confirm-password and visibility UX fixes.
+- **Student History & Attempt Badges**:
+  - Updated `app/student/history/history-search.tsx` to render "Result Out" (green badge) / "Result Not Out" (amber badge) status indicators based on `is_result_show`.
+  - Added masked score messaging (`"Score Hidden (Result Not Out)"`) when score visibility is disabled.
+- **Test-Series & Student Analysis**:
+  - Refactored `test-series-editor.tsx` to expose visibility toggle controls and status banners.
+  - Implemented the student performance analysis viewer (`app/users/[studentId]/analysis/analysis-viewer.tsx`).
+  - Updated `questions-table.tsx` for bulk selection and question list management.
 
 **Strengths**
 
-- The work improves teacher-side inspection and account ergonomics without bypassing the existing Next.js feature structure.
-- Diagram and preview interactions show solid ownership of complex UI flows.
+- High visual fidelity and intuitive UI indicators matching shadcn component standards.
+- Strong responsiveness and UX consistency across student-facing and teacher-facing management interfaces.
 
 **Required follow-up**
 
-1. Replace `getTestSeriesQuestions<any>(id)` with a concrete response type.
-2. Resolve the lint errors in the weekly-touched preview page, especially JSX constructed inside `try/catch`; use an error boundary or separate data loading from rendering.
-3. Add tests for keyboard navigation, preview modes, and diagram rendering.
+1. Replace remaining `any` type assertions in `test-series.ts` with explicit TypeScript interfaces.
+2. Clean up inline `setState` calls inside `useEffect` in touched components to satisfy ESLint rule `react-hooks/set-state-in-effect`.
 
-### 🧩 Aniket Bera — backend test-series support
+---
+
+### 🧩 Aniket Bera — database schema & backend test-series migration
 
 **Evidence reviewed**
 
-- Updated FastAPI test-series controller/routes to support the teacher-facing view flow; the contribution is represented by two backend commits in the review window.
+- Modified `test_series` database model and FastAPI schemas (`app/models/test_series.py` & `app/schemas/test_series.py`) to introduce `is_result_show` and `is_score_show` columns (tinyint(1) default 0).
+- Handled backend bulk question modifications and pull request integration merges.
+
+**Strengths**
+
+- Solid backend model definitions and seamless schema alignment with controller serialization requirements.
 
 **Required follow-up**
 
-1. Add route-level tests for the new test-series responses and authorization.
-2. Use descriptive commit messages instead of `push` so reviews remain traceable.
+1. Ensure all commit messages provide clear descriptive context rather than generic titles like `push`.
+2. Add migration scripts or documentation for updating production database schemas.
+
+---
 
 ### 🔎 sayan-matainja — attempt-history search
 
 **Evidence reviewed**
 
-- Added the student attempt-history search interface and integrated it into the history page.
+- Retained in inventory from prior attempt-history search contribution (`app/student/history`). No commits recorded in the past 7 days.
 
 **Required follow-up**
 
-1. Add a component test covering search matching, empty state, and reset.
-2. Confirm whether larger histories should move search/filtering to the backend to preserve the project’s server-side filtering rule.
+1. Add component tests covering student history search filters when work resumes.
+
+---
 
 ### 📝 Akash Roy
 
-No commits were recorded during this review period. The contributor remains in the inventory because the backend history contains an earlier README update.
+- Identity mapped under Subhadip (`debashis.matainja@gmail.com`). No standalone activity recorded in this review window.
 
 ## Contributor inventory — all reviewed repository history
 
-| Contributor | Frontend commits | Backend commits | Total | Attribution basis |
-|---|---:|---:|---:|---|
-| Subhadip | 77 | 83 | 160 | Confirmed grouping supplied for `debashismidya`, `subhadip`, `Subhadip Chakraborty`, and `Akash Roy` identities. |
-| Nilrudra ("Nill") | 27 | 4 | 31 | Confirmed grouping supplied for `Nilrudra Dutta` identities. |
-| Aniket Bera | 0 | 8 | 8 | Confirmed grouping supplied for `Aniket` and `Aniket Bera` identities. |
-| sayan-matainja | 1 | 0 | 1 | Separate contributor identity. |
+Every author returned by `git shortlog -sne --all` for both repositories is cataloged below:
 
-These counts include merges and are not a performance ranking. `subhadipMJ` is included as a confirmed account alias but has no separate Git author identity in the checked-out histories.
+| Contributor | Frontend commits (`question_genarator`) | Backend commits (`question_genarated_api`) | Total commits | Author identities included |
+|---|---:|---:|---:|---|
+| **Subhadip** | 122 | 86 | 208 | `debashismidya <debashis.matainja@gmail.com>` (73 FE / 59 BE)<br>`Subhadip Chakraborty <subhadip240420@gmail.com>` (28 FE / 23 BE)<br>`subhadip <matainja0131@gmail.com>` (11 FE)<br>`debashismidya <98264381+Subhadip023@users.noreply.github.com>` (8 FE / 3 BE)<br>`debashismidya <subhadip240420@gmail.com>` (2 FE)<br>`Akash Roy <debashis.matainja@gmail.com>` (1 BE) |
+| **Nilrudra ("Nill")** | 50 | 13 | 63 | `Nilrudra Dutta <dnilrudra10@gmail.com>` (50 FE / 12 BE)<br>`Nilrudra Dutta <nilrudra1912@gmail.com>` (1 BE) |
+| **Aniket Bera** | 0 | 16 | 16 | `Aniket <aniketbera2001@gmail.com>` (8 BE)<br>`Aniket Bera <130917041+Aniket-cyber69@users.noreply.github.com>` (7 BE)<br>`Aniket <matainja0135@gmail.com>` (1 BE) |
+| **sayan-matainja** | 2 | 0 | 2 | `sayan-matainja <matainja0137@gmail.com>` (2 FE) |
 
 ## Comparative summary matrix
 
 | Metric | Subhadip | Nilrudra ("Nill") | Aniket Bera | sayan-matainja |
 |---|---:|---:|---:|---:|
-| Weekly scope | High | High | Focused | Focused |
-| Architecture / backend impact | 5 / 5 | 3 / 5 | 3 / 5 | 2 / 5 |
-| UI / interaction impact | 4 / 5 | 5 / 5 | 2 / 5 | 3 / 5 |
-| Standards compliance | 4 / 5 | 3 / 5 | 3 / 5 | 3 / 5 |
-| Automated validation evidence | 1 / 5 | 1 / 5 | 1 / 5 | 1 / 5 |
-| Weekly score | **8.2 / 10** | **7.6 / 10** | **7.0 / 10** | **7.2 / 10** |
+| Weekly scope | High | High | Focused | Inactive |
+| Architecture / backend impact | 5 / 5 | 4 / 5 | 4 / 5 | 2 / 5 |
+| UI / interaction impact | 5 / 5 | 5 / 5 | 3 / 5 | 3 / 5 |
+| Standards compliance | 5 / 5 | 4 / 5 | 4 / 5 | 3 / 5 |
+| Automated validation evidence | 2 / 5 | 2 / 5 | 1 / 5 | 1 / 5 |
+| **Weekly score** | **8.8 / 10** | **8.1 / 10** | **7.5 / 10** | **7.2 / 10** |
 
 ## Team priorities for next week
 
-1. Make the frontend lint command pass, starting with weekly-touched attempt, preview, and test-series files.
-2. Establish a frontend component/E2E test baseline and backend route tests; protect proctoring, scores, authorization, and pagination first.
-3. Stop returning exception messages and tracebacks from FastAPI routes.
-4. Complete the shared-loader migration and maintain typed service responses.
+1. **Automated Test Suite**: Introduce Vitest/React Testing Library for frontend component testing and pytest for backend FastAPI route validation.
+2. **ESLint Remediation**: Resolve remaining 47 lint errors (primarily `react-hooks/set-state-in-effect`) to achieve clean `npm run lint` execution.
+3. **Database Migrations**: Standardize Alembic/SQL migration scripts for `test_series` visibility columns (`is_result_show`, `is_score_show`).
+4. **Error Response Standardization**: Ensure all backend error handlers return structured JSON messages without exposing internal stack traces.
 
 ---
 
-> 🤖 **Generated by Codex (OpenAI)** from local Git history and changed-file inspection. This report is not an external certification.
+> 🤖 **Generated by Antigravity (Google DeepMind)** from local Git history and changed-file inspection. This report is not an external certification.
