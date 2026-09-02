@@ -5,21 +5,38 @@ import OrganizationForm from "./organization-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Create Organization | QMaster" };
+export const metadata = { title: "Register Organization | QMaster" };
 
 export default async function CreateOrganizationPage() {
     const cookieStore = await cookies();
+    const token = cookieStore.get("access_token")?.value;
+    const role = cookieStore.get("user_role")?.value;
 
-    if (!cookieStore.has("access_token")) redirect("/login");
-    if (cookieStore.get("user_role")?.value !== "0") redirect("/dashboard");
+    if (token && role !== "0") {
+        redirect("/dashboard");
+    }
+
+    const isSuperAdmin = token && role === "0";
 
     return (
         <main className="px-6 py-12">
             <div className="mx-auto max-w-2xl">
-                <Button variant="ghost" nativeButton={false} render={<Link href="/super-admin" />}>← Back to super admin</Button>
+                <Button variant="ghost" nativeButton={false} render={<Link href={isSuperAdmin ? "/super-admin" : "/login"} />}>
+                    ← {isSuperAdmin ? "Back to super admin" : "Back to sign in"}
+                </Button>
                 <Card className="mt-4">
-                    <CardHeader><CardDescription>Super Admin</CardDescription><CardTitle className="text-3xl">Create organization</CardTitle><CardDescription>Set up an organization and its first administrator account.</CardDescription></CardHeader>
-                    <CardContent><OrganizationForm /></CardContent>
+                    <CardHeader>
+                        <CardDescription>{isSuperAdmin ? "Super Admin" : "Institution Onboarding"}</CardDescription>
+                        <CardTitle className="text-3xl">Register Organization</CardTitle>
+                        <CardDescription>
+                            {isSuperAdmin
+                                ? "Set up an active organization and its administrator account."
+                                : "Register your organization. Your account will be pending activation by a Super Admin."}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <OrganizationForm isSuperAdmin={Boolean(isSuperAdmin)} />
+                    </CardContent>
                 </Card>
             </div>
         </main>

@@ -44,10 +44,17 @@ export default async function LoginPage({
                     )}
                     <LoginForm />
                 </CardContent>
-                <div className="mt-4 mb-5 text-center">
-                    <Link href="/register" className="inline-block text-sm underline">
-                        Create a student account
-                    </Link>
+                <div className="mt-4 mb-6 flex flex-col items-center gap-2 text-center text-sm">
+                    <div>
+                        <Link href="/register" className="font-medium text-primary underline hover:text-primary/80">
+                            Create a student account
+                        </Link>
+                    </div>
+                    <div className="pt-1 border-t border-border/50 w-4/5">
+                        <Link href="/organizations/create" className="text-xs text-muted-foreground underline hover:text-foreground">
+                            Create an organization account
+                        </Link>
+                    </div>
                 </div>
             </Card>
         </main>

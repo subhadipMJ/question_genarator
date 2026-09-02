@@ -10,17 +10,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-export default function OrganizationForm() {
+export default function OrganizationForm({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
     const router = useRouter();
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
         setSuccess("");
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+
         setIsSubmitting(true);
 
         const form = event.currentTarget;
@@ -37,7 +46,7 @@ export default function OrganizationForm() {
                     admin: {
                         name: formData.get("adminName"),
                         email: formData.get("adminEmail"),
-                        password: formData.get("adminPassword"),
+                        password: password,
                     },
                 }),
             });
@@ -46,7 +55,13 @@ export default function OrganizationForm() {
             if (!response.ok) throw new Error(result?.message ?? "Unable to create organization.");
 
             form.reset();
-            setSuccess("Organization and administrator created successfully.");
+            setPassword("");
+            setConfirmPassword("");
+            if (isSuperAdmin) {
+                setSuccess("Organization and administrator created successfully.");
+            } else {
+                setSuccess("Organization registered successfully! Your account is currently inactive pending Super Admin approval.");
+            }
         } catch (submitError: unknown) {
             setError(submitError instanceof Error ? submitError.message : "Unable to create organization.");
         } finally {
@@ -88,6 +103,8 @@ export default function OrganizationForm() {
                             type={showPassword ? "text" : "password"}
                             required
                             minLength={6}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             autoComplete="new-password"
                             placeholder="••••••••"
                             className="pr-10"
@@ -102,6 +119,33 @@ export default function OrganizationForm() {
                         </button>
                     </div>
                 </Field>
+                <Field label="Confirm password" htmlFor="confirmPassword">
+                    <div className="relative">
+                        <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            required
+                            minLength={6}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            autoComplete="new-password"
+                            placeholder="••••••••"
+                            className="pr-10"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            tabIndex={-1}
+                        >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                    </div>
+                    {confirmPassword && password !== confirmPassword && (
+                        <p className="mt-1 text-sm font-medium text-destructive">Passwords do not match</p>
+                    )}
+                </Field>
             </fieldset>
 
             {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
@@ -109,14 +153,14 @@ export default function OrganizationForm() {
                 <div className="space-y-4">
                     <Alert><AlertDescription>{success}</AlertDescription></Alert>
                     <div className="flex gap-3">
-                        <Button type="button" variant="outline" nativeButton={false} render={<Link href="/super-admin" />}>
-                            Return to Super Admin
+                        <Button type="button" variant="outline" nativeButton={false} render={<Link href={isSuperAdmin ? "/super-admin" : "/login"} />}>
+                            {isSuperAdmin ? "Return to Super Admin" : "Return to Sign In"}
                         </Button>
                     </div>
                 </div>
             )}
 
-            <Button type="submit" disabled={isSubmitting} className="w-full">
+            <Button type="submit" disabled={isSubmitting || (confirmPassword !== "" && password !== confirmPassword)} className="w-full">
                 {isSubmitting ? "Creating organization..." : "Create organization and admin"}
             </Button>
         </form>
