@@ -55,6 +55,8 @@ export type TestSeriesResults = {
     series_name: string;
     invite_token?: string | null;
     access_type?: string;
+    is_result_show?: boolean;
+    is_score_show?: boolean;
     total_attempts: number;
     completed_attempts: number;
     average_score: number;

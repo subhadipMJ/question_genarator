@@ -48,9 +48,43 @@ export default function ResultsViewer({
     const [selectedAttemptItem, setSelectedAttemptItem] = useState<TestSeriesResultItem | null>(null);
     const [origin, setOrigin] = useState("");
 
+    const [isPublished, setIsPublished] = useState<boolean>(
+        Boolean(initialResults.is_result_show && initialResults.is_score_show)
+    );
+    const [isPublishing, setIsPublishing] = useState(false);
+
     useEffect(() => {
         if (typeof window !== "undefined") setOrigin(window.location.origin);
     }, []);
+
+    async function handleTogglePublish() {
+        setIsPublishing(true);
+        try {
+            const nextState = !isPublished;
+            const res = await fetch(`/api/backend/test-series/${initialResults.series_id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    is_result_show: nextState,
+                    is_score_show: nextState,
+                }),
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || "Failed to update publication status");
+            }
+            setIsPublished(nextState);
+            if (nextState) {
+                toast.success("Results & Scores published to students successfully!");
+            } else {
+                toast.info("Results & Scores hidden from students.");
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Failed to publish results");
+        } finally {
+            setIsPublishing(false);
+        }
+    }
 
     // Filter and sort results
     const filteredResults = useMemo(() => {
@@ -123,8 +157,36 @@ export default function ResultsViewer({
                     </p>
                 </div>
 
-                {/* Invite Link & QR Code buttons */}
+                {/* Action buttons */}
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant={isPublished ? "outline" : "default"}
+                        size="sm"
+                        disabled={isPublishing}
+                        onClick={handleTogglePublish}
+                        className={`h-9 text-xs gap-1.5 font-medium cursor-pointer ${
+                            isPublished
+                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                        }`}
+                    >
+                        {isPublishing ? (
+                            <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Updating...
+                            </>
+                        ) : isPublished ? (
+                            <>
+                                <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                Results Published
+                            </>
+                        ) : (
+                            <>
+                                <Eye className="h-3.5 w-3.5" />
+                                Publish Results
+                            </>
+                        )}
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"
@@ -158,6 +220,35 @@ export default function ResultsViewer({
                 inviteToken={initialResults.invite_token || String(initialResults.series_id)}
                 origin={origin}
             />
+
+            {/* Publication Banner */}
+            {!isPublished ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-300 text-xs">
+                    <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>
+                            <strong>Results are currently hidden from students.</strong> Students will not see scores or answer keys until you publish.
+                        </span>
+                    </div>
+                    <Button
+                        size="sm"
+                        disabled={isPublishing}
+                        onClick={handleTogglePublish}
+                        className="h-7 text-[11px] bg-amber-600 hover:bg-amber-700 text-white shrink-0 font-medium cursor-pointer"
+                    >
+                        Publish Results Now
+                    </Button>
+                </div>
+            ) : (
+                <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300 text-xs">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span>
+                            <strong>Results published!</strong> Students can now view their marks and detailed answer keys in their portal.
+                        </span>
+                    </div>
+                </div>
+            )}
 
 
 
