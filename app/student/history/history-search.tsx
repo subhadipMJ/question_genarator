@@ -85,26 +85,40 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                                             <CardTitle className="text-lg leading-snug group-hover:text-primary transition-colors">
                                                 {a.series_name}
                                             </CardTitle>
-                                            {isInProgress && (
-                                                <Badge variant="secondary" className="w-32 justify-center shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                                                    In progress
-                                                </Badge>
-                                            )}
-                                            {isForceSubmitted && (
-                                                <Badge variant="outline" className="w-32 justify-center shrink-0 border-destructive/40 bg-destructive text-white dark:bg-destructive/20 font-medium">
-                                                    Force Submitted
-                                                </Badge>
-                                            )}
-                                            {isSubmitted && (
-                                                <Badge variant="secondary" className="w-32 justify-center shrink-0 bg-green-500 text-white dark:bg-green-900/30 dark:text-green-400">
-                                                    Completed
-                                                </Badge>
-                                            )}
-                                            {isExpired && (
-                                                <Badge variant="outline" className="w-32 justify-center shrink-0 text-muted-foreground">
-                                                    Expired
-                                                </Badge>
-                                            )}
+                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                                {isInProgress && (
+                                                    <Badge variant="secondary" className="justify-center bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                                        In progress
+                                                    </Badge>
+                                                )}
+                                                {isForceSubmitted && (
+                                                    <Badge variant="outline" className="justify-center border-destructive/40 bg-destructive text-white dark:bg-destructive/20 font-medium">
+                                                        Force Submitted
+                                                    </Badge>
+                                                )}
+                                                {isSubmitted && (
+                                                    <Badge variant="secondary" className="justify-center bg-green-500 text-white dark:bg-green-900/30 dark:text-green-400">
+                                                        Completed
+                                                    </Badge>
+                                                )}
+                                                {isExpired && (
+                                                    <Badge variant="outline" className="justify-center text-muted-foreground">
+                                                        Expired
+                                                    </Badge>
+                                                )}
+
+                                                {!isInProgress && (
+                                                    canViewResult ? (
+                                                        <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium text-[11px]">
+                                                            Result Out
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-[11px]">
+                                                            Result Not Out
+                                                        </Badge>
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
                                         <CardDescription className="text-[14px] text-orange">
                                             Attempt #{a.id}
@@ -117,16 +131,20 @@ export function HistorySearch({ allHistory }: { allHistory: History[] }) {
                                                 <p>Submitted: {new Date(a.submitted_at).toLocaleString("en-US")}</p>
                                             )}
                                         </div>
-                                        {canViewScore && (
-                                            <div className="border-t pt-2 flex items-center justify-between">
-                                                <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                    Test Score:
-                                                </span>
+                                        <div className="border-t pt-2 flex items-center justify-between">
+                                            <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                                Test Score:
+                                            </span>
+                                            {canViewScore ? (
                                                 <span className="text-sm font-bold text-foreground">
                                                     {a.score} <span className="text-muted-foreground text-sm font-normal">/ {a.total_marks}</span>
                                                 </span>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <span className="text-xs italic text-amber-600 dark:text-amber-400 font-medium">
+                                                    Score Hidden (Result Not Out)
+                                                </span>
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </Card>
                         );
