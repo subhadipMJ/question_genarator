@@ -50,9 +50,22 @@ export default function OrganizationForm({ isSuperAdmin = false }: { isSuperAdmi
                     },
                 }),
             });
-            const result = await response.json().catch(() => null) as { message?: string } | null;
+            const result = await response.json().catch(() => null) as {
+                message?: string;
+                detail?: string | Array<{ msg: string; loc?: (string | number)[] }>;
+            } | null;
 
-            if (!response.ok) throw new Error(result?.message ?? "Unable to create organization.");
+            if (!response.ok) {
+                let errorMessage = "Unable to create organization.";
+                if (typeof result?.detail === "string") {
+                    errorMessage = result.detail;
+                } else if (Array.isArray(result?.detail) && result.detail.length > 0) {
+                    errorMessage = result.detail.map((err) => err.msg).join(", ");
+                } else if (typeof result?.message === "string") {
+                    errorMessage = result.message;
+                }
+                throw new Error(errorMessage);
+            }
 
             form.reset();
             setPassword("");
@@ -102,7 +115,7 @@ export default function OrganizationForm({ isSuperAdmin = false }: { isSuperAdmi
                             name="adminPassword"
                             type={showPassword ? "text" : "password"}
                             required
-                            minLength={6}
+                            minLength={8}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="new-password"
@@ -126,7 +139,7 @@ export default function OrganizationForm({ isSuperAdmin = false }: { isSuperAdmi
                             name="confirmPassword"
                             type={showConfirmPassword ? "text" : "password"}
                             required
-                            minLength={6}
+                            minLength={8}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             autoComplete="new-password"
