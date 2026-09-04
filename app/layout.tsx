@@ -127,7 +127,7 @@ export default async function RootLayout({
 
                     </p>
                     <div className="text-muted-foreground text-xs">
-                      Contact Us <a href="mailto:sales@matainja.com" className="font-semibold">sales@matainja.com</a>
+                     <a href="https://www.matainja.com/contact-us" className="font-semibold" target="_blank">Contact Us</a>
                     </div>
                   </footer>
                 </div>
