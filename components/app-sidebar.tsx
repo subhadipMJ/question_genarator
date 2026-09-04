@@ -11,6 +11,7 @@ import {
   History,
   PlusCircle,
   User,
+  Users,
   GraduationCap,
   Settings,
   Mail,
@@ -51,6 +52,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: HelpCircle,
           },
           {
+            title: "Teacher Groups",
+            href: "/teacher-groups",
+            icon: Users,
+          },
+          {
             title: "Create Org",
             href: "/organizations/create",
             icon: PlusCircle,
@@ -82,6 +88,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             title: "Test Series",
             href: "/test-series",
             icon: Layers,
+          },
+          {
+            title: "Teacher Groups",
+            href: "/teacher-groups",
+            icon: Users,
           },
           {
             title: "Users",
@@ -116,7 +127,13 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             href: "/test-series",
             icon: Layers,
           },
+          {
+            title: "Teacher Groups",
+            href: "/teacher-groups",
+            icon: Users,
+          },
         ];
+
       case "3": // Student
         return [
           {
