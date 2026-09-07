@@ -212,11 +212,11 @@ export default function TestSeriesManager({
 
             setSeries((prev) => [responseData as TestSeries, ...prev]);
             setNewInviteToken((responseData as TestSeries).invite_token ?? null);
-            toast.success("Test series created!");
+            toast.success("Test created!");
             closeModal();
             router.push(`/test-series/${responseData.id}`);
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Unable to create test series.");
+            toast.error(err instanceof Error ? err.message : "Unable to create Test .");
         } finally {
             setBusy(false);
         }
@@ -241,7 +241,7 @@ export default function TestSeriesManager({
             setSeries((prev) =>
                 prev.map((item) => (item.id === seriesId ? { ...item, is_active: nextActive } : item))
             );
-            toast.success(`Test series marked as ${nextActive ? "Active" : "Inactive"}.`);
+            toast.success(`Test  marked as ${nextActive ? "Active" : "Inactive"}.`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Unable to update status.");
         }
@@ -257,10 +257,10 @@ export default function TestSeriesManager({
                 throw new Error(getApiError(data, res.status));
             }
             setSeries((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-            toast.success("Test series deleted.");
+            toast.success("Test  deleted.");
             setDeleteTarget(null);
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Unable to delete test series.");
+            toast.error(err instanceof Error ? err.message : "Unable to delete Test .");
         } finally {
             setIsDeleting(false);
         }
@@ -272,7 +272,7 @@ export default function TestSeriesManager({
             <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete test series?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete test ?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This will permanently delete{" "}
                             <span className="font-semibold text-foreground">&ldquo;{deleteTarget?.name}&rdquo;</span>.
@@ -294,7 +294,7 @@ export default function TestSeriesManager({
             {/* ── Page Header ── */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Test Series</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Test </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         Create timed assessments, assign questions, and review student attempt performance.
                     </p>
@@ -305,7 +305,7 @@ export default function TestSeriesManager({
                         className="flex items-center gap-2"
                     >
                         <Plus className="h-4 w-4" />
-                        Create Test Series
+                        Create Test
                     </Button>
                     <StatPill label="Total Series" value={series.length} />
                     <StatPill label="Active" value={series.filter((s) => s.is_active !== false && new Date(s.valid_until) >= new Date()).length} />
@@ -360,7 +360,7 @@ export default function TestSeriesManager({
                     <div className="relative flex-1 min-w-[220px]">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search test series by title..."
+                            placeholder="Search Test  by title..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-9 pr-8 h-9 text-xs"
@@ -451,7 +451,7 @@ export default function TestSeriesManager({
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
                     <span>
                         Showing <strong className="text-foreground font-semibold">{paginatedSeries.length}</strong> of{" "}
-                        <strong className="text-foreground font-semibold">{filteredSeries.length}</strong> test series
+                        <strong className="text-foreground font-semibold">{filteredSeries.length}</strong> Test 
                     </span>
                     {isFilterActive && (
                         <span className="flex items-center gap-1.5 text-primary text-[11px]">
@@ -463,14 +463,14 @@ export default function TestSeriesManager({
             </div>
 
             {/* ── 2 Columns Grid View ── */}
-            <section aria-label="Existing test series">
+            <section aria-label="Existing Test ">
                 {filteredSeries.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-10 text-center bg-card">
                         {series.length === 0 ? (
-                            <p className="text-muted-foreground text-sm">No test series found. Create your first test series using the button above.</p>
+                            <p className="text-muted-foreground text-sm">No Test  found. Create your first Test  using the button above.</p>
                         ) : (
                             <>
-                                <p className="text-muted-foreground text-sm">No test series found matching your filters.</p>
+                                <p className="text-muted-foreground text-sm">No Test  found matching your filters.</p>
                                 {isFilterActive && (
                                     <Button variant="outline" size="sm" className="mt-4 gap-2 text-xs" onClick={clearFilters}>
                                         <RotateCcw className="h-3.5 w-3.5" />
@@ -637,7 +637,7 @@ function SeriesCard({
                         </span>
                     </div>
 
-                    {/* Invite Link & QR Code Buttons for Invite-only test series */}
+                    {/* Invite Link & QR Code Buttons for Invite-only Test  */}
                     {(s.access_type === "invite_only" || s.invite_token) && (
                         <div className="flex items-center gap-2 pt-1.5 border-t border-border/40">
                             <Button
@@ -696,7 +696,7 @@ function SeriesCard({
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive hover:border-destructive/50 shrink-0"
-                            title="Delete test series"
+                            title="Delete Test "
                             onClick={() => onDelete(s.id, s.name)}
                         >
                             <Trash2 className="h-3.5 w-3.5" />

@@ -85,7 +85,7 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: FolderOpen,
           },
           {
-            title: "Test Series",
+            title: "Test",
             href: "/test-series",
             icon: Layers,
           },
@@ -123,7 +123,7 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: FolderOpen,
           },
           {
-            title: "Test Series",
+            title: "Test ",
             href: "/test-series",
             icon: Layers,
           },

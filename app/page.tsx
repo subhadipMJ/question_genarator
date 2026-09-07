@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import logo from "../public/logos/safalya-logo-white.png";
+import logo from "../public/logos/landing-logo-1.png";
 import Loader from "@/components/loader";
 export default function Home() {
   return (
@@ -14,7 +14,7 @@ export default function Home() {
     >
       {/* <Loader fullPage /> */}
       <section className="text-center h-screen w-screen bg-black/60 flex flex-col items-center justify-center">
-        <img src={logo.src} alt="Safalya Logo" className=" brightness-0 invert h-72"/>
+        <img src={logo.src} alt="Safalya Logo" className=" h-48"/>
 
         <div className="quiz-reveal mt-9 [animation-delay:460ms]">
           <Button

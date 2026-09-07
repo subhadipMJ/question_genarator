@@ -8,8 +8,8 @@ import { getOrganization } from "../services/organizations";
 import TestSeriesManager from "./test-series-manager";
 
 export const metadata = {
-    title: "Test Series | QMaster",
-    description: "Create and manage test series for your students.",
+    title: "Test  | QMaster",
+    description: "Create and manage test for your students.",
 };
 
 export default async function TestSeriesPage() {
