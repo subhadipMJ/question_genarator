@@ -57,6 +57,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: Users,
           },
           {
+            title: "Batches",
+            href: "/student-batches",
+            icon: GraduationCap,
+          },
+          {
             title: "Create Org",
             href: "/organizations/create",
             icon: PlusCircle,
@@ -95,6 +100,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: Users,
           },
           {
+            title: "Batches",
+            href: "/student-batches",
+            icon: GraduationCap,
+          },
+          {
             title: "Users",
             href: "/users",
             icon: User,
@@ -131,6 +141,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             title: "Teacher Groups",
             href: "/teacher-groups",
             icon: Users,
+          },
+          {
+            title: "Batches",
+            href: "/student-batches",
+            icon: GraduationCap,
           },
         ];
 
