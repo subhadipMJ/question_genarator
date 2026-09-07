@@ -81,12 +81,12 @@ export default function TestSeriesModal({
                 <div className="px-6 py-4 border-b flex items-center justify-between bg-muted/20">
                     <div>
                         <h3 className="text-lg font-semibold leading-none tracking-tight">
-                            {editingSeries ? "Edit Test Series" : "Create Test Series"}
+                            {editingSeries ? "Edit test" : "Create test"}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-1.5">
                             {editingSeries
                                 ? `Modify the details for "${editingSeries.name}"`
-                                : "Configure the settings for the new test series."}
+                                : "Configure the settings for the new test."}
                         </p>
                     </div>
                     <Button
@@ -222,7 +222,7 @@ export default function TestSeriesModal({
                                     : "Creating…"
                                 : editingSeries
                                 ? "Save changes"
-                                : "Create test series"}
+                                : "Create test"}
                         </Button>
                     </div>
                 </form>
