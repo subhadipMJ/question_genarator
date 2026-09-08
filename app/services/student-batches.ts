@@ -20,3 +20,15 @@ export async function getStudentBatch(batchId: number): Promise<StudentBatch> {
     const client = await createApiClient();
     return client.get<StudentBatch>(`student-batches/${batchId}`);
 }
+
+export type BatchStudent = {
+    id: number;
+    student_id: number;
+    name: string | null;
+    email: string | null;
+};
+
+export async function getBatchStudents(batchId: number): Promise<BatchStudent[]> {
+    const client = await createApiClient();
+    return client.get<BatchStudent[]>(`student-batches/${batchId}/students`);
+}
