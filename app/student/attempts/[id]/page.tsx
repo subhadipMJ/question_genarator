@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AttemptRunner, { type Attempt } from "./attempt-runner";
 import { getStudentAttempt } from "../../../services/student";
+import { getOrganization } from "../../../services/organizations";
 
 export default async function Page({ params, searchParams }: PageProps<"/student/attempts/[id]">) {
     const cookieStore = await cookies();
@@ -16,6 +17,13 @@ export default async function Page({ params, searchParams }: PageProps<"/student
     const { id } = await params;
     const query = await searchParams;
 
+    const organizationId = Number(cookieStore.get("organization_id")?.value);
+    const organization = Number.isInteger(organizationId) && organizationId > 0
+        ? await getOrganization(organizationId).catch(() => null)
+        : null;
+    const organizationLogo = organization?.logo ?? null;
+    const organizationName = organization?.name ?? null;
+
     try {
         const attempt = await getStudentAttempt<Attempt>(id);
         return (
@@ -24,6 +32,8 @@ export default async function Page({ params, searchParams }: PageProps<"/student
                     initialAttempt={attempt}
                     readOnly={role !== "3"}
                     skipInstructions={query.started === "1"}
+                    organizationLogo={organizationLogo}
+                    organizationName={organizationName}
                 />
             </main>
         );

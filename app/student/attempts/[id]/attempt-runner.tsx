@@ -84,10 +84,14 @@ export default function AttemptRunner({
     initialAttempt,
     readOnly = false,
     skipInstructions = false,
+    organizationLogo = null,
+    organizationName = null,
 }: {
     initialAttempt: Attempt;
     readOnly?: boolean;
     skipInstructions?: boolean;
+    organizationLogo?: string | null;
+    organizationName?: string | null;
 }) {
     const [attempt, setAttempt] = useState<Attempt>(initialAttempt);
     const [now, setNow] = useState(() => Date.now());
@@ -748,6 +752,12 @@ export default function AttemptRunner({
             )}
 
             {/* ── Sticky header bar ── */}
+                    {isActive && organizationLogo && (
+                <div className="h-12 w-full overflow-hidden  bg-white flex items-center justify-start gap-2">
+                   <img src={`/api/uploads/${organizationLogo.replace(/^uploads\//, "")}`} alt=""  className="h-[80%] "/>
+                   {organizationName && <span className="text-lg font-semibold">{organizationName}</span>}
+                </div>
+            )}
             <div data-exam-header className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background p-4 shadow-sm backdrop-blur">
                 <div className="min-w-0">
                     <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
@@ -962,6 +972,12 @@ export default function AttemptRunner({
             </div>
             {/* ── end two-panel grid ── */}
             </div>
+            {isActive && (
+                <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-end bg-background px-4 py-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/logos/safalya-logo-new-2.png" alt="" className="h-10" />
+                </div>
+            )}
         </>
     );
 }

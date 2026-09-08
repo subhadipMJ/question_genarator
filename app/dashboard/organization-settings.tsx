@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Organization } from "../services/organizations";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,33 @@ export default function OrganizationSettings({ initialOrganization }: { initialO
     const [location, setLocation] = useState(initialOrganization.location ?? "");
     const [phoneNumber, setPhoneNumber] = useState(initialOrganization.phone_number ?? "");
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement | null>(null);
+
+    async function handleLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+
+        setIsUploadingLogo(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetch(`/api/backend/organizations/${organization.id}/logo`, {
+                method: "POST",
+                body: formData,
+            });
+            const result = await response.json().catch(() => null) as Organization & { detail?: string };
+            if (!response.ok) throw new Error(result?.detail ?? "Unable to upload logo.");
+
+            setOrganization(result);
+            toast.success("Logo updated.");
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : "Unable to upload logo.");
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -45,6 +72,39 @@ export default function OrganizationSettings({ initialOrganization }: { initialO
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-5 text-left sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+                <Label>Organization logo</Label>
+                <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border bg-muted text-xs text-muted-foreground">
+                        {organization.logo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={`/api/uploads/${organization.logo.replace(/^uploads\//, "")}`}
+                                alt={`${organization.name} logo`}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            "No logo"
+                        )}
+                    </div>
+                    <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.gif,.svg,.webp"
+                        className="hidden"
+                        onChange={handleLogoFileChange}
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploadingLogo}
+                        onClick={() => logoInputRef.current?.click()}
+                    >
+                        {isUploadingLogo ? "Uploading..." : organization.logo ? "Change logo" : "Upload logo"}
+                    </Button>
+                </div>
+            </div>
             <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="organizationName">Organization name</Label>
                 <Input id="organizationName" required value={name} onChange={(event) => setName(event.target.value)} />
