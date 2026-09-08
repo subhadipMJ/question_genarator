@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { TestSeries } from "../../services/test-series";
 import type { Question } from "../../services/questions";
 import type { Topic } from "../../services/topics";
+import type { User } from "../../services/users";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
@@ -70,6 +71,7 @@ type TestSeriesEditorProps = {
     series: TestSeries;
     availableQuestions: Question[];
     topics: Topic[];
+    organizationUsers: User[];
     userId: number;
     userRole?: string;
     userOrgId?: number;
@@ -79,6 +81,7 @@ export default function TestSeriesEditor({
     series,
     availableQuestions,
     topics,
+    organizationUsers,
     userId,
     userRole,
     userOrgId,
@@ -86,6 +89,11 @@ export default function TestSeriesEditor({
     const router = useRouter();
     const [localQuestions, setLocalQuestions] = useState<Question[]>(availableQuestions);
     const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.question_ids);
+
+    // Conditional Tabs state
+    const [activeTab, setActiveTab] = useState<"questions" | "students">("questions");
+    const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+    const [studentSearchQuery, setStudentSearchQuery] = useState("");
 
     // Form metadata states
     const [name, setName] = useState(series.name);
@@ -98,8 +106,6 @@ export default function TestSeriesEditor({
 
     const [durationSeconds, setDurationSeconds] = useState(series.duration_seconds);
     const [isActive, setIsActive] = useState(series.is_active !== false);
-    const [isShowResult, setIsShowResult] = useState(series.is_result_show ?? false);
-    const [isShowScore, setIsShowScore] = useState(series.is_score_show ?? false);
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
     const [origin, setOrigin] = useState("");
@@ -162,6 +168,19 @@ export default function TestSeriesEditor({
         }
         return result;
     }, [localQuestions, searchQuery, topicFilter]);
+
+    const searchableStudents = useMemo(() => {
+        let students = organizationUsers.filter((u) => u.role === 3);
+        if (studentSearchQuery.trim()) {
+            const query = studentSearchQuery.toLowerCase();
+            students = students.filter(
+                (s) =>
+                    s.name.toLowerCase().includes(query) ||
+                    s.email.toLowerCase().includes(query)
+            );
+        }
+        return students;
+    }, [organizationUsers, studentSearchQuery]);
 
     function toggleQuestion(id: number) {
         setLinkedQuestionIds((prev) => {
@@ -227,8 +246,7 @@ export default function TestSeriesEditor({
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
                     is_active: isActive,
-                    is_result_show: isShowResult,
-                    is_score_show: isShowScore,
+                    ...(accessType === "private" ? { student_ids: selectedStudentIds } : {}),
                 }),
             });
             const data = await res.json().catch(() => null);
@@ -534,10 +552,11 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         id="s-access"
                                         className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                         value={accessType}
-                                        onChange={(e) => setAccessType(e.target.value as "public" | "invite_only")}
+                                        onChange={(e) => setAccessType(e.target.value as "public" | "invite_only" | "private")}
                                     >
                                         <option value="public">Public — open to all</option>
                                         <option value="invite_only">Invite only — link required</option>
+                                        <option value="private">Private — restricted access</option>
                                     </select>
                                 </div>
 
@@ -602,36 +621,6 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                     </select>
                                 </div>
 
-                                <div className="space-y-2 pt-2">
-                                    <label
-                                        htmlFor="s-show-result"
-                                        className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors"
-                                    >
-                                        <input
-                                            id="s-show-result"
-                                            type="checkbox"
-                                            checked={isShowResult}
-                                            onChange={(e) => setIsShowResult(e.target.checked)}
-                                            className="h-4 w-4 shrink-0 accent-primary"
-                                        />
-                                        <span className="text-sm font-medium leading-none">Show result</span>
-                                    </label>
-                                    
-                                    <label
-                                        htmlFor="s-show-score"
-                                        className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors"
-                                    >
-                                        <input
-                                            id="s-show-score"
-                                            type="checkbox"
-                                            checked={isShowScore}
-                                            onChange={(e) => setIsShowScore(e.target.checked)}
-                                            className="h-4 w-4 shrink-0 accent-primary"
-                                        />
-                                        <span className="text-sm font-medium leading-none">Show score</span>
-                                    </label>
-                                </div>
-
                                 <div className="pt-4 border-t flex flex-col gap-2">
                                     <Button type="submit" className="w-full" disabled={busy}>
                                         {busy ? "Saving changes..." : "Save changes"}
@@ -645,8 +634,36 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                     </Card>
                 </div>
 
-                {/* Right Side: Questions Card */}
+                {/* Right Side: Questions / Students Content */}
                 <div className="lg:col-span-2 space-y-6">
+                    {accessType === "private" && (
+                        <div className="flex border-b">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab("questions")}
+                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                                    activeTab === "questions"
+                                        ? "border-primary text-primary"
+                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                                }`}
+                            >
+                                Questions
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab("students")}
+                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                                    activeTab === "students"
+                                        ? "border-primary text-primary"
+                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                                }`}
+                            >
+                                Students
+                            </button>
+                        </div>
+                    )}
+
+                    {activeTab === "questions" || accessType !== "private" ? (
                     <Card className="flex flex-col h-full min-h-[450px]">
                         <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div>
@@ -881,6 +898,77 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             </Button>
                         </CardFooter>
                     </Card>
+                ) : (
+                    <Card className="flex flex-col h-full min-h-[450px]">
+                        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
+                            <div>
+                                <CardTitle>Assign Students</CardTitle>
+                                <CardDescription>Select students who are permitted to access this private test series.</CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                                <Badge variant="secondary" className="px-3 py-1 text-xs">
+                                    {selectedStudentIds.length} selected
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-4 flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search students by name or email..."
+                                    className="pl-9"
+                                    value={studentSearchQuery}
+                                    onChange={(e) => setStudentSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            
+                            {searchableStudents.length === 0 ? (
+                                <div className="border border-dashed rounded-xl p-12 text-center">
+                                    <p className="text-muted-foreground text-sm">
+                                        No students found matching your search.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="max-h-[500px] overflow-y-auto border rounded-xl divide-y bg-card shadow-sm">
+                                    {searchableStudents.map((student) => {
+                                        const isChecked = selectedStudentIds.includes(student.id);
+                                        return (
+                                            <label
+                                                key={student.id}
+                                                htmlFor={`student-${student.id}`}
+                                                className={`flex cursor-pointer items-center p-4 gap-4 hover:bg-muted/30 transition-colors ${
+                                                    isChecked ? "bg-primary/5" : ""
+                                                }`}
+                                            >
+                                                <input
+                                                    id={`student-${student.id}`}
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => {
+                                                        setSelectedStudentIds((prev) =>
+                                                            prev.includes(student.id)
+                                                                ? prev.filter((id) => id !== student.id)
+                                                                : [...prev, student.id]
+                                                        );
+                                                    }}
+                                                    className="h-5 w-5 shrink-0 accent-primary rounded border-gray-300"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-foreground truncate">
+                                                        {student.name}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground truncate">
+                                                        {student.email}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
                 </div>
             </div>
 
