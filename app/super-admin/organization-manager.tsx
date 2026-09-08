@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Organization } from "../services/organizations";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,42 @@ export default function OrganizationManager({ initialOrganizations }: { initialO
     const [location, setLocation] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [pendingId, setPendingId] = useState<number | null>(null);
+    const [uploadingLogoId, setUploadingLogoId] = useState<number | null>(null);
+    const logoInputRef = useRef<HTMLInputElement | null>(null);
+    const logoTargetId = useRef<number | null>(null);
+
+    function triggerLogoUpload(organizationId: number) {
+        logoTargetId.current = organizationId;
+        logoInputRef.current?.click();
+    }
+
+    async function handleLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        const organizationId = logoTargetId.current;
+        event.target.value = "";
+        if (!file || organizationId === null) return;
+
+        setUploadingLogoId(organizationId);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetch(`/api/backend/organizations/${organizationId}/logo`, {
+                method: "POST",
+                body: formData,
+            });
+            const result = await response.json().catch(() => null) as Organization & { detail?: string };
+            if (!response.ok) throw new Error(result?.detail ?? "Unable to upload logo.");
+
+            setOrganizations((current) => current.map((organization) =>
+                organization.id === organizationId ? result : organization,
+            ));
+            toast.success("Logo updated.");
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : "Unable to upload logo.");
+        } finally {
+            setUploadingLogoId(null);
+        }
+    }
 
     async function deleteOrganization(organization: Organization) {
         if (!window.confirm(`Permanently delete ${organization.name}? This cannot be undone.`)) return;
@@ -66,11 +102,30 @@ export default function OrganizationManager({ initialOrganizations }: { initialO
 
     return (
         <div className="overflow-x-auto">
+            <input ref={logoInputRef} type="file" accept=".png,.jpg,.jpeg,.gif,.svg,.webp" className="hidden" onChange={handleLogoFileChange} />
             <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Location</TableHead><TableHead>Phone</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Logo</TableHead><TableHead>Name</TableHead><TableHead>Location</TableHead><TableHead>Phone</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
                     {organizations.map((organization) => (
                         <TableRow key={organization.id}>
+                            <TableCell>
+                                <button
+                                    type="button"
+                                    onClick={() => triggerLogoUpload(organization.id)}
+                                    disabled={uploadingLogoId === organization.id}
+                                    className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border bg-muted text-[10px] text-muted-foreground hover:opacity-80 disabled:opacity-50"
+                                    title="Upload logo"
+                                >
+                                    {uploadingLogoId === organization.id ? (
+                                        "…"
+                                    ) : organization.logo ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={`/api/uploads/${organization.logo.replace(/^uploads\//, "")}`} alt={`${organization.name} logo`} className="h-full w-full object-cover" />
+                                    ) : (
+                                        "Add"
+                                    )}
+                                </button>
+                            </TableCell>
                             <TableCell className="font-medium">
                                 {editingId === organization.id ? (
                                     <Input value={name} onChange={(event) => setName(event.target.value)} className="max-w-sm" autoFocus />
