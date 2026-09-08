@@ -4,6 +4,8 @@ import { getTestSeries } from "../../services/test-series";
 import { getAllQuestionsList } from "../../services/questions";
 import { getAllTopics } from "../../services/topics";
 import { getOrganizationUsers } from "../../services/organizations";
+import { getAllTeacherGroups } from "../../services/teacher-groups";
+import { getStudentBatches } from "../../services/student-batches";
 import TestSeriesEditor from "./test-series-editor";
 
 export const metadata = {
@@ -34,11 +36,13 @@ export default async function EditTestSeriesPage({
     if (isNaN(seriesId)) notFound();
 
     // Fetch details
-    const [series, allQuestions, topics, orgUsers] = await Promise.all([
+    const [series, allQuestions, topics, orgUsers, teacherGroups, studentBatches] = await Promise.all([
         getTestSeries(seriesId).catch(() => null),
         getAllQuestionsList().catch(() => []),
         getAllTopics().catch(() => []),
         organizationId ? getOrganizationUsers(organizationId).catch(() => []) : Promise.resolve([]),
+        getAllTeacherGroups().catch(() => []),
+        getStudentBatches().catch(() => []),
     ]);
 
     if (!series) notFound();
@@ -65,6 +69,8 @@ export default async function EditTestSeriesPage({
                 availableQuestions={questions}
                 topics={topics}
                 organizationUsers={orgUsers}
+                teacherGroups={teacherGroups}
+                studentBatches={studentBatches}
                 userId={userId}
                 userRole={role}
                 userOrgId={organizationId}

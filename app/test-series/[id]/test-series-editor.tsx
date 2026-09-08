@@ -17,6 +17,8 @@ import type { TestSeries } from "../../services/test-series";
 import type { Question } from "../../services/questions";
 import type { Topic } from "../../services/topics";
 import type { User } from "../../services/users";
+import type { TeacherGroup } from "../../services/teacher-groups";
+import type { StudentBatch } from "../../services/student-batches";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
@@ -72,6 +74,8 @@ type TestSeriesEditorProps = {
     availableQuestions: Question[];
     topics: Topic[];
     organizationUsers: User[];
+    teacherGroups?: TeacherGroup[];
+    studentBatches?: StudentBatch[];
     userId: number;
     userRole?: string;
     userOrgId?: number;
@@ -82,6 +86,8 @@ export default function TestSeriesEditor({
     availableQuestions,
     topics,
     organizationUsers,
+    teacherGroups = [],
+    studentBatches = [],
     userId,
     userRole,
     userOrgId,
@@ -98,6 +104,9 @@ export default function TestSeriesEditor({
     // Form metadata states
     const [name, setName] = useState(series.name);
     const [accessType, setAccessType] = useState(series.access_type);
+    const [teacherGroupId, setTeacherGroupId] = useState<number | null>(series.teacher_group_id ?? null);
+    const [supervisorId, setSupervisorId] = useState<number | null>(series.supervisor_id ?? null);
+    const [batchId, setBatchId] = useState<number | null>(series.batch_id ?? null);
     const [validUntil, setValidUntil] = useState(series.valid_until);
     
     // Auto-close heuristic states for native datetime-local
@@ -109,6 +118,20 @@ export default function TestSeriesEditor({
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
     const [origin, setOrigin] = useState("");
+
+    // Filter teacher groups by organization
+    const availableTeacherGroups = useMemo(() => {
+        const targetOrgId = series.org_id || userOrgId;
+        if (!targetOrgId) return teacherGroups;
+        return teacherGroups.filter((tg) => tg.org_id === targetOrgId);
+    }, [teacherGroups, series.org_id, userOrgId]);
+
+    // Filter student batches by organization
+    const availableStudentBatches = useMemo(() => {
+        const targetOrgId = series.org_id || userOrgId;
+        if (!targetOrgId) return studentBatches;
+        return studentBatches.filter((b) => b.org_id === targetOrgId);
+    }, [studentBatches, series.org_id, userOrgId]);
 
     // Modal / Drawer controls
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -242,6 +265,9 @@ export default function TestSeriesEditor({
                 body: JSON.stringify({
                     name: name.trim(),
                     access_type: accessType,
+                    teacher_group_id: teacherGroupId,
+                    supervisor_id: supervisorId,
+                    batch_id: batchId,
                     valid_until: validUntilDate.toISOString(),
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
@@ -557,6 +583,57 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         <option value="public">Public — open to all</option>
                                         <option value="invite_only">Invite only — link required</option>
                                         <option value="private">Private — restricted access</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="s-teacher-group">Teacher Group</Label>
+                                    <select
+                                        id="s-teacher-group"
+                                        className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={teacherGroupId ?? ""}
+                                        onChange={(e) => setTeacherGroupId(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">None (Unassigned)</option>
+                                        {(availableTeacherGroups ?? []).map((tg) => (
+                                            <option key={tg.id} value={tg.id}>
+                                                {tg.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="s-supervisor">Supervisor</Label>
+                                    <select
+                                        id="s-supervisor"
+                                        className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={supervisorId ?? ""}
+                                        onChange={(e) => setSupervisorId(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">None (Unassigned)</option>
+                                        {(organizationUsers ?? []).map((u) => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.name} ({u.email})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="s-batch">Student Batch</Label>
+                                    <select
+                                        id="s-batch"
+                                        className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={batchId ?? ""}
+                                        onChange={(e) => setBatchId(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">None (Unassigned)</option>
+                                        {(availableStudentBatches ?? []).map((b) => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 

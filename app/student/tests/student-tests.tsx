@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ type StudentTestsProps = {
         topic: string;
         org_id: string;
         sort_order: string;
+        access_type: string;
         page: number;
         limit: number;
     };
@@ -46,7 +47,19 @@ export default function StudentTests({
     const [selectedTopic, setSelectedTopic] = useState(initialParams.topic);
     const [selectedOrg, setSelectedOrg] = useState(initialParams.org_id);
     const [sortOrder, setSortOrder] = useState(initialParams.sort_order);
+    const [accessType, setAccessType] = useState(initialParams.access_type);
     const [pageSize, setPageSize] = useState(initialParams.limit);
+
+    useEffect(() => {
+        setSearchQuery(initialParams.q);
+        setSelectedTopic(initialParams.topic);
+        setSelectedOrg(initialParams.org_id);
+        setSortOrder(initialParams.sort_order);
+        setAccessType(initialParams.access_type);
+        setPageSize(initialParams.limit);
+    }, [initialParams.q, initialParams.topic, initialParams.org_id, initialParams.sort_order, initialParams.access_type, initialParams.limit]);
+
+    const activeTab = accessType === "private" || accessType === "organization" ? "organization" : accessType === "public" ? "public" : "all";
 
     const router = useRouter();
     const pendingTest = paginatedTests.items.find((test) => test.id === pendingTestId);
@@ -55,7 +68,6 @@ export default function StudentTests({
         { id: number; status: number | string; score: string; total_marks: string }
     >();
 
-    // Build a map: series_id → most recent attempt
     // Available topic names
     const availableTopics = useMemo(() => {
         const set = new Set<string>(allTopicNames);
@@ -80,20 +92,22 @@ export default function StudentTests({
         return Array.from(orgsMap.entries()).map(([id, name]) => ({ id, name }));
     }, [paginatedTests.items, organizations]);
 
-    // Filter unattempted items from current page
-    const availableItems = paginatedTests.items;
+    // Filter items based on selected tab
+    const displayItems = paginatedTests.items;
 
     const isFilterActive =
         searchQuery.trim() !== "" ||
         selectedTopic !== "" ||
         selectedOrg !== "" ||
-        sortOrder !== "asc";
+        sortOrder !== "asc" ||
+        accessType !== "";
 
     function updateBackendQuery(newParams: {
         q?: string;
         topic?: string;
         org_id?: string;
         sort_order?: string;
+        access_type?: string;
         page?: number;
         limit?: number;
     }) {
@@ -101,6 +115,7 @@ export default function StudentTests({
         const topic = newParams.topic !== undefined ? newParams.topic : selectedTopic;
         const org_id = newParams.org_id !== undefined ? newParams.org_id : selectedOrg;
         const sort_order = newParams.sort_order !== undefined ? newParams.sort_order : sortOrder;
+        const access_type = newParams.access_type !== undefined ? newParams.access_type : accessType;
         const page = newParams.page !== undefined ? newParams.page : paginatedTests.page;
         const limit = newParams.limit !== undefined ? newParams.limit : pageSize;
 
@@ -109,10 +124,17 @@ export default function StudentTests({
         if (topic) params.set("topic", topic);
         if (org_id) params.set("org_id", org_id);
         if (sort_order && sort_order !== "asc") params.set("sort_order", sort_order);
+        if (access_type) params.set("access_type", access_type);
         if (page > 1) params.set("page", String(page));
         if (limit !== 10) params.set("limit", String(limit));
 
         router.push(`/student/tests?${params.toString()}`);
+    }
+
+    function handleTabChange(tab: "all" | "public" | "organization") {
+        const newAccessType = tab === "organization" ? "private" : tab === "public" ? "public" : "";
+        setAccessType(newAccessType);
+        updateBackendQuery({ access_type: newAccessType, page: 1 });
     }
 
     function handleSearchChange(value: string) {
@@ -149,6 +171,7 @@ export default function StudentTests({
         setSelectedTopic("");
         setSelectedOrg("");
         setSortOrder("asc");
+        setAccessType("");
         router.push("/student/tests");
     }
 
@@ -298,12 +321,61 @@ export default function StudentTests({
         )}
 
         <div className="mx-auto max-w-7xl space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Available tests</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                        {activeTab === "organization" ? "Your Tests" : "Available tests"}
+                    </h1>
                     <p className="text-muted-foreground text-sm mt-1">
-                        Explore available assessments and start your test.
+                        {activeTab === "organization"
+                            ? "Private assessments assigned directly to your organization and student batch."
+                            : "Explore available assessments and start your test."}
                     </p>
+                </div>
+
+                {/* Organization Tab Switcher */}
+                <div className="flex items-center gap-1.5 rounded-lg border bg-muted/40 p-1">
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange("all")}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                            activeTab === "all"
+                                ? "bg-background text-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        All Tests
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange("public")}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                            activeTab === "public"
+                                ? "bg-background text-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        Public Tests
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange("organization")}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                            activeTab === "organization"
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        <span>Organization (Your Tests)</span>
+                        {paginatedTests.total > 0 && activeTab === "organization" && (
+                            <Badge
+                                variant="secondary"
+                                className="px-1.5 py-0 text-[10px]"
+                            >
+                                {paginatedTests.total}
+                            </Badge>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -395,8 +467,8 @@ export default function StudentTests({
                 {/* Filter info summary */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
                     <span>
-                        Showing <strong className="text-foreground font-semibold">{availableItems.length}</strong> of{" "}
-                        <strong className="text-foreground font-semibold">{paginatedTests.total}</strong> total tests (Backend Paginated)
+                        Showing <strong className="text-foreground font-semibold">{displayItems.length}</strong> of{" "}
+                        <strong className="text-foreground font-semibold">{paginatedTests.total}</strong> total tests
                     </span>
                     {isFilterActive && (
                         <span className="flex items-center gap-1.5 text-primary text-[11px]">
@@ -408,9 +480,13 @@ export default function StudentTests({
             </div>
 
             {/* ── Test Grid ── */}
-            {availableItems.length === 0 ? (
+            {displayItems.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-10 text-center bg-card">
-                    <p className="text-muted-foreground text-sm">No tests match your filter criteria.</p>
+                    <p className="text-muted-foreground text-sm">
+                        {activeTab === "organization"
+                            ? "No private organization tests found for your account or batch."
+                            : "No tests match your filter criteria."}
+                    </p>
                     <Button variant="outline" size="sm" className="mt-4 gap-2 text-xs" onClick={clearFilters}>
                         <RotateCcw className="h-3.5 w-3.5" />
                         Reset filters
@@ -418,7 +494,7 @@ export default function StudentTests({
                 </div>
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
-                    {availableItems.map((t) => {
+                    {displayItems.map((t) => {
                         const existingAttempt = attemptBySeriesId.get(t.id);
                         const isInProgress = existingAttempt?.status === "in_progress" || existingAttempt?.status === 0;
                         const isSubmitted = existingAttempt?.status === "submitted" || existingAttempt?.status === 2 || existingAttempt?.status === 3;
