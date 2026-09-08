@@ -13,6 +13,8 @@ export type AvailableTest = {
     duration_seconds: number;
     question_count: number;
     topics?: string[];
+    access_type?: string;
+    is_private?: boolean;
 };
 
 export type PaginatedTests = {
@@ -31,6 +33,7 @@ export default async function Page({
         topic?: string;
         org_id?: string;
         sort_order?: string;
+        access_type?: string;
         page?: string;
         limit?: string;
     }>;
@@ -65,6 +68,7 @@ export default async function Page({
                     topic: params.topic ?? "",
                     org_id: params.org_id ?? "",
                     sort_order: params.sort_order ?? "asc",
+                    access_type: params.access_type ?? "",
                     page: Number(params.page ?? "1"),
                     limit: Number(params.limit ?? "10"),
                 }}

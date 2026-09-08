@@ -8,6 +8,8 @@ export type TestSeries = {
     access_type: "public" | "invite_only" | "private";
     org_id: number;
     created_by: number;
+    teacher_group_id?: number | null;
+    supervisor_id?: number | null;
     valid_until: string;
     duration_seconds: number;
     is_active: boolean;
@@ -15,26 +17,33 @@ export type TestSeries = {
     attempt_count?: number;
     is_result_show?: boolean;
     is_score_show?: boolean;
+    batch_id?: number | null;
 };
 
 export type TestSeriesCreate = {
     name: string;
     access_type: "public" | "invite_only" | "private";
+    teacher_group_id?: number | null;
+    supervisor_id?: number | null;
     valid_until: string;
     duration_seconds: number;
     question_ids: number[];
     is_active?: boolean;
+    batch_id?: number | null;
 };
 
 export type TestSeriesUpdate = {
     name?: string;
     access_type?: "public" | "invite_only" | "private";
+    teacher_group_id?: number | null;
+    supervisor_id?: number | null;
     valid_until?: string;
     duration_seconds?: number;
     question_ids?: number[];
     is_active?: boolean;
     is_result_show?: boolean;
     is_score_show?: boolean;
+    batch_id?: number | null;
 };
 
 export type TestSeriesResultItem = {

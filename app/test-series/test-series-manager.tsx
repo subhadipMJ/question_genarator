@@ -679,7 +679,7 @@ function SeriesCard({
                         className="flex-1 h-8 text-xs font-semibold gap-1.5"
                     >
                         <Eye className="h-3.5 w-3.5" />
-                        View
+                        Results
                     </Button>
                     {canEdit && (
                         <Button

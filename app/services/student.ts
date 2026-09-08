@@ -35,6 +35,7 @@ export type StudentAttemptParams = {
     topic?: string;
     org_id?: string;
     sort_order?: string;
+    access_type?: string;
     page?: string;
     limit?: string;
 };
@@ -48,6 +49,7 @@ export async function getStudentTests(params: StudentAttemptParams = {}): Promis
     if (params.topic) query.set("topic", params.topic);
     if (params.org_id) query.set("org_id", params.org_id);
     if (params.sort_order) query.set("sort_order", params.sort_order);
+    if (params.access_type) query.set("access_type", params.access_type);
     if (params.page) query.set("page", params.page);
     if (params.limit) query.set("limit", params.limit);
 
