@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,7 @@ import type { Question } from "../../services/questions";
 import type { Topic } from "../../services/topics";
 import type { User } from "../../services/users";
 import type { TeacherGroup } from "../../services/teacher-groups";
-import type { StudentBatch } from "../../services/student-batches";
+import type { StudentBatch, BatchStudent } from "../../services/student-batches";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
     ssr: false,
@@ -96,10 +96,14 @@ export default function TestSeriesEditor({
     const [localQuestions, setLocalQuestions] = useState<Question[]>(availableQuestions);
     const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.question_ids);
 
-    // Conditional Tabs state
-    const [activeTab, setActiveTab] = useState<"questions" | "students">("questions");
+    // Content Tabs state
+    const [activeTab, setActiveTab] = useState<"questions" | "batches" | "students">("questions");
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
     const [studentSearchQuery, setStudentSearchQuery] = useState("");
+    const [batchSearchQuery, setBatchSearchQuery] = useState("");
+    const [expandedBatchId, setExpandedBatchId] = useState<number | null>(null);
+    const [batchStudentsMap, setBatchStudentsMap] = useState<Record<number, BatchStudent[]>>({});
+    const [loadingBatchStudents, setLoadingBatchStudents] = useState<Record<number, boolean>>({});
 
     // Form metadata states
     const [name, setName] = useState(series.name);
@@ -204,6 +208,37 @@ export default function TestSeriesEditor({
         }
         return students;
     }, [organizationUsers, studentSearchQuery]);
+
+    const searchableBatches = useMemo(() => {
+        let batches = availableStudentBatches;
+        if (batchSearchQuery.trim()) {
+            const query = batchSearchQuery.toLowerCase();
+            batches = batches.filter((b) => b.name.toLowerCase().includes(query));
+        }
+        return batches;
+    }, [availableStudentBatches, batchSearchQuery]);
+
+    async function toggleExpandBatch(bId: number) {
+        if (expandedBatchId === bId) {
+            setExpandedBatchId(null);
+            return;
+        }
+        setExpandedBatchId(bId);
+        if (!batchStudentsMap[bId] && !loadingBatchStudents[bId]) {
+            setLoadingBatchStudents((prev) => ({ ...prev, [bId]: true }));
+            try {
+                const res = await fetch(`/api/backend/student-batches/${bId}/students`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setBatchStudentsMap((prev) => ({ ...prev, [bId]: data }));
+                }
+            } catch {
+                // handle gracefully
+            } finally {
+                setLoadingBatchStudents((prev) => ({ ...prev, [bId]: false }));
+            }
+        }
+    }
 
     function toggleQuestion(id: number) {
         setLinkedQuestionIds((prev) => {
@@ -713,34 +748,60 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
 
                 {/* Right Side: Questions / Students Content */}
                 <div className="lg:col-span-2 space-y-6">
-                    {accessType === "private" && (
-                        <div className="flex border-b">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab("questions")}
-                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                                    activeTab === "questions"
-                                        ? "border-primary text-primary"
-                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                                }`}
-                            >
-                                Questions
-                            </button>
+                    <div className="flex border-b">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("questions")}
+                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                activeTab === "questions"
+                                    ? "border-primary text-primary"
+                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
+                        >
+                            <span>Questions</span>
+                            <Badge variant={activeTab === "questions" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                {linkedQuestionIds.length}
+                            </Badge>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("batches")}
+                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                activeTab === "batches"
+                                    ? "border-primary text-primary"
+                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
+                        >
+                            <span>Batches</span>
+                            {batchId ? (
+                                <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 hover:bg-emerald-600 text-white">
+                                    1 Assigned
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    Unassigned
+                                </Badge>
+                            )}
+                        </button>
+                        {accessType === "private" && (
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("students")}
-                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                                     activeTab === "students"
                                         ? "border-primary text-primary"
                                         : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                                 }`}
                             >
-                                Students
+                                <span>Students</span>
+                                <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                    {selectedStudentIds.length}
+                                </Badge>
                             </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
-                    {activeTab === "questions" || accessType !== "private" ? (
+                    {activeTab === "questions" ? (
                     <Card className="flex flex-col h-full min-h-[450px]">
                         <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div>
@@ -974,6 +1035,209 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 View Questions
                             </Button>
                         </CardFooter>
+                    </Card>
+                ) : activeTab === "batches" ? (
+                    <Card className="flex flex-col h-full min-h-[450px]">
+                        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
+                            <div>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Layers className="h-5 w-5 text-primary" />
+                                    Assign Student Batch
+                                </CardTitle>
+                                <CardDescription>
+                                    Assigning a student batch grants access to all students registered in that batch.
+                                </CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    nativeButton={false}
+                                    render={<Link href="/student-batches/create" target="_blank" />}
+                                    className="flex items-center gap-1.5 text-xs"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Create Batch
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-4 flex-1">
+                            {/* Search Input */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search student batches by name..."
+                                    className="pl-9"
+                                    value={batchSearchQuery}
+                                    onChange={(e) => setBatchSearchQuery(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Selected Batch Banner */}
+                            {batchId ? (
+                                <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-900 dark:text-emerald-200">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                                        <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                                Currently Assigned Batch
+                                            </p>
+                                            <p className="text-sm font-bold">
+                                                {availableStudentBatches.find((b) => b.id === batchId)?.name || `Batch #${batchId}`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                            setBatchId(null);
+                                            toast.info("Batch unassigned from test series.");
+                                        }}
+                                        className="h-8 px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                        Unassign
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                                    <span>No student batch is currently assigned to this test series.</span>
+                                    <span className="font-medium">Select a batch below to assign it.</span>
+                                </div>
+                            )}
+
+                            {searchableBatches.length === 0 ? (
+                                <div className="border border-dashed rounded-xl p-12 text-center">
+                                    <p className="text-muted-foreground text-sm">
+                                        No student batches found matching your query.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                                    {searchableBatches.map((batch) => {
+                                        const isAssigned = batchId === batch.id;
+                                        const supervisorUser = organizationUsers.find((u) => u.id === batch.supervisor);
+                                        const isExpanded = expandedBatchId === batch.id;
+                                        const students = batchStudentsMap[batch.id] ?? [];
+                                        const isLoading = loadingBatchStudents[batch.id] ?? false;
+
+                                        return (
+                                            <div
+                                                key={batch.id}
+                                                className={`border rounded-xl transition-all overflow-hidden ${
+                                                    isAssigned
+                                                        ? "border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-sm"
+                                                        : "bg-card hover:border-muted-foreground/30"
+                                                }`}
+                                            >
+                                                <div className="p-4 flex items-center justify-between gap-4">
+                                                    <div className="min-w-0 flex-1 space-y-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <h4 className="font-semibold text-foreground text-sm truncate">
+                                                                {batch.name}
+                                                            </h4>
+                                                            {isAssigned ? (
+                                                                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5">
+                                                                    Assigned
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant={batch.is_active ? "secondary" : "outline"} className="text-[10px] px-2 py-0.5">
+                                                                    {batch.is_active ? "Active" : "Inactive"}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                            {supervisorUser && (
+                                                                <span>Supervisor: <strong className="font-medium text-foreground">{supervisorUser.name}</strong></span>
+                                                            )}
+                                                            <span>Created: {new Date(batch.created_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => toggleExpandBatch(batch.id)}
+                                                            className="h-8 px-2.5 text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                                                        >
+                                                            <Users className="h-3.5 w-3.5" />
+                                                            {isExpanded ? "Hide Students" : "View Students"}
+                                                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                                        </Button>
+
+                                                        {isAssigned ? (
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    setBatchId(null);
+                                                                    toast.info(`Unassigned ${batch.name}`);
+                                                                }}
+                                                                className="h-8 px-3 text-xs border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                                                            >
+                                                                Selected
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setBatchId(batch.id);
+                                                                    toast.success(`Assigned ${batch.name} to this test series.`);
+                                                                }}
+                                                                className="h-8 px-3 text-xs"
+                                                            >
+                                                                Assign
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Expanded Students List */}
+                                                {isExpanded && (
+                                                    <div className="border-t bg-muted/20 p-4 space-y-2 animate-in slide-in-from-top-1 duration-150">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                                Batch Students ({students.length})
+                                                            </p>
+                                                            <Link
+                                                                href={`/student-batches/${batch.id}`}
+                                                                target="_blank"
+                                                                className="text-xs text-primary flex items-center gap-1 hover:underline"
+                                                            >
+                                                                Manage Batch <ExternalLink className="h-3 w-3" />
+                                                            </Link>
+                                                        </div>
+                                                        {isLoading ? (
+                                                            <div className="py-4 text-center text-xs text-muted-foreground animate-pulse">
+                                                                Loading batch students...
+                                                            </div>
+                                                        ) : students.length === 0 ? (
+                                                            <p className="text-xs text-muted-foreground py-2 italic">
+                                                                No students found in this batch.
+                                                            </p>
+                                                        ) : (
+                                                            <div className="max-h-40 overflow-y-auto border rounded-lg bg-card divide-y">
+                                                                {students.map((s) => (
+                                                                    <div key={s.id} className="p-2 flex items-center justify-between text-xs">
+                                                                        <span className="font-medium text-foreground">{s.name || `Student #${s.student_id}`}</span>
+                                                                        <span className="text-muted-foreground">{s.email || "No email"}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
                     </Card>
                 ) : (
                     <Card className="flex flex-col h-full min-h-[450px]">
