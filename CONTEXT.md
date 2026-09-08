@@ -1,4 +1,4 @@
-# QMaster — Developer Context
+# Safalya — Developer Context
 
 > **Read this before writing any code.**
 > This file documents the architecture, conventions, and patterns used in this project.
@@ -26,7 +26,7 @@
 
 ## 1. Project Overview
 
-QMaster is a quiz/exam management platform with two separate codebases:
+Safalya is a quiz/exam management platform with two separate codebases:
 
 | Codebase | Path | Tech | Purpose |
 |---|---|---|---|

@@ -74,7 +74,7 @@ export default function StudentTests({
         const orgsMap = new Map<string, string>();
         for (const t of paginatedTests.items) {
             const idStr = String(t.org_id);
-            const name = t.org_id === 0 ? "QMaster" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
+            const name = t.org_id === 0 ? "Safalya" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
             orgsMap.set(idStr, name);
         }
         return Array.from(orgsMap.entries()).map(([id, name]) => ({ id, name }));
@@ -423,7 +423,7 @@ export default function StudentTests({
                         const isInProgress = existingAttempt?.status === "in_progress" || existingAttempt?.status === 0;
                         const isSubmitted = existingAttempt?.status === "submitted" || existingAttempt?.status === 2 || existingAttempt?.status === 3;
                         const isExpired = new Date(t.valid_until) < new Date();
-                        const orgName = t.org_id === 0 ? "QMaster" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
+                        const orgName = t.org_id === 0 ? "Safalya" : organizations[t.org_id] ?? `Organization #${t.org_id}`;
 
                         return (
                             <Card key={t.id} className="relative overflow-hidden flex flex-col justify-between">

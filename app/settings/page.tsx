@@ -5,7 +5,7 @@ import OrganizationSettings from "../dashboard/organization-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
-    title: "Settings | QMaster",
+    title: "Settings | Safalya",
 };
 
 export default async function SettingsPage() {

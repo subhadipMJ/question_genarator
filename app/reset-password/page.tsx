@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import ResetPasswordForm from "./reset-password-form";
 
 export const metadata = {
-  title: "Reset Password | QMaster",
-  description: "Reset your QMaster account password.",
+  title: "Reset Password | Safalya",
+  description: "Reset your Safalya account password.",
 };
 
 export default async function ResetPasswordPage() {

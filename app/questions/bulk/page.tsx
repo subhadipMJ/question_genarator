@@ -7,7 +7,7 @@ import { getAllTopics } from "../../services/topics";
 import { getAllTestSeries } from "../../services/test-series";
 
 export const metadata = {
-    title: "Bulk Upload Questions | QMaster",
+    title: "Bulk Upload Questions | Safalya",
     description: "Upload multiple questions at once using JSON or the interactive builder.",
 };
 

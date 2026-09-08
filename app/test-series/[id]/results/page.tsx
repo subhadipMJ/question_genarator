@@ -4,7 +4,7 @@ import { getTestSeriesResults } from "../../../services/test-series";
 import ResultsViewer from "./results-viewer";
 
 export const metadata = {
-    title: "Test Series Results | QMaster",
+    title: "Test Series Results | Safalya",
     description: "View student attempt results and scores for this test series.",
 };
 

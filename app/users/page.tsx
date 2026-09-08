@@ -5,7 +5,7 @@ import type { User } from "../services/users";
 import UserManager from "./user-manager";
 
 export const metadata = {
-    title: "Users Management | QMaster",
+    title: "Users Management | Safalya",
 };
 
 export default async function UsersPage() {

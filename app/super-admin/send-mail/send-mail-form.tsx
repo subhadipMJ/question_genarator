@@ -35,7 +35,7 @@ export default function SendMailForm({ users = [] }: { users?: User[] }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     to_email: toEmail.trim(),
-                    subject: subject.trim() || "Notification from QMaster",
+                    subject: subject.trim() || "Notification from Safalya",
                     body: body.trim(),
                 }),
             });

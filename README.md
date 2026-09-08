@@ -1,6 +1,6 @@
-# QMaster — Frontend
+# Safalya — Frontend
 
-**QMaster** is a quiz and exam management platform for schools and organizations.  
+**Safalya** is a quiz and exam management platform for schools and organizations.  
 Teachers create questions and test series. Students take tests and track their results.  
 Super admins manage organizations and users across the platform.
 
