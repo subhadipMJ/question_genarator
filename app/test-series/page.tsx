@@ -8,7 +8,7 @@ import { getOrganization } from "../services/organizations";
 import TestSeriesManager from "./test-series-manager";
 
 export const metadata = {
-    title: "Test  | QMaster",
+    title: "Test  | Safalya",
     description: "Create and manage test for your students.",
 };
 

@@ -4,7 +4,7 @@ import { getStudentHistory } from "../../../services/users";
 import AnalysisViewer from "./analysis-viewer";
 
 export const metadata = {
-    title: "Student Analysis | QMaster",
+    title: "Student Analysis | Safalya",
     description: "View student performance analysis and history.",
 };
 

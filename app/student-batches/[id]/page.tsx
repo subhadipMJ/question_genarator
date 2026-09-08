@@ -6,7 +6,7 @@ import type { User } from "../../services/users";
 import StudentBatchEditor from "./student-batch-editor";
 
 export const metadata = {
-    title: "Edit Student Batch | QMaster",
+    title: "Edit Student Batch | Safalya",
     description: "Configure student batch details and assigned students.",
 };
 

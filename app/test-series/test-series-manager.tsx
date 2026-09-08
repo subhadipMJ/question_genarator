@@ -131,7 +131,7 @@ export default function TestSeriesManager({
         const orgsMap = new Map<string, string>();
         for (const s of series) {
             const idStr = String(s.org_id);
-            const name = s.org_id === 0 ? "QMaster" : organizations[s.org_id] ?? `Organization #${s.org_id}`;
+            const name = s.org_id === 0 ? "Safalya" : organizations[s.org_id] ?? `Organization #${s.org_id}`;
             orgsMap.set(idStr, name);
         }
         return Array.from(orgsMap.entries()).map(([id, name]) => ({ id, name }));
@@ -572,7 +572,7 @@ function SeriesCard({
 }) {
     const [isQROpen, setIsQROpen] = useState(false);
     const expired = new Date(s.valid_until) < new Date();
-    const orgName = s.org_id === 0 ? "QMaster" : organizations[s.org_id] ?? `Organization #${s.org_id}`;
+    const orgName = s.org_id === 0 ? "Safalya" : organizations[s.org_id] ?? `Organization #${s.org_id}`;
 
     return (
         <>

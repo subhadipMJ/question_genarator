@@ -1,4 +1,4 @@
-# QMaster Weekly Code Review
+# Safalya Weekly Code Review
 
 **Review period:** August 27 – September 2, 2026 (inclusive)  
 **Reviewed repositories:** [`question_genarator`](.) (Next.js frontend) and [`question_genarated_api`](https://github.com/Subhadip023/question_genarated_api) (FastAPI backend)

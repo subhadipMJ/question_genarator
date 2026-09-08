@@ -5,7 +5,7 @@ import OrganizationForm from "./organization-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Register Organization | QMaster" };
+export const metadata = { title: "Register Organization | Safalya" };
 
 export default async function CreateOrganizationPage() {
     const cookieStore = await cookies();

@@ -6,7 +6,7 @@ import SendMailForm from "./send-mail-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Send Email | Super Admin | QMaster" };
+export const metadata = { title: "Send Email | Super Admin | Safalya" };
 
 export default async function SendMailPage() {
     const cookieStore = await cookies();

@@ -1,4 +1,4 @@
-Please perform a weekly code review for QMaster by inspecting the git commit logs and modified code files over the past 7 days in both `question_genarator` and the backend repository `question_genarated_api` (or https://github.com/Subhadip023/question_genarated_api).
+Please perform a weekly code review for Safalya by inspecting the git commit logs and modified code files over the past 7 days in both `question_genarator` and the backend repository `question_genarated_api` (or https://github.com/Subhadip023/question_genarated_api).
 
 Please update `CODE_REVIEW.md` with the following rules:
 1. Group developer accounts accurately:

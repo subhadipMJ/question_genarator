@@ -6,7 +6,7 @@ import { getAllTopics } from "../../services/topics";
 import TestSeriesEditor from "./test-series-editor";
 
 export const metadata = {
-    title: "Edit Test Series | QMaster",
+    title: "Edit Test Series | Safalya",
     description: "Edit details and configure questions for your test series.",
 };
 

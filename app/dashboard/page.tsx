@@ -12,7 +12,7 @@ const ROLE_NAMES: Record<string, string> = {
 };
 
 export const metadata = {
-    title: "Dashboard | QMaster",
+    title: "Dashboard | Safalya",
 };
 
 export default async function DashboardPage() {

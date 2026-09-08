@@ -6,7 +6,7 @@ import type { User } from "../../services/users";
 import TeacherGroupEditor from "./teacher-group-editor";
 
 export const metadata = {
-    title: "Edit Teacher Group | QMaster",
+    title: "Edit Teacher Group | Safalya",
     description: "Configure teacher group details and assigned teachers.",
 };
 

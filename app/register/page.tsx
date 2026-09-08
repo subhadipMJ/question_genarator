@@ -5,8 +5,8 @@ import RegisterForm from "./register-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
-    title: "Create account | QMaster",
-    description: "Create a free student account on QMaster.",
+    title: "Create account | Safalya",
+    description: "Create a free student account on Safalya.",
 };
 
 export default async function RegisterPage() {
@@ -24,7 +24,7 @@ export default async function RegisterPage() {
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,transparent,rgb(0_0_0_/_0.45))]" aria-hidden="true" />
             <Card className="w-full max-w-md border-white/20 bg-card/90 shadow-2xl shadow-black/30 backdrop-blur-xl">
                 <CardHeader>
-                    <CardDescription>QMaster · The Smart Assessment Platform.</CardDescription>
+                    <CardDescription>Safalya · The Smart Assessment Platform.</CardDescription>
                     <CardTitle className="text-3xl">Create an account</CardTitle>
                     <CardDescription>Sign up as a student to take tests.</CardDescription>
                 </CardHeader>

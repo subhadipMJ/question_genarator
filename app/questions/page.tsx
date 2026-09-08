@@ -8,7 +8,7 @@ import { getUser } from "../services/users";
 import { Button } from "@/components/ui/button";
 import QuestionsTable from "./questions-table";
 
-export const metadata = { title: "All Questions | QMaster" };
+export const metadata = { title: "All Questions | Safalya" };
 
 export default async function QuestionsPage() {
     const cookieStore = await cookies();

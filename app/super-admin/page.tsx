@@ -17,7 +17,7 @@ const ROLE_NAMES: Record<number, string> = {
 };
 
 export const metadata = {
-    title: "Super Admin | QMaster",
+    title: "Super Admin | Safalya",
 };
 
 export default async function SuperAdminPage() {
@@ -39,7 +39,7 @@ export default async function SuperAdminPage() {
                         </p>
                         <h1 className="mt-2 text-3xl font-bold">Welcome, {userName}</h1>
                         <p className="text-muted-foreground mt-2">
-                            Manage QMaster, The Smart Assessment Platform.
+                            Manage Safalya, The Smart Assessment Platform.
                         </p>
                     </div>
                     <form action="/api/auth/logout" method="post">

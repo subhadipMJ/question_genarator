@@ -29,7 +29,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QMaster",
+  title: "Safalya",
   description: "The Smart Assessment Platform.",
 };
 
@@ -43,7 +43,7 @@ export default async function RootLayout({
   const role = cookieStore.get("user_role")?.value;
   const userName = cookieStore.get("user_name")?.value;
   const organizationName = cookieStore.get("organization_name")?.value;
-  const headerName = role === "0" ? "Super Admin" : organizationName || userName || "QMaster";
+  const headerName = role === "0" ? "Super Admin" : organizationName || userName || "Safalya";
 
   return (
     <html

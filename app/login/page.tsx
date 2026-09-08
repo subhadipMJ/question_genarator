@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
-    title: "Sign in | QMaster",
+    title: "Sign in | Safalya",
 };
 
 export default async function LoginPage({
@@ -30,7 +30,7 @@ export default async function LoginPage({
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,transparent,rgb(0_0_0_/_0.45))]" aria-hidden="true" />
             <Card className="w-full max-w-md border-white/20 bg-card/90 shadow-2xl shadow-black/30 backdrop-blur-xl">
                 <CardHeader>
-                    <CardDescription>QMaster · The Smart Assessment Platform.</CardDescription>
+                    <CardDescription>Safalya · The Smart Assessment Platform.</CardDescription>
                     <CardTitle className="text-3xl">Welcome back</CardTitle>
                     <CardDescription>Sign in to view and create questions.</CardDescription>
                 </CardHeader>
