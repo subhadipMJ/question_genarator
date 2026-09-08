@@ -2,22 +2,22 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Plus, Search, GraduationCap, ChevronRight, User as UserIcon } from "lucide-react";
+import { Users, Plus, Search, GraduationCap, User as UserIcon, Check, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { StudentBatch } from "../services/student-batches";
+import type { StudentBatch, BatchStudent } from "../services/student-batches";
 import type { User } from "../services/users";
 
 type StudentBatchManagerProps = {
   initialBatches: StudentBatch[];
   users: User[];
+  initialBatchStudents: Record<number, BatchStudent[]>;
 };
 
-export default function StudentBatchManager({ initialBatches, users }: StudentBatchManagerProps) {
+export default function StudentBatchManager({ initialBatches, users, initialBatchStudents }: StudentBatchManagerProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [batches, setBatches] = useState<StudentBatch[]>(initialBatches);
@@ -28,14 +28,39 @@ export default function StudentBatchManager({ initialBatches, users }: StudentBa
     return batches.filter((b) => b.name.toLowerCase().includes(q));
   }, [batches, searchQuery]);
 
-  // Helper to get supervisor name
-  const getSupervisorName = (supervisorId: number) => {
-    const user = users.find((u) => u.id === supervisorId);
-    return user ? user.name : `Unknown (ID: ${supervisorId})`;
+  // Helper to get supervisor details
+  const getSupervisor = (supervisorId: number) => {
+    return users.find((u) => u.id === supervisorId) || { name: `Unknown (ID: ${supervisorId})`, email: "" };
   };
 
   const handleCreateBatch = () => {
     router.push("/student-batches/create");
+  };
+
+  const onEdit = (batchId: number) => {
+    router.push(`/student-batches/${batchId}`);
+  };
+
+  const onDelete = async (batchId: number) => {
+    if (confirm("Are you sure you want to delete this batch?")) {
+      try {
+        const res = await fetch(`/api/backend/student-batches/${batchId}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete batch");
+        
+        setBatches((prev) => prev.filter((b) => b.id !== batchId));
+        toast.success("Batch deleted successfully.");
+      } catch (error) {
+        console.error(error);
+        toast.error("An error occurred while deleting the batch.");
+      }
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   return (
@@ -86,34 +111,104 @@ export default function StudentBatchManager({ initialBatches, users }: StudentBa
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredBatches.map((batch) => (
-            <Link key={batch.id} href={`/student-batches/${batch.id}`} className="block group">
-              <Card className="p-5 h-full transition-all hover:shadow-md hover:border-primary/50 relative overflow-hidden flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                      {batch.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                      <UserIcon className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{getSupervisorName(batch.supervisor)}</span>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredBatches.map((batch) => {
+            const supervisor = getSupervisor(batch.supervisor);
+            const assignedStudents = initialBatchStudents[batch.id] || [];
+            
+            return (
+              <Card key={batch.id} className="flex flex-col h-full border-gray-200 shadow-sm transition-all hover:shadow-md">
+                <div className="p-5 flex-1 space-y-6">
+                  {/* Card Header */}
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-xl truncate" title={batch.name}>
+                        {batch.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1 truncate">
+                        ID: #{batch.id} &bull; Created {formatDate(batch.created_at)}
+                      </p>
+                    </div>
+                    {batch.is_active ? (
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-200 flex items-center gap-1 shrink-0 border-transparent shadow-none font-medium">
+                        <Check className="w-3 h-3" />
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-amber-700 bg-amber-50 hover:bg-amber-100 shrink-0 font-medium border-transparent shadow-none">
+                        Inactive
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Supervisor Section */}
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider">
+                      Supervisor
+                    </h4>
+                    <div className="flex items-center gap-3 bg-muted/30 rounded-lg p-3 border border-border/50">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <UserIcon className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{supervisor.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {supervisor.email || "No email provided"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant={batch.is_active ? "default" : "secondary"} className="ml-2">
-                    {batch.is_active ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-                
-                <div className="mt-auto pt-4 flex items-center justify-between text-sm border-t text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span>ID: {batch.id}</span>
+
+                  {/* Assigned Students Section */}
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider">
+                      Assigned Students ({assignedStudents.length})
+                    </h4>
+                    {assignedStudents.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {assignedStudents.slice(0, 5).map((student) => (
+                          <Badge key={student.id} variant="secondary" className="rounded-full px-3 py-1 font-normal text-xs bg-muted hover:bg-muted">
+                            {student.name || `Student #${student.student_id}`}
+                          </Badge>
+                        ))}
+                        {assignedStudents.length > 5 && (
+                          <Badge variant="outline" className="rounded-full px-3 py-1 font-normal text-xs border-dashed text-muted-foreground">
+                            +{assignedStudents.length - 5} more
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic bg-muted/10 p-2 rounded-md border border-dashed text-center">
+                        No students assigned
+                      </p>
+                    )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+
+                {/* Card Footer / Actions */}
+                <div className="p-4 border-t bg-muted/5 flex items-center justify-end gap-2 mt-auto">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onEdit(batch.id)}
+                    className="h-8 shadow-sm font-medium bg-background"
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onDelete(batch.id)}
+                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 font-medium"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Delete
+                  </Button>
                 </div>
               </Card>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>
