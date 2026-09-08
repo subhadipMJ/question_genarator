@@ -19,7 +19,7 @@ function formatDateTimeLocal(isoString?: string): string {
 
 export type TestSeriesModalFormData = {
     name: string;
-    access_type: "public" | "invite_only";
+    access_type: "public" | "invite_only" | "private";
     valid_until: string;
     duration_seconds: number;
     is_active: boolean;
@@ -61,7 +61,7 @@ export default function TestSeriesModal({
 
         onSubmit({
             name: String(f.get("name") ?? "").trim(),
-            access_type: f.get("access_type") as "public" | "invite_only",
+            access_type: f.get("access_type") as "public" | "invite_only" | "private",
             valid_until: validUntil.toISOString(),
             duration_seconds: Math.round(durationMinutes * 60),
             is_active: f.get("is_active") === "true",
@@ -129,6 +129,7 @@ export default function TestSeriesModal({
                                 >
                                     <option value="public">Public — anyone can start</option>
                                     <option value="invite_only">Invite only — share a link</option>
+                                    <option value="private">Private — restricted access</option>
                                 </select>
                             </div>
                         </div>

@@ -5,7 +5,7 @@ export type TestSeries = {
     name: string;
     code: string | null;
     invite_token: string | null;
-    access_type: "public" | "invite_only";
+    access_type: "public" | "invite_only" | "private";
     org_id: number;
     created_by: number;
     valid_until: string;
@@ -19,7 +19,7 @@ export type TestSeries = {
 
 export type TestSeriesCreate = {
     name: string;
-    access_type: "public" | "invite_only";
+    access_type: "public" | "invite_only" | "private";
     valid_until: string;
     duration_seconds: number;
     question_ids: number[];
@@ -28,7 +28,7 @@ export type TestSeriesCreate = {
 
 export type TestSeriesUpdate = {
     name?: string;
-    access_type?: "public" | "invite_only";
+    access_type?: "public" | "invite_only" | "private";
     valid_until?: string;
     duration_seconds?: number;
     question_ids?: number[];

@@ -359,7 +359,7 @@ export default function BulkUploader({
     const [tsOption, setTsOption] = useState<TestSeriesOption>("none");
     const [selectedTsId, setSelectedTsId] = useState<string>("");
     const [newTsName, setNewTsName] = useState<string>("");
-    const [newTsAccessType, setNewTsAccessType] = useState<"public" | "invite_only">("public");
+    const [newTsAccessType, setNewTsAccessType] = useState<"public" | "invite_only" | "private">("public");
     const [newTsDuration, setNewTsDuration] = useState<string>("60");
 
     // ── AI Prompt Modal state ──────────────────────────────────────────────
@@ -702,11 +702,12 @@ Please generate ${promptNumQuestions.trim() || "5"} high-quality questions${prom
                                 <select
                                     id="new-ts-access"
                                     value={newTsAccessType}
-                                    onChange={(e) => setNewTsAccessType(e.target.value as "public" | "invite_only")}
+                                    onChange={(e) => setNewTsAccessType(e.target.value as "public" | "invite_only" | "private")}
                                     className="w-full h-8 rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                                 >
                                     <option value="public">Public</option>
                                     <option value="invite_only">Invite Only</option>
+                                    <option value="private">Private</option>
                                 </select>
                             </div>
                             <div className="space-y-1">
