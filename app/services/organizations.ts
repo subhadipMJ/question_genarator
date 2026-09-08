@@ -7,6 +7,7 @@ export type Organization = {
     code: string;
     location: string | null;
     phone_number: string | null;
+    logo: string | null;
     is_active: boolean;
 };
 
