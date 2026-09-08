@@ -111,7 +111,7 @@ export default function TestSeriesManager({
 
     // Filter controls state
     const [searchQuery, setSearchQuery] = useState("");
-    const [accessFilter, setAccessFilter] = useState<"all" | "public" | "invite_only">("all");
+    const [accessFilter, setAccessFilter] = useState<"all" | "public" | "invite_only" | "private">("all");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
     const [orgFilter, setOrgFilter] = useState("all");
     const [sortBy, setSortBy] = useState<"newest" | "name_asc" | "name_desc" | "attempts_desc">("newest");
@@ -384,6 +384,7 @@ export default function TestSeriesManager({
                         <option value="all">All Access Types</option>
                         <option value="public">Public</option>
                         <option value="invite_only">Invite Only</option>
+                        <option value="private">Private</option>
                     </select>
 
                     {/* Status Filter */}
