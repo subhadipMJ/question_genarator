@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { getTestSeries } from "../../services/test-series";
 import { getAllQuestionsList } from "../../services/questions";
 import { getAllTopics } from "../../services/topics";
+import { getOrganizationUsers } from "../../services/organizations";
 import TestSeriesEditor from "./test-series-editor";
 
 export const metadata = {
@@ -22,6 +23,8 @@ export default async function EditTestSeriesPage({
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
     const role = cookieStore.get("user_role")?.value;
+    const organizationId = Number(cookieStore.get("organization_id")?.value) || 0;
+    const userId = Number(cookieStore.get("user_id")?.value);
 
     if (!token) redirect("/login");
     if (!role || !["0", "1", "2"].includes(role)) redirect("/student/tests");
@@ -31,16 +34,14 @@ export default async function EditTestSeriesPage({
     if (isNaN(seriesId)) notFound();
 
     // Fetch details
-    const [series, allQuestions, topics] = await Promise.all([
+    const [series, allQuestions, topics, orgUsers] = await Promise.all([
         getTestSeries(seriesId).catch(() => null),
         getAllQuestionsList().catch(() => []),
         getAllTopics().catch(() => []),
+        organizationId ? getOrganizationUsers(organizationId).catch(() => []) : Promise.resolve([]),
     ]);
 
     if (!series) notFound();
-
-    const organizationId = Number(cookieStore.get("organization_id")?.value);
-    const userId = Number(cookieStore.get("user_id")?.value);
 
     // Permission enforcement:
     const canEdit =
@@ -63,6 +64,7 @@ export default async function EditTestSeriesPage({
                 series={series}
                 availableQuestions={questions}
                 topics={topics}
+                organizationUsers={orgUsers}
                 userId={userId}
                 userRole={role}
                 userOrgId={organizationId}
