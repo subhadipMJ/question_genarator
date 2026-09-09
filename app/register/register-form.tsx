@@ -55,7 +55,8 @@ export default function RegisterForm() {
             }
 
             // success — go straight to login
-            router.push("/login?registered=1");
+            const inviteHash = typeof window !== "undefined" ? window.location.hash : "";
+            router.push(`/login?registered=1${inviteHash || ""}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Registration failed.");
         } finally {

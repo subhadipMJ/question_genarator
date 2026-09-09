@@ -45,6 +45,7 @@ export type TestSeriesUpdate = {
     is_active?: boolean;
     is_result_show?: boolean;
     is_score_show?: boolean;
+    regenerate_invite_token?: boolean;
     batch_id?: number | null;
     batch_ids?: number[];
 };

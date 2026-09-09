@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, Copy, QrCode, RefreshCw } from "lucide-react";
+import QRCodeModal from "../qr-code-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,6 +127,29 @@ export default function TestSeriesEditor({
     const [busy, setBusy] = useState(false);
     const [newInviteToken, setNewInviteToken] = useState<string | null>(series.invite_token);
     const [origin, setOrigin] = useState("");
+    const [isQROpen, setIsQROpen] = useState(false);
+    const [regeneratingToken, setRegeneratingToken] = useState(false);
+
+    async function handleRegenerateInvite() {
+        setRegeneratingToken(true);
+        try {
+            const res = await fetch(`/api/backend/test-series/${series.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ regenerate_invite_token: true, access_type: "invite_only" }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(getApiError(data, res.status));
+            if (data.invite_token) {
+                setNewInviteToken(data.invite_token);
+                toast.success("New invite link generated!");
+            }
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Unable to regenerate invite link.");
+        } finally {
+            setRegeneratingToken(false);
+        }
+    }
 
     // Filter teacher groups by organization
     const availableTeacherGroups = useMemo(() => {
@@ -340,7 +364,11 @@ export default function TestSeriesEditor({
             const data = await res.json().catch(() => null);
             if (!res.ok) throw new Error(getApiError(data, res.status));
 
-            setNewInviteToken(data.invite_token ?? null);
+            if (data.invite_token) {
+                setNewInviteToken(data.invite_token);
+            } else if (accessType !== "invite_only") {
+                setNewInviteToken(null);
+            }
             toast.success("Test series saved successfully!");
             router.refresh();
         } catch (err) {
@@ -591,25 +619,64 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
             </div>
 
             {/* Invite Token Banner */}
-            {newInviteToken && accessType === "invite_only" && (
-                <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-4 animate-in fade-in duration-200">
+            {accessType === "invite_only" && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4 animate-in fade-in duration-200">
                     <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold">Invite link</p>
-                        <code className="mt-1 block break-all text-xs text-muted-foreground">
-                            {`${origin}/student/join#token=${newInviteToken}`}
-                        </code>
+                        <div className="flex items-center gap-2">
+                            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                            <p className="text-sm font-semibold text-foreground">Invite-Only Link</p>
+                        </div>
+                        {newInviteToken ? (
+                            <code className="mt-1.5 block break-all text-xs font-mono text-muted-foreground bg-background/90 px-3 py-2 rounded-md border border-border/60">
+                                {`${origin}/student/join#token=${newInviteToken}`}
+                            </code>
+                        ) : (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Save changes or click Regenerate below to create an invite link for students.
+                            </p>
+                        )}
                     </div>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                            navigator.clipboard.writeText(`${origin}/student/join#token=${newInviteToken}`);
-                            toast.success("Copied!");
-                        }}
-                    >
-                        Copy link
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {newInviteToken && (
+                            <>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 gap-1.5 text-xs font-medium"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${origin}/student/join#token=${newInviteToken}`);
+                                        toast.success("Invite link copied to clipboard!");
+                                    }}
+                                >
+                                    <Copy className="h-3.5 w-3.5 text-primary" />
+                                    Copy Link
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 gap-1.5 text-xs font-medium"
+                                    onClick={() => setIsQROpen(true)}
+                                >
+                                    <QrCode className="h-3.5 w-3.5 text-primary" />
+                                    QR Code
+                                </Button>
+                            </>
+                        )}
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={regeneratingToken}
+                            className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={handleRegenerateInvite}
+                            title="Generate a new token (invalidates previous link)"
+                        >
+                            <RefreshCw className={`h-3.5 w-3.5 ${regeneratingToken ? "animate-spin text-primary" : ""}`} />
+                            {newInviteToken ? "Regenerate" : "Generate Link"}
+                        </Button>
+                    </div>
                 </div>
             )}
 
@@ -1614,6 +1681,14 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                     </div>
                 </div>
             )}
+
+            <QRCodeModal
+                isOpen={isQROpen}
+                onClose={() => setIsQROpen(false)}
+                seriesName={name}
+                inviteToken={newInviteToken || String(series.id)}
+                origin={origin}
+            />
         </div>
     );
 }

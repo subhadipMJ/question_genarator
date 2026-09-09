@@ -35,7 +35,14 @@ export default function LoginForm() {
             if (!response.ok) throw new Error(result.message);
 
             const inviteHash = window.location.hash;
-            router.replace(inviteHash.includes("token=") ? `/student/join${inviteHash}` : "/dashboard");
+            const inviteSearch = window.location.search;
+            let dest = "/dashboard";
+            if (inviteHash.includes("token=")) {
+                dest = `/student/join${inviteHash}`;
+            } else if (inviteSearch.includes("token=")) {
+                dest = `/student/join${inviteSearch}`;
+            }
+            router.replace(dest);
             router.refresh();
         } catch (loginError: unknown) {
             setError(loginError instanceof Error ? loginError.message : "Unable to log in.");

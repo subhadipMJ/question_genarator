@@ -211,8 +211,14 @@ export default function TestSeriesManager({
             if (!res.ok) throw new Error(getApiError(responseData, res.status));
 
             setSeries((prev) => [responseData as TestSeries, ...prev]);
-            setNewInviteToken((responseData as TestSeries).invite_token ?? null);
-            toast.success("Test created!");
+            if ((responseData as TestSeries).access_type === "invite_only" && (responseData as TestSeries).invite_token) {
+                if (typeof window !== "undefined") {
+                    navigator.clipboard.writeText(`${window.location.origin}/student/join#token=${(responseData as TestSeries).invite_token}`);
+                }
+                toast.success("Invite-only test created & invite link copied to clipboard!");
+            } else {
+                toast.success("Test created!");
+            }
             closeModal();
             router.push(`/test-series/${responseData.id}`);
         } catch (err) {
