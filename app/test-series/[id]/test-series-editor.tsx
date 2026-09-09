@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,7 +110,11 @@ export default function TestSeriesEditor({
     const [accessType, setAccessType] = useState(series.access_type);
     const [teacherGroupId, setTeacherGroupId] = useState<number | null>(series.teacher_group_id ?? null);
     const [supervisorId, setSupervisorId] = useState<number | null>(series.supervisor_id ?? null);
-    const [batchId, setBatchId] = useState<number | null>(series.batch_id ?? null);
+    const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>(() => {
+        if (series.batch_ids && series.batch_ids.length > 0) return series.batch_ids;
+        if (series.batch_id) return [series.batch_id];
+        return [];
+    });
     const [validUntil, setValidUntil] = useState(series.valid_until);
     
     // Auto-close heuristic states for native datetime-local
@@ -277,7 +281,29 @@ export default function TestSeriesEditor({
         setLinkedQuestionIds((prev) => prev.filter((item) => item !== id));
     }
 
+    function toggleBatch(bId: number, bName?: string) {
+        setSelectedBatchIds((prev) => {
+            if (prev.includes(bId)) {
+                if (bName) toast.info(`Unassigned ${bName}`);
+                return prev.filter((id) => id !== bId);
+            } else {
+                if (bName) toast.success(`Assigned ${bName} to test series.`);
+                return [...prev, bId];
+            }
+        });
+    }
 
+    function selectAllFilteredBatches() {
+        const toAdd = searchableBatches.map((b) => b.id);
+        setSelectedBatchIds((prev) => Array.from(new Set([...prev, ...toAdd])));
+        toast.success(`Assigned ${toAdd.length} batches.`);
+    }
+
+    function clearFilteredBatches() {
+        const toRemove = searchableBatches.map((b) => b.id);
+        setSelectedBatchIds((prev) => prev.filter((id) => !toRemove.includes(id)));
+        toast.info("Unassigned filtered batches.");
+    }
 
     // Save full series
     async function handleSaveChanges(e: FormEvent) {
@@ -302,7 +328,8 @@ export default function TestSeriesEditor({
                     access_type: accessType,
                     teacher_group_id: teacherGroupId,
                     supervisor_id: supervisorId,
-                    batch_id: batchId,
+                    batch_id: selectedBatchIds[0] ?? null,
+                    batch_ids: selectedBatchIds,
                     valid_until: validUntilDate.toISOString(),
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
@@ -656,23 +683,6 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="s-batch">Student Batch</Label>
-                                    <select
-                                        id="s-batch"
-                                        className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                        value={batchId ?? ""}
-                                        onChange={(e) => setBatchId(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">None (Unassigned)</option>
-                                        {(availableStudentBatches ?? []).map((b) => (
-                                            <option key={b.id} value={b.id}>
-                                                {b.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1.5">
                                     <Label htmlFor="s-valid">Valid Until</Label>
                                     <Input
                                         id="s-valid"
@@ -773,9 +783,9 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             }`}
                         >
                             <span>Batches</span>
-                            {batchId ? (
+                            {selectedBatchIds.length > 0 ? (
                                 <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 hover:bg-emerald-600 text-white">
-                                    1 Assigned
+                                    {selectedBatchIds.length} Assigned
                                 </Badge>
                             ) : (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -1042,10 +1052,10 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             <div>
                                 <CardTitle className="text-lg flex items-center gap-2">
                                     <Layers className="h-5 w-5 text-primary" />
-                                    Assign Student Batch
+                                    Assign Student Batches
                                 </CardTitle>
                                 <CardDescription>
-                                    Assigning a student batch grants access to all students registered in that batch.
+                                    Assign student batches to grant access to all students registered in those batches.
                                 </CardDescription>
                             </div>
                             <div className="flex gap-2">
@@ -1062,48 +1072,87 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4 flex-1">
-                            {/* Search Input */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search student batches by name..."
-                                    className="pl-9"
-                                    value={batchSearchQuery}
-                                    onChange={(e) => setBatchSearchQuery(e.target.value)}
-                                />
+                            {/* Search Input & Action Helpers */}
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <div className="relative flex-1 min-w-[200px]">
+                                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search student batches by name..."
+                                        className="pl-9"
+                                        value={batchSearchQuery}
+                                        onChange={(e) => setBatchSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                {searchableBatches.length > 0 && (
+                                    <div className="flex gap-1 shrink-0">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={selectAllFilteredBatches}
+                                            className="h-9 px-2.5 text-xs font-medium"
+                                        >
+                                            Select all
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={clearFilteredBatches}
+                                            className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                        >
+                                            Clear
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Selected Batch Banner */}
-                            {batchId ? (
-                                <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-900 dark:text-emerald-200">
-                                    <div className="flex items-center gap-3">
-                                        <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                                        <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                                                Currently Assigned Batch
-                                            </p>
-                                            <p className="text-sm font-bold">
-                                                {availableStudentBatches.find((b) => b.id === batchId)?.name || `Batch #${batchId}`}
-                                            </p>
+                            {/* Assigned Batches Banner */}
+                            {selectedBatchIds.length > 0 ? (
+                                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-900 dark:text-emerald-200 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                                Assigned Batches ({selectedBatchIds.length})
+                                            </span>
                                         </div>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setSelectedBatchIds([]);
+                                                toast.info("All batches unassigned.");
+                                            }}
+                                            className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                            Unassign All
+                                        </Button>
                                     </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setBatchId(null);
-                                            toast.info("Batch unassigned from test series.");
-                                        }}
-                                        className="h-8 px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                        Unassign
-                                    </Button>
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        {selectedBatchIds.map((bId) => {
+                                            const batchObj = availableStudentBatches.find((b) => b.id === bId);
+                                            return (
+                                                <span
+                                                    key={bId}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-600/15 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                                                >
+                                                    {batchObj?.name || `Batch #${bId}`}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleBatch(bId, batchObj?.name)}
+                                                        className="hover:text-destructive transition-colors ml-0.5"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
                                     <span>No student batch is currently assigned to this test series.</span>
-                                    <span className="font-medium">Select a batch below to assign it.</span>
+                                    <span className="font-medium">Select batches below to assign them.</span>
                                 </div>
                             )}
 
@@ -1116,7 +1165,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             ) : (
                                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                                     {searchableBatches.map((batch) => {
-                                        const isAssigned = batchId === batch.id;
+                                        const isAssigned = selectedBatchIds.includes(batch.id);
                                         const supervisorUser = organizationUsers.find((u) => u.id === batch.supervisor);
                                         const isExpanded = expandedBatchId === batch.id;
                                         const students = batchStudentsMap[batch.id] ?? [];
@@ -1132,26 +1181,38 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                                 }`}
                                             >
                                                 <div className="p-4 flex items-center justify-between gap-4">
-                                                    <div className="min-w-0 flex-1 space-y-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <h4 className="font-semibold text-foreground text-sm truncate">
-                                                                {batch.name}
-                                                            </h4>
-                                                            {isAssigned ? (
-                                                                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5">
-                                                                    Assigned
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant={batch.is_active ? "secondary" : "outline"} className="text-[10px] px-2 py-0.5">
-                                                                    {batch.is_active ? "Active" : "Inactive"}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                            {supervisorUser && (
-                                                                <span>Supervisor: <strong className="font-medium text-foreground">{supervisorUser.name}</strong></span>
-                                                            )}
-                                                            <span>Created: {new Date(batch.created_at).toLocaleDateString()}</span>
+                                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`batch-chk-${batch.id}`}
+                                                            checked={isAssigned}
+                                                            onChange={() => toggleBatch(batch.id, batch.name)}
+                                                            className="h-4 w-4 mt-1 shrink-0 accent-primary rounded border-gray-300 cursor-pointer"
+                                                        />
+                                                        <div className="min-w-0 flex-1 space-y-1">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <label
+                                                                    htmlFor={`batch-chk-${batch.id}`}
+                                                                    className="font-semibold text-foreground text-sm truncate cursor-pointer"
+                                                                >
+                                                                    {batch.name}
+                                                                </label>
+                                                                {isAssigned ? (
+                                                                    <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5">
+                                                                        Assigned
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant={batch.is_active ? "secondary" : "outline"} className="text-[10px] px-2 py-0.5">
+                                                                        {batch.is_active ? "Active" : "Inactive"}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                                {supervisorUser && (
+                                                                    <span>Supervisor: <strong className="font-medium text-foreground">{supervisorUser.name}</strong></span>
+                                                                )}
+                                                                <span>Created: {new Date(batch.created_at).toLocaleDateString()}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -1173,22 +1234,16 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                                                 type="button"
                                                                 size="sm"
                                                                 variant="outline"
-                                                                onClick={() => {
-                                                                    setBatchId(null);
-                                                                    toast.info(`Unassigned ${batch.name}`);
-                                                                }}
+                                                                onClick={() => toggleBatch(batch.id, batch.name)}
                                                                 className="h-8 px-3 text-xs border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                                                             >
-                                                                Selected
+                                                                Assigned
                                                             </Button>
                                                         ) : (
                                                             <Button
                                                                 type="button"
                                                                 size="sm"
-                                                                onClick={() => {
-                                                                    setBatchId(batch.id);
-                                                                    toast.success(`Assigned ${batch.name} to this test series.`);
-                                                                }}
+                                                                onClick={() => toggleBatch(batch.id, batch.name)}
                                                                 className="h-8 px-3 text-xs"
                                                             >
                                                                 Assign

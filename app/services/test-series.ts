@@ -18,6 +18,7 @@ export type TestSeries = {
     is_result_show?: boolean;
     is_score_show?: boolean;
     batch_id?: number | null;
+    batch_ids?: number[];
 };
 
 export type TestSeriesCreate = {
@@ -30,6 +31,7 @@ export type TestSeriesCreate = {
     question_ids: number[];
     is_active?: boolean;
     batch_id?: number | null;
+    batch_ids?: number[];
 };
 
 export type TestSeriesUpdate = {
@@ -44,6 +46,7 @@ export type TestSeriesUpdate = {
     is_result_show?: boolean;
     is_score_show?: boolean;
     batch_id?: number | null;
+    batch_ids?: number[];
 };
 
 export type TestSeriesResultItem = {
