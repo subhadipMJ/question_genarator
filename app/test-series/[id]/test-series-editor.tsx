@@ -98,7 +98,7 @@ export default function TestSeriesEditor({
 
     // Content Tabs state
     const [activeTab, setActiveTab] = useState<"questions" | "batches" | "students">("questions");
-    const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+    const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>(series.student_ids ?? []);
     const [studentSearchQuery, setStudentSearchQuery] = useState("");
     const [batchSearchQuery, setBatchSearchQuery] = useState("");
     const [expandedBatchId, setExpandedBatchId] = useState<number | null>(null);
@@ -334,7 +334,7 @@ export default function TestSeriesEditor({
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
                     is_active: isActive,
-                    ...(accessType === "private" ? { student_ids: selectedStudentIds } : {}),
+                    student_ids: selectedStudentIds,
                 }),
             });
             const data = await res.json().catch(() => null);
@@ -793,22 +793,20 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 </Badge>
                             )}
                         </button>
-                        {accessType === "private" && (
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab("students")}
-                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                    activeTab === "students"
-                                        ? "border-primary text-primary"
-                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                                }`}
-                            >
-                                <span>Students</span>
-                                <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                                    {selectedStudentIds.length}
-                                </Badge>
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("students")}
+                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                activeTab === "students"
+                                    ? "border-primary text-primary"
+                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
+                        >
+                            <span>Students</span>
+                            <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                {selectedStudentIds.length}
+                            </Badge>
+                        </button>
                     </div>
 
                     {activeTab === "questions" ? (
@@ -1301,7 +1299,37 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 <CardTitle>Assign Students</CardTitle>
                                 <CardDescription>Select students who are permitted to access this private test series.</CardDescription>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-2">
+                                {searchableStudents.length > 0 && (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                const toAdd = searchableStudents.map((s) => s.id);
+                                                setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...toAdd])));
+                                                toast.success(`Selected ${toAdd.length} students.`);
+                                            }}
+                                            className="h-8 px-2.5 text-xs font-medium"
+                                        >
+                                            Select all
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                const toRemove = searchableStudents.map((s) => s.id);
+                                                setSelectedStudentIds((prev) => prev.filter((id) => !toRemove.includes(id)));
+                                                toast.info("Cleared student selections.");
+                                            }}
+                                            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                        >
+                                            Clear
+                                        </Button>
+                                    </>
+                                )}
                                 <Badge variant="secondary" className="px-3 py-1 text-xs">
                                     {selectedStudentIds.length} selected
                                 </Badge>
