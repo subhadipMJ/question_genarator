@@ -10,6 +10,7 @@ interface PublishResultsModalProps {
     onClose: () => void;
     seriesId: number;
     onPublish: () => Promise<void>; // the function that publishes results, returning a promise to await
+    onPdfUploaded?: (pdfKey: string | null) => void;
 }
 
 export default function PublishResultsModal({
@@ -17,6 +18,7 @@ export default function PublishResultsModal({
     onClose,
     seriesId,
     onPublish,
+    onPdfUploaded,
 }: PublishResultsModalProps) {
     const [step, setStep] = useState<"decision" | "upload">("decision");
     const [file, setFile] = useState<File | null>(null);
@@ -29,6 +31,9 @@ export default function PublishResultsModal({
     async function handlePublishWithoutPdf() {
         setIsUploading(true);
         try {
+            if (onPdfUploaded) {
+                onPdfUploaded(null);
+            }
             await onPublish();
             onClose();
         } catch (error) {
@@ -57,6 +62,9 @@ export default function PublishResultsModal({
             }
 
             // After successful upload, publish the results
+            if (onPdfUploaded) {
+                onPdfUploaded(`uploads/results/series_${seriesId}/result.pdf`);
+            }
             await onPublish();
             onClose();
             toast.success("Result sheet PDF uploaded successfully.");

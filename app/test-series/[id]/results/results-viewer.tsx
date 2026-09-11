@@ -20,6 +20,7 @@ import {
     Loader2,
     Check,
     AlertCircle,
+    FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -54,6 +55,8 @@ export default function ResultsViewer({
     );
     const [isPublishing, setIsPublishing] = useState(false);
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+    const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+    const [pdfKey, setPdfKey] = useState<string | null | undefined>(initialResults.result_file_key);
 
     useEffect(() => {
         if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -161,6 +164,17 @@ export default function ResultsViewer({
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2">
+                    {isPublished && pdfKey && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsPdfModalOpen(true)}
+                            className="h-9 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5"
+                        >
+                            <FileText className="h-3.5 w-3.5 text-primary" />
+                            View Answer Sheet
+                        </Button>
+                    )}
                     <Button
                         variant={isPublished ? "outline" : "default"}
                         size="sm"
@@ -514,7 +528,16 @@ export default function ResultsViewer({
                 onClose={() => setIsPublishModalOpen(false)}
                 seriesId={initialResults.series_id}
                 onPublish={handleTogglePublish}
+                onPdfUploaded={(key) => setPdfKey(key)}
             />
+
+            {/* Answer Sheet PDF Modal */}
+            {isPdfModalOpen && pdfKey && (
+                <AnswerSheetPdfModal
+                    pdfUrl={pdfKey}
+                    onClose={() => setIsPdfModalOpen(false)}
+                />
+            )}
         </div>
     );
 }
@@ -808,6 +831,78 @@ function StudentAttemptModal({
                     <Button variant="default" size="sm" onClick={onClose} className="text-xs cursor-pointer">
                         Close
                     </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function AnswerSheetPdfModal({
+    pdfUrl,
+    onClose,
+}: {
+    pdfUrl: string;
+    onClose: () => void;
+}) {
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Ensure the PDF URL is correctly formatted if it's a relative path from the backend
+    const cleanPath = pdfUrl.replace(/^\//, '');
+    const uploadsPath = cleanPath.startsWith('uploads/') ? cleanPath : `uploads/${cleanPath}`;
+    const formattedUrl = pdfUrl.startsWith('http') || pdfUrl.startsWith('data:') 
+        ? pdfUrl 
+        : `/api/backend/${uploadsPath}`;
+
+    return (
+        <div 
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200 relative"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-bold">Answer Sheet</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5 text-xs"
+                            onClick={() => window.open(formattedUrl, '_blank')}
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Open in New Tab
+                        </Button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-muted-foreground hover:text-foreground cursor-pointer rounded-full p-1.5 hover:bg-accent transition-colors"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Modal Body with Iframe */}
+                <div className="flex-1 relative bg-muted/10 w-full h-full">
+                    {isLoading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-card z-10 space-y-4">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm font-medium animate-pulse">Loading PDF Document...</p>
+                        </div>
+                    )}
+                    <iframe
+                        src={`${formattedUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                        className="w-full h-full border-0"
+                        title="Answer Sheet PDF"
+                        onLoad={() => setIsLoading(false)}
+                        onError={() => setIsLoading(false)}
+                    />
                 </div>
             </div>
         </div>
