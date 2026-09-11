@@ -20,6 +20,7 @@ export type TestSeries = {
     batch_id?: number | null;
     batch_ids?: number[];
     student_ids?: number[];
+    result_file_key?: string | null;
 };
 
 export type TestSeriesCreate = {
@@ -75,6 +76,7 @@ export type TestSeriesResults = {
     total_attempts: number;
     completed_attempts: number;
     average_score: number;
+    result_file_key?: string | null;
     results: TestSeriesResultItem[];
 };
 
