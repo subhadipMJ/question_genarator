@@ -4,7 +4,7 @@ import { Topic } from "./topics";
 export type QuestionOption = {
     id?: number;
     q_id?: number;
-    ans: string;
+    ans: string | null;
     is_correct: boolean;
     diagram_id?: number | null;
     diagram_path?: string | null;

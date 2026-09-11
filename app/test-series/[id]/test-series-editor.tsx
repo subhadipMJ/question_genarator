@@ -354,7 +354,7 @@ export default function TestSeriesEditor({
     async function handleCreateQuestion(e: FormEvent) {
         e.preventDefault();
         const plainText = newQText.replace(/<[^>]*>/g, "").trim();
-        if (!plainText || newQOptions.some((opt) => !opt.ans.trim())) {
+        if (!plainText || newQOptions.some((opt) => !(opt.ans || "").trim())) {
             toast.error("Complete the question text and all option fields.");
             return;
         }
@@ -375,7 +375,7 @@ export default function TestSeriesEditor({
                     is_active: true,
                     topic_id: newQTopicId ? Number(newQTopicId) : null,
                     options: newQOptions.map((opt) => ({
-                        ans: opt.ans.trim(),
+                        ans: (opt.ans || "").trim(),
                         is_correct: opt.is_correct,
                     })),
                 }),
@@ -541,7 +541,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                         is_active: item.is_active !== false,
                         topic_id: item.topic_id ? Number(item.topic_id) : null,
                         options: item.options.map((opt: any) => ({
-                            ans: String(opt.ans).trim(),
+                            ans: String(opt.ans || "").trim(),
                             is_correct: !!opt.is_correct,
                         })),
                     }))
@@ -1489,7 +1489,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                             <div key={index} className="flex items-center gap-3">
                                                 <RadioGroupItem value={String(index)} aria-label={`Option ${index + 1} is correct`} />
                                                 <Input
-                                                    value={opt.ans}
+                                                    value={opt.ans || ""}
                                                     onChange={(e) =>
                                                         setNewQOptions((curr) =>
                                                             curr.map((item, idx) =>

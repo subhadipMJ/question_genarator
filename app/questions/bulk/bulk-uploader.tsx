@@ -115,7 +115,7 @@ function validateDrafts(drafts: QuestionDraft[]): ValidationError[] {
         const marks = parseFloat(q.marks);
         if (!Number.isFinite(marks) || marks <= 0) errors.push({ index: i, message: "Marks must be > 0." });
         if (q.options.length < 2) errors.push({ index: i, message: "At least 2 options required." });
-        if (q.options.some((o) => !o.ans.trim())) errors.push({ index: i, message: "All option texts must be filled." });
+        if (q.options.some((o) => !(o.ans || "").trim())) errors.push({ index: i, message: "All option texts must be filled." });
         const correctCount = q.options.filter((o) => o.is_correct).length;
         if (correctCount !== 1) errors.push({ index: i, message: "Exactly one option must be marked correct." });
     });
@@ -293,7 +293,7 @@ function QuestionCard({
                                     className="h-4 w-4 shrink-0 accent-primary"
                                 />
                                 <Input
-                                    value={opt.ans}
+                                    value={opt.ans || ""}
                                     onChange={(e) => setOptionAns(oi, e.target.value)}
                                     placeholder={`Option ${oi + 1}`}
                                     className={`flex-1 ${opt.is_correct ? "border-primary bg-primary/5" : ""}`}

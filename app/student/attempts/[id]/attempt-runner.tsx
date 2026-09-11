@@ -506,7 +506,7 @@ export default function AttemptRunner({
                                     <div className="flex-1 space-y-1.5">
                                         <span
                                             dangerouslySetInnerHTML={{
-                                                __html: sanitizeHtmlContent(opt.ans),
+                                                __html: sanitizeHtmlContent(opt.ans || ""),
                                             }}
                                         />
                                         {opt.diagram_path && (

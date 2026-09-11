@@ -217,7 +217,7 @@ export default function QuestionEditor({ question: initialQuestion }: { question
 
         const isOptionValid = (option: { ans: string }, index: number) => {
             return (
-                option.ans.trim().length > 0 ||
+                (option.ans || "").trim().length > 0 ||
                 !!optionDiagramFiles[index] ||
                 !!currentOptionDiagrams[index]
             );
@@ -255,7 +255,7 @@ export default function QuestionEditor({ question: initialQuestion }: { question
                     is_active: isActive,
                     topic_id: selectedTopicId ? Number(selectedTopicId) : null,
                     options: options.map((option) => ({
-                        ans: option.ans.trim(),
+                        ans: (option.ans || "").trim(),
                         is_correct: option.is_correct,
                     })),
                 }),
@@ -482,7 +482,7 @@ export default function QuestionEditor({ question: initialQuestion }: { question
                             <div className="flex items-center gap-3">
                                 <RadioGroupItem value={String(index)} aria-label={`Mark option ${index + 1} as correct`} />
                                 <Input
-                                    value={option.ans}
+                                    value={option.ans || ""}
                                     onChange={(event) => setOptions((current) => current.map((item, itemIndex) =>
                                         itemIndex === index ? { ...item, ans: event.target.value } : item,
                                     ))}
