@@ -20,11 +20,22 @@ export default async function TestSeriesPage() {
     if (!token) redirect("/login");
     if (!role || !["0", "1", "2"].includes(role)) redirect("/student/tests");
 
-    const [series, allQuestions, topics] = await Promise.all([
-        getAllTestSeries().catch((e) => { console.error("[TestSeries] fetch error:", e?.message || e); return []; }),
-        getAllQuestionsList().catch(() => []),
-        getAllTopics().catch(() => []),
-    ]);
+    async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): Promise<T | []> {
+        for (let i = 0; i < retries; i++) {
+            try {
+                return await fn();
+            } catch (error: any) {
+                console.warn(`[Retry ${i + 1}/${retries}] Fetch failed:`, error?.message || error);
+                if (i === retries - 1) return [];
+                await new Promise(res => setTimeout(res, delayMs * Math.pow(2, i)));
+            }
+        }
+        return [];
+    }
+
+    const series = await fetchWithRetry(getAllTestSeries) as any[];
+    const allQuestions = await fetchWithRetry(getAllQuestionsList) as any[];
+    const topics = await fetchWithRetry(getAllTopics) as any[];
 
 
     const organizationId = Number(cookieStore.get("organization_id")?.value);

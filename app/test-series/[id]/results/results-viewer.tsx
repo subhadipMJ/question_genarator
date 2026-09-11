@@ -34,6 +34,7 @@ import {
     TableCell,
 } from "@/components/ui/table";
 import QRCodeModal from "../../qr-code-modal";
+import PublishResultsModal from "./publish-results-modal";
 import type { TestSeriesResults, TestSeriesResultItem } from "../../../services/test-series";
 
 export default function ResultsViewer({
@@ -52,6 +53,7 @@ export default function ResultsViewer({
         Boolean(initialResults.is_result_show && initialResults.is_score_show)
     );
     const [isPublishing, setIsPublishing] = useState(false);
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
     useEffect(() => {
         if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -163,7 +165,7 @@ export default function ResultsViewer({
                         variant={isPublished ? "outline" : "default"}
                         size="sm"
                         disabled={isPublishing}
-                        onClick={handleTogglePublish}
+                        onClick={isPublished ? handleTogglePublish : () => setIsPublishModalOpen(true)}
                         className={`h-9 text-xs gap-1.5 font-medium cursor-pointer ${
                             isPublished
                                 ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
@@ -233,7 +235,7 @@ export default function ResultsViewer({
                     <Button
                         size="sm"
                         disabled={isPublishing}
-                        onClick={handleTogglePublish}
+                        onClick={() => setIsPublishModalOpen(true)}
                         className="h-7 text-[11px] bg-amber-600 hover:bg-amber-700 text-white shrink-0 font-medium cursor-pointer"
                     >
                         Publish Results Now
@@ -505,6 +507,14 @@ export default function ResultsViewer({
                     onClose={() => setSelectedAttemptItem(null)}
                 />
             )}
+
+            {/* Publish Results Modal */}
+            <PublishResultsModal
+                isOpen={isPublishModalOpen}
+                onClose={() => setIsPublishModalOpen(false)}
+                seriesId={initialResults.series_id}
+                onPublish={handleTogglePublish}
+            />
         </div>
     );
 }
