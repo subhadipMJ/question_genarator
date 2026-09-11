@@ -186,7 +186,7 @@ export default function QuestionForm() {
 
         const plainQuestion = question.replace(/<[^>]*>/g, "").trim();
         const isOptionValid = (option: QuestionOption, index: number) => {
-            return option.ans.trim().length > 0 || !!optionDiagramFiles[index];
+            return (option.ans || "").trim().length > 0 || !!optionDiagramFiles[index];
         };
 
         if (!plainQuestion || options.some((option, index) => !isOptionValid(option, index))) {
@@ -221,7 +221,7 @@ export default function QuestionForm() {
                     is_active: isActive,
                     topic_id: selectedTopicId ? Number(selectedTopicId) : null,
                     options: options.map((option) => ({
-                        ans: option.ans.trim(),
+                        ans: (option.ans || "").trim(),
                         is_correct: option.is_correct,
                     })),
                 }),
@@ -400,7 +400,7 @@ export default function QuestionForm() {
                             />
                             <Input
                                 type="text"
-                                value={option.ans}
+                                value={option.ans || ""}
                                 onChange={(event) => updateOption(index, event.target.value)}
                                 placeholder={`Option ${index + 1}`}
                                 className="flex-1"

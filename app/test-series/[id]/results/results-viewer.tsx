@@ -744,7 +744,7 @@ function StudentAttemptModal({
                                                                 <div className="flex flex-col gap-1.5">
                                                                     <span
                                                                         dangerouslySetInnerHTML={{
-                                                                            __html: sanitizeHtmlContent(opt.ans),
+                                                                            __html: sanitizeHtmlContent(opt.ans || ""),
                                                                         }}
                                                                     />
                                                                     {opt.diagram_path && (
