@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
-import { AlertTriangle, Check, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Check, FileText, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import AnswerSheetPdfModal from "@/components/answer-sheet-pdf-modal";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,8 @@ export type Attempt = {
     total_marks: string;
     is_score_show?: boolean | number | string;
     is_result_show?: boolean | number | string;
+    result_file_key?: string | null;
+    pdf_url?: string | null;
     questions: AttemptQuestion[];
 };
 
@@ -123,6 +126,7 @@ export default function AttemptRunner({
     const [userViewMode, setUserViewMode] = useState<"single" | "list">("list");
     const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
     const [isEnteringTest, setIsEnteringTest] = useState(false);
+    const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
     const router = useRouter();
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
@@ -141,6 +145,9 @@ export default function AttemptRunner({
     const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
     const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
     const effectiveViewMode = isActive ? "single" : userViewMode;
+
+    const pdfUrl = attempt.result_file_key || attempt.pdf_url;
+    const canShowPdf = Boolean(!isActive && canShowResult(attempt) && pdfUrl);
 
     useEffect(() => {
         if (readOnly || !isInProgress(attempt.status)) return;
@@ -873,27 +880,41 @@ export default function AttemptRunner({
                                     : `Question ${currentQuestionIndex + 1} of ${attempt.questions.length}`}
                             </span>
                             {!isActive && (
-                                <div className="flex items-center rounded-lg border bg-muted/40 p-1">
-                                    <Button
-                                        type="button"
-                                        variant={effectiveViewMode === "single" ? "default" : "ghost"}
-                                        size="sm"
-                                        className="h-7 px-2.5 text-xs cursor-pointer"
-                                        onClick={() => setUserViewMode("single")}
-                                    >
-                                        <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
-                                        Single Question
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant={effectiveViewMode === "list" ? "default" : "ghost"}
-                                        size="sm"
-                                        className="h-7 px-2.5 text-xs cursor-pointer"
-                                        onClick={() => setUserViewMode("list")}
-                                    >
-                                        <List className="mr-1.5 h-3.5 w-3.5" />
-                                        List View (All)
-                                    </Button>
+                                <div className="flex items-center gap-2">
+                                    {canShowPdf && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsPdfModalOpen(true)}
+                                            className="h-8 px-3 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5 hover:text-primary cursor-pointer shadow-2xs"
+                                        >
+                                            <FileText className="h-3.5 w-3.5 text-primary" />
+                                            View Answer Key
+                                        </Button>
+                                    )}
+                                    <div className="flex items-center rounded-lg border bg-muted/40 p-1">
+                                        <Button
+                                            type="button"
+                                            variant={effectiveViewMode === "single" ? "default" : "ghost"}
+                                            size="sm"
+                                            className="h-7 px-2.5 text-xs cursor-pointer"
+                                            onClick={() => setUserViewMode("single")}
+                                        >
+                                            <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
+                                            Single Question
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={effectiveViewMode === "list" ? "default" : "ghost"}
+                                            size="sm"
+                                            className="h-7 px-2.5 text-xs cursor-pointer"
+                                            onClick={() => setUserViewMode("list")}
+                                        >
+                                            <List className="mr-1.5 h-3.5 w-3.5" />
+                                            List View (All)
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1058,6 +1079,14 @@ export default function AttemptRunner({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/logos/safalya-logo-new-2.png" alt="" className="h-10" />
                 </div>
+            )}
+            {canShowPdf && (
+                <AnswerSheetPdfModal
+                    isOpen={isPdfModalOpen}
+                    pdfUrl={pdfUrl}
+                    title="Answer Key"
+                    onClose={() => setIsPdfModalOpen(false)}
+                />
             )}
         </>
     );
