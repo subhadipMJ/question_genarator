@@ -206,7 +206,8 @@ export default function StudentTests({
             document.documentElement.classList.remove("exam-fullscreen");
             toast.error(err instanceof Error ? err.message : "Unable to start test.");
         } finally {
-            setBusy(null);
+            setTimeout(() => setBusy(null), 2000);
+            // setBusy(null);
         }
     }
 

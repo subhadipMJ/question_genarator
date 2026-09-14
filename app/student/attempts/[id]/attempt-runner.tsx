@@ -36,6 +36,8 @@ export type Attempt = {
     status: number | string;
     score: string;
     total_marks: string;
+    is_score_show?: boolean | number | string;
+    is_result_show?: boolean | number | string;
     questions: AttemptQuestion[];
 };
 
@@ -59,6 +61,18 @@ function statusLabel(s: number | string | null | undefined): string {
     if (s === 3 || s === "3" || s === "force_submitted") return "Force Submitted";
     if (isSubmitted(s)) return "Submitted";
     return String(s ?? "");
+}
+
+function canShowResult(attempt: Attempt): boolean {
+    const v = attempt.is_result_show;
+    if (v === false || v === 0 || v === "0") return false;
+    return true;
+}
+
+function canShowScore(attempt: Attempt): boolean {
+    const v = attempt.is_score_show;
+    if (v === false || v === 0 || v === "0") return false;
+    return true;
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -383,6 +397,7 @@ export default function AttemptRunner({
     function renderQuestionCard(q: AttemptQuestion) {
         const isSaving = savingId === q.id;
         const isSubmittedState = isSubmitted(attempt.status);
+        const showResult = canShowResult(attempt);
 
         return (
             <Card key={q.id} id={`question-${q.id}`} className={`scroll-mt-24 ${isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}`}>
@@ -428,6 +443,10 @@ export default function AttemptRunner({
                                     <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                                         Unanswered
                                     </Badge>
+                                ) : !showResult ? (
+                                    <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-medium">
+                                        Submitted
+                                    </Badge>
                                 ) : q.correct_option_id != null && String(q.selected_option_id) === String(q.correct_option_id) ? (
                                     <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                                         Correct
@@ -456,12 +475,20 @@ export default function AttemptRunner({
                             
                             if (isSubmittedState) {
                                 containerClasses += " cursor-default";
-                                if (isCorrect) {
-                                    containerClasses += " border-emerald-500 bg-emerald-500/5 font-medium dark:bg-emerald-950/20";
-                                } else if (isSelected) {
-                                    containerClasses += " border-destructive bg-destructive/5 dark:bg-destructive/10";
+                                if (showResult) {
+                                    if (isCorrect) {
+                                        containerClasses += " border-emerald-500 bg-emerald-500/5 font-medium dark:bg-emerald-950/20";
+                                    } else if (isSelected) {
+                                        containerClasses += " border-destructive bg-destructive/5 dark:bg-destructive/10";
+                                    } else {
+                                        containerClasses += " border-border opacity-60";
+                                    }
                                 } else {
-                                    containerClasses += " border-border opacity-60";
+                                    if (isSelected) {
+                                        containerClasses += " border-primary bg-primary/5 font-medium";
+                                    } else {
+                                        containerClasses += " border-border opacity-60";
+                                    }
                                 }
                             } else {
                                 containerClasses += isDisabled ? " cursor-not-allowed opacity-60" : " cursor-pointer hover:bg-muted/50";
@@ -482,10 +509,18 @@ export default function AttemptRunner({
                                     }}
                                 >
                                     {isSubmittedState ? (
-                                        isCorrect ? (
-                                            <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
+                                        showResult ? (
+                                            isCorrect ? (
+                                                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
+                                            ) : isSelected ? (
+                                                <X className="h-4 w-4 text-destructive shrink-0 font-bold" />
+                                            ) : (
+                                                <div className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                            )
                                         ) : isSelected ? (
-                                            <X className="h-4 w-4 text-destructive shrink-0 font-bold" />
+                                            <div className="h-4 w-4 rounded-full border-2 border-primary bg-primary flex items-center justify-center shrink-0">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-background" />
+                                            </div>
                                         ) : (
                                             <div className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
                                         )
@@ -519,12 +554,12 @@ export default function AttemptRunner({
                                             </div>
                                         )}
                                     </div>
-                                    {isSubmittedState && isCorrect && (
+                                    {isSubmittedState && showResult && isCorrect && (
                                         <Badge variant="outline" className="ml-auto border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                                             {isSelected ? "Correct (Selected)" : "Correct Option"}
                                         </Badge>
                                     )}
-                                    {isSubmittedState && !isCorrect && isSelected && (
+                                    {isSubmittedState && showResult && !isCorrect && isSelected && (
                                         <Badge variant="outline" className="ml-auto border-destructive/30 bg-destructive/10 text-destructive">
                                             Incorrect Selection
                                         </Badge>
@@ -767,7 +802,11 @@ export default function AttemptRunner({
                         </Badge>
                         {!isInProgress(attempt.status) && (
                             <span className="text-sm font-medium">
-                                Score: {attempt.score} / {attempt.total_marks}
+                                {canShowScore(attempt) ? (
+                                    `Score: ${attempt.score} / ${attempt.total_marks}`
+                                ) : (
+                                    <span className="italic text-amber-600 dark:text-amber-400">Score Hidden (Result Not Out)</span>
+                                )}
                             </span>
                         )}
                     </div>
@@ -794,183 +833,225 @@ export default function AttemptRunner({
             </div>
 
             {/* ── Test workspace ── */}
-            <div className={effectiveViewMode === "list" ? "space-y-5 w-full" : "grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"}>
-            <div className="space-y-5">
-            {/* ── View Mode Toggle & Questions Header ── */}
-            <div className="flex items-center justify-between gap-3 pb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {effectiveViewMode === "list"
-                        ? `All Questions (${attempt.questions.length})`
-                        : `Question ${currentQuestionIndex + 1} of ${attempt.questions.length}`}
-                </span>
-                {!isActive && (
-                    <div className="flex items-center rounded-lg border bg-muted/40 p-1">
-                        <Button
-                            type="button"
-                            variant={effectiveViewMode === "single" ? "default" : "ghost"}
-                            size="sm"
-                            className="h-7 px-2.5 text-xs cursor-pointer"
-                            onClick={() => setUserViewMode("single")}
-                        >
-                            <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
-                            Single Question
-                        </Button>
-                        <Button
-                            type="button"
-                            variant={effectiveViewMode === "list" ? "default" : "ghost"}
-                            size="sm"
-                            className="h-7 px-2.5 text-xs cursor-pointer"
-                            onClick={() => setUserViewMode("list")}
-                        >
-                            <List className="mr-1.5 h-3.5 w-3.5" />
-                            List View (All)
-                        </Button>
-                    </div>
-                )}
-            </div>
-
-            {/* ── Questions List or Single View ── */}
-            {effectiveViewMode === "list" ? (
-                <div className="space-y-5">
-                    {attempt.questions.map((q) => renderQuestionCard(q))}
-                </div>
-            ) : (
-                <>
-                    {currentQuestion && renderQuestionCard(currentQuestion)}
-
-                    {attempt.questions.length > 1 && (
-                        <div className="flex items-center justify-between gap-4">
-                            <Button
-                                variant="outline"
-                                onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
-                                disabled={currentQuestionIndex === 0}
-                            >
-                                Previous
-                            </Button>
-                            <span className="text-sm font-medium text-muted-foreground">
-                                Question {currentQuestionIndex + 1} of {attempt.questions.length}
-                            </span>
-                            <Button
-                                variant="outline"
-                                onClick={() => setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1))}
-                                disabled={currentQuestionIndex === attempt.questions.length - 1}
-                            >
-                                Next
+            {!isActive && !canShowResult(attempt) ? (
+                <Card className="border-amber-500/30 bg-amber-500/5 text-center py-12 px-6 shadow-sm">
+                    <CardContent className="space-y-4">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
+                            <AlertTriangle className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-amber-800 dark:text-amber-300">Results Not Out Yet</h2>
+                        <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
+                            Your test attempt has been submitted successfully. The question paper and detailed answer keys are hidden until results are officially published by your administrator.
+                        </p>
+                        {canShowScore(attempt) ? (
+                            <div className="pt-2">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Score</p>
+                                <p className="mt-1 text-3xl font-bold">
+                                    {attempt.score} <span className="text-muted-foreground text-xl">/ {attempt.total_marks}</span>
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-xs italic text-amber-600 dark:text-amber-400 font-medium pt-1">
+                                Score Hidden (Result Not Out)
+                            </p>
+                        )}
+                        <div className="pt-4">
+                            <Button onClick={() => router.push("/student/tests")}>
+                                Return to Tests
                             </Button>
                         </div>
-                    )}
-                </>
-            )}
-
-            {/* ── Result after submission / expiry ── */}
-            {(isSubmitted(attempt.status) || isExpired(attempt.status)) && (
-                <Card
-                    className={`text-center ${
-                        isSubmitted(attempt.status)
-                            ? "border-primary/30 bg-primary/5"
-                            : "border-destructive/30 bg-destructive/5"
-                    }`}
-                >
-                    <CardContent className="py-8">
-                        {isSubmitted(attempt.status) ? (
-                            <>
-                                <p className="text-muted-foreground text-sm">Final score</p>
-                                <p className="mt-1 text-4xl font-bold">
-                                    {attempt.score}{" "}
-                                    <span className="text-muted-foreground text-2xl">/ {attempt.total_marks}</span>
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <p className="text-destructive font-semibold text-lg">Time expired</p>
-                                <p className="text-muted-foreground mt-1 text-sm">
-                                    Your time ran out before you could submit.
-                                </p>
-                                <p className="mt-3 text-2xl font-bold">
-                                    {attempt.score}{" "}
-                                    <span className="text-muted-foreground text-xl">/ {attempt.total_marks}</span>
-                                </p>
-                            </>
-                        )}
                     </CardContent>
                 </Card>
-            )}
-            </div>
-            {/* ── end left column ── */}
-
-            {/* ── Question palette / navigator (Only in single view) ── */}
-            {effectiveViewMode === "single" && (
-                <aside data-exam-sidebar className="lg:sticky lg:top-32">
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base font-semibold">Questions</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div
-                                className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6"
-                                role="navigation"
-                                aria-label="Question navigator"
-                            >
-                                {attempt.questions.map((q, index) => {
-                                    const answered = q.selected_option_id !== null;
-                                    const isCurrent = index === currentQuestionIndex;
-                                    let bubbleClasses =
-                                        "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors ";
-                                    if (answered) {
-                                        bubbleClasses += "border-emerald-500 bg-emerald-500 text-white ";
-                                    } else {
-                                        bubbleClasses += "border-border bg-muted text-muted-foreground hover:bg-muted/70 ";
-                                    }
-                                    if (isCurrent) {
-                                        bubbleClasses += "ring-2 ring-primary ring-offset-2 ring-offset-background ";
-                                    }
-                                    return (
-                                        <button
-                                            key={q.id}
-                                            type="button"
-                                            onClick={() => setCurrentQuestionIndex(index)}
-                                            className={bubbleClasses}
-                                            aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
-                                            aria-current={isCurrent ? "true" : undefined}
-                                        >
-                                            {q.position}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="space-y-2 border-t pt-4 text-sm">
-                                <div className="flex items-center gap-3">
-                                    <span className="h-4 w-4 shrink-0 rounded-full border border-border bg-muted" />
-                                    <span className="text-muted-foreground">Not answered</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="h-4 w-4 shrink-0 rounded-full border border-emerald-500 bg-emerald-500" />
-                                    <span className="text-muted-foreground">Answered</span>
-                                </div>
-                            </div>
-
-                            {isActive && (
-                                <div className="space-y-2 border-t pt-4">
-                                    <p className="text-center text-sm text-muted-foreground">
-                                        {answeredCount}/{attempt.questions.length} answered
-                                    </p>
+            ) : (
+                <div className={effectiveViewMode === "list" ? "space-y-5 w-full" : "grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"}>
+                    <div className="space-y-5">
+                        {/* ── View Mode Toggle & Questions Header ── */}
+                        <div className="flex items-center justify-between gap-3 pb-1">
+                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                {effectiveViewMode === "list"
+                                    ? `All Questions (${attempt.questions.length})`
+                                    : `Question ${currentQuestionIndex + 1} of ${attempt.questions.length}`}
+                            </span>
+                            {!isActive && (
+                                <div className="flex items-center rounded-lg border bg-muted/40 p-1">
                                     <Button
-                                        onClick={() => handleSubmit(false)}
-                                        disabled={submitting}
-                                        size="lg"
-                                        className="w-full shadow-md"
+                                        type="button"
+                                        variant={effectiveViewMode === "single" ? "default" : "ghost"}
+                                        size="sm"
+                                        className="h-7 px-2.5 text-xs cursor-pointer"
+                                        onClick={() => setUserViewMode("single")}
                                     >
-                                        {submitting ? "Submitting…" : "Submit test"}
+                                        <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
+                                        Single Question
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={effectiveViewMode === "list" ? "default" : "ghost"}
+                                        size="sm"
+                                        className="h-7 px-2.5 text-xs cursor-pointer"
+                                        onClick={() => setUserViewMode("list")}
+                                    >
+                                        <List className="mr-1.5 h-3.5 w-3.5" />
+                                        List View (All)
                                     </Button>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-                </aside>
+                        </div>
+
+                        {/* ── Questions List or Single View ── */}
+                        {effectiveViewMode === "list" ? (
+                            <div className="space-y-5">
+                                {attempt.questions.map((q) => renderQuestionCard(q))}
+                            </div>
+                        ) : (
+                            <>
+                                {currentQuestion && renderQuestionCard(currentQuestion)}
+
+                                {attempt.questions.length > 1 && (
+                                    <div className="flex items-center justify-between gap-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
+                                            disabled={currentQuestionIndex === 0}
+                                        >
+                                            Previous
+                                        </Button>
+                                        <span className="text-sm font-medium text-muted-foreground">
+                                            Question {currentQuestionIndex + 1} of {attempt.questions.length}
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1))}
+                                            disabled={currentQuestionIndex === attempt.questions.length - 1}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* ── Result after submission / expiry ── */}
+                        {(isSubmitted(attempt.status) || isExpired(attempt.status)) && (
+                            <Card
+                                className={`text-center ${
+                                    isSubmitted(attempt.status)
+                                        ? "border-primary/30 bg-primary/5"
+                                        : "border-destructive/30 bg-destructive/5"
+                                }`}
+                            >
+                                <CardContent className="py-8">
+                                    {isSubmitted(attempt.status) ? (
+                                        <>
+                                            <p className="text-muted-foreground text-sm">Final score</p>
+                                            {canShowScore(attempt) ? (
+                                                <p className="mt-1 text-4xl font-bold">
+                                                    {attempt.score}{" "}
+                                                    <span className="text-muted-foreground text-2xl">/ {attempt.total_marks}</span>
+                                                </p>
+                                            ) : (
+                                                <p className="mt-2 text-xl font-medium text-amber-600 dark:text-amber-400">
+                                                    Score Hidden (Result Not Out)
+                                                </p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-destructive font-semibold text-lg">Time expired</p>
+                                            <p className="text-muted-foreground mt-1 text-sm">
+                                                Your time ran out before you could submit.
+                                            </p>
+                                            {canShowScore(attempt) ? (
+                                                <p className="mt-3 text-2xl font-bold">
+                                                    {attempt.score}{" "}
+                                                    <span className="text-muted-foreground text-xl">/ {attempt.total_marks}</span>
+                                                </p>
+                                            ) : (
+                                                <p className="mt-2 text-xl font-medium text-amber-600 dark:text-amber-400">
+                                                    Score Hidden (Result Not Out)
+                                                </p>
+                                            )}
+                                        </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                    {/* ── end left column ── */}
+
+                    {/* ── Question palette / navigator (Only in single view) ── */}
+                    {effectiveViewMode === "single" && (
+                        <aside data-exam-sidebar className="lg:sticky lg:top-32">
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold">Questions</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div
+                                        className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6"
+                                        role="navigation"
+                                        aria-label="Question navigator"
+                                    >
+                                        {attempt.questions.map((q, index) => {
+                                            const answered = q.selected_option_id !== null;
+                                            const isCurrent = index === currentQuestionIndex;
+                                            let bubbleClasses =
+                                                "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors ";
+                                            if (answered) {
+                                                bubbleClasses += "border-emerald-500 bg-emerald-500 text-white ";
+                                            } else {
+                                                bubbleClasses += "border-border bg-muted text-muted-foreground hover:bg-muted/70 ";
+                                            }
+                                            if (isCurrent) {
+                                                bubbleClasses += "ring-2 ring-primary ring-offset-2 ring-offset-background ";
+                                            }
+                                            return (
+                                                <button
+                                                    key={q.id}
+                                                    type="button"
+                                                    onClick={() => setCurrentQuestionIndex(index)}
+                                                    className={bubbleClasses}
+                                                    aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
+                                                    aria-current={isCurrent ? "true" : undefined}
+                                                >
+                                                    {q.position}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="space-y-2 border-t pt-4 text-sm">
+                                        <div className="flex items-center gap-3">
+                                            <span className="h-4 w-4 shrink-0 rounded-full border border-border bg-muted" />
+                                            <span className="text-muted-foreground">Not answered</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="h-4 w-4 shrink-0 rounded-full border border-emerald-500 bg-emerald-500" />
+                                            <span className="text-muted-foreground">Answered</span>
+                                        </div>
+                                    </div>
+
+                                    {isActive && (
+                                        <div className="space-y-2 border-t pt-4">
+                                            <p className="text-center text-sm text-muted-foreground">
+                                                {answeredCount}/{attempt.questions.length} answered
+                                            </p>
+                                            <Button
+                                                onClick={() => handleSubmit(false)}
+                                                disabled={submitting}
+                                                size="lg"
+                                                className="w-full shadow-md"
+                                            >
+                                                {submitting ? "Submitting…" : "Submit test"}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </aside>
+                    )}
+                </div>
             )}
-            </div>
-            {/* ── end two-panel grid ── */}
             </div>
             {isActive && (
                 <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-end bg-background px-4 py-2">
