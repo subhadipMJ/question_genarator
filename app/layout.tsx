@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
-import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -52,7 +51,7 @@ export default async function RootLayout({
       className={`${roboto.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           <TooltipProvider>
             <Toaster position="top-right" richColors closeButton />
             {isAuthenticated ? (
@@ -68,7 +67,6 @@ export default async function RootLayout({
 
                     </div>
                     <div className="flex items-center gap-4">
-                      <ModeToggle />
                       <DropdownMenu>
                         <DropdownMenuTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity outline-none bg-transparent border-0 p-0">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground font-semibold shadow-xs shrink-0">
