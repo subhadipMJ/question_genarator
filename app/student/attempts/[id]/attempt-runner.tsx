@@ -134,6 +134,61 @@ export default function AttemptRunner({
     const fullscreenWarningDeadlineRef = useRef(0);
     const hadTimeRef = useRef(false);
 
+    const pendingSaveRef = useRef<{ timeoutId: NodeJS.Timeout; attemptQuestionId: number; optionId: number | null; attemptId: number } | null>(null);
+    const inFlightSaveRef = useRef<Promise<void> | null>(null);
+
+    // Run pending save on component unmount
+    useEffect(() => {
+        return () => {
+            if (pendingSaveRef.current) {
+                const { timeoutId, attemptQuestionId, optionId, attemptId } = pendingSaveRef.current;
+                clearTimeout(timeoutId);
+                fetch(`/api/backend/student/attempts/${attemptId}/questions/${attemptQuestionId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ selected_option_id: optionId }),
+                    keepalive: true,
+                }).catch(() => {});
+            }
+        };
+    }, []);
+
+    const flushPendingSave = useCallback(async () => {
+        if (pendingSaveRef.current) {
+            const { timeoutId, attemptQuestionId, optionId, attemptId } = pendingSaveRef.current;
+            clearTimeout(timeoutId);
+            pendingSaveRef.current = null;
+
+            setSavingId(attemptQuestionId);
+            
+            const savePromise = fetch(`/api/backend/student/attempts/${attemptId}/questions/${attemptQuestionId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ selected_option_id: optionId }),
+            })
+            .then(async (res) => {
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Unable to save answer.");
+                setAttempt(data as Attempt);
+            })
+            .catch((err) => {
+                toast.error(err instanceof Error ? err.message : "Unable to save answer.");
+                setAttempt(initialAttempt);
+            })
+            .finally(() => {
+                setSavingId((prev) => (prev === attemptQuestionId ? null : prev));
+                if (inFlightSaveRef.current === savePromise) {
+                    inFlightSaveRef.current = null;
+                }
+            });
+
+            inFlightSaveRef.current = savePromise;
+            await savePromise;
+        } else if (inFlightSaveRef.current) {
+            await inFlightSaveRef.current;
+        }
+    }, [initialAttempt]);
+
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
@@ -219,9 +274,11 @@ export default function AttemptRunner({
             if (allowedKeys.includes(e.key)) {
                 if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
                     e.preventDefault();
+                    void flushPendingSave();
                     setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
                 } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
                     e.preventDefault();
+                    void flushPendingSave();
                     setCurrentQuestionIndex((prev) => Math.min(attempt.questions.length - 1, prev + 1));
                 }
                 return;
@@ -290,8 +347,9 @@ export default function AttemptRunner({
     }, [remaining, instructionsOpen]);
 
     const handleAnswer = useCallback(
-        async (attemptQuestionId: number, optionId: number | null) => {
+        (attemptQuestionId: number, optionId: number | null) => {
             if (readOnly) return;
+            
             // Optimistic UI update
             setAttempt((prev) => ({
                 ...prev,
@@ -299,32 +357,35 @@ export default function AttemptRunner({
                     q.id === attemptQuestionId ? { ...q, selected_option_id: optionId } : q,
                 ),
             }));
-            setSavingId(attemptQuestionId);
-            try {
-                const res = await fetch(
-                    `/api/backend/student/attempts/${attempt.id}/questions/${attemptQuestionId}`,
-                    {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ selected_option_id: optionId }),
-                    },
-                );
-                const data = await res.json().catch(() => null);
-                if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Unable to save answer.");
-                setAttempt(data as Attempt);
-            } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Unable to save answer.");
-                // Revert optimistic update on failure
-                setAttempt(initialAttempt);
-            } finally {
-                setSavingId(null);
+
+            // If there's a pending save for a DIFFERENT question, flush it immediately
+            if (pendingSaveRef.current && pendingSaveRef.current.attemptQuestionId !== attemptQuestionId) {
+                void flushPendingSave();
+            } else if (pendingSaveRef.current) {
+                // If it's the same question, just clear the timeout so we can reset it
+                clearTimeout(pendingSaveRef.current.timeoutId);
             }
+
+            // Debounce API Call
+            const timeoutId = setTimeout(() => {
+                void flushPendingSave();
+            }, 2000);
+
+            pendingSaveRef.current = {
+                timeoutId,
+                attemptQuestionId,
+                optionId,
+                attemptId: attempt.id
+            };
         },
-        [attempt.id, initialAttempt, readOnly],
+        [attempt.id, readOnly, flushPendingSave],
     );
 
     async function handleSubmit(bypassModal = false, isForce = false) {
         if (readOnly) return;
+        
+        await flushPendingSave();
+
         if (!bypassModal) {
             setSubmitModalOpen(true);
             return;
@@ -893,7 +954,10 @@ export default function AttemptRunner({
                                             variant={effectiveViewMode === "single" ? "default" : "ghost"}
                                             size="sm"
                                             className="h-7 px-2.5 text-xs cursor-pointer"
-                                            onClick={() => setUserViewMode("single")}
+                                            onClick={() => {
+                                                void flushPendingSave();
+                                                setUserViewMode("single");
+                                            }}
                                         >
                                             <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
                                             Single Question
@@ -903,7 +967,10 @@ export default function AttemptRunner({
                                             variant={effectiveViewMode === "list" ? "default" : "ghost"}
                                             size="sm"
                                             className="h-7 px-2.5 text-xs cursor-pointer"
-                                            onClick={() => setUserViewMode("list")}
+                                            onClick={() => {
+                                                void flushPendingSave();
+                                                setUserViewMode("list");
+                                            }}
                                         >
                                             <List className="mr-1.5 h-3.5 w-3.5" />
                                             List View (All)
@@ -926,7 +993,10 @@ export default function AttemptRunner({
                                     <div className="flex items-center justify-between gap-4">
                                         <Button
                                             variant="outline"
-                                            onClick={() => setCurrentQuestionIndex((index) => Math.max(0, index - 1))}
+                                            onClick={() => {
+                                                void flushPendingSave();
+                                                setCurrentQuestionIndex((index) => Math.max(0, index - 1));
+                                            }}
                                             disabled={currentQuestionIndex === 0}
                                         >
                                             Previous
@@ -936,7 +1006,10 @@ export default function AttemptRunner({
                                         </span>
                                         <Button
                                             variant="outline"
-                                            onClick={() => setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1))}
+                                            onClick={() => {
+                                                void flushPendingSave();
+                                                setCurrentQuestionIndex((index) => Math.min(attempt.questions.length - 1, index + 1));
+                                            }}
                                             disabled={currentQuestionIndex === attempt.questions.length - 1}
                                         >
                                             Next
@@ -1024,7 +1097,10 @@ export default function AttemptRunner({
                                                 <button
                                                     key={q.id}
                                                     type="button"
-                                                    onClick={() => setCurrentQuestionIndex(index)}
+                                                    onClick={() => {
+                                                        void flushPendingSave();
+                                                        setCurrentQuestionIndex(index);
+                                                    }}
                                                     className={bubbleClasses}
                                                     aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
                                                     aria-current={isCurrent ? "true" : undefined}
