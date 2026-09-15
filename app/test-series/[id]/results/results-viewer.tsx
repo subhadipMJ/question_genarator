@@ -39,6 +39,17 @@ import QRCodeModal from "../../qr-code-modal";
 import PublishResultsModal from "./publish-results-modal";
 import type { TestSeriesResults, TestSeriesResultItem } from "../../../services/test-series";
 
+function formatDateTime(dateStr: string | null | undefined, fallback = "Not submitted"): string {
+    if (!dateStr) return fallback;
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return fallback;
+        return d.toLocaleString();
+    } catch {
+        return fallback;
+    }
+}
+
 export default function ResultsViewer({
     initialResults,
 }: {
@@ -57,7 +68,9 @@ export default function ResultsViewer({
     const [isPublishing, setIsPublishing] = useState(false);
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
-    const [pdfKey, setPdfKey] = useState<string | null | undefined>(initialResults.result_file_key);
+    const [pdfKey, setPdfKey] = useState<string | null | undefined>(
+        initialResults.answer_key?.path || initialResults.result_file_key
+    );
 
     useEffect(() => {
         if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -487,11 +500,11 @@ export default function ResultsViewer({
                                         </TableCell>
 
                                         {/* Dates */}
-                                        <TableCell className="px-4 py-3.5 text-muted-foreground">
-                                            {new Date(item.started_at).toLocaleString()}
+                                        <TableCell className="px-4 py-3.5 text-muted-foreground" suppressHydrationWarning>
+                                            {formatDateTime(item.started_at)}
                                         </TableCell>
-                                        <TableCell className="px-4 py-3.5 text-muted-foreground">
-                                            {item.submitted_at ? new Date(item.submitted_at).toLocaleString() : "Not submitted"}
+                                        <TableCell className="px-4 py-3.5 text-muted-foreground" suppressHydrationWarning>
+                                            {formatDateTime(item.submitted_at, "Not submitted")}
                                         </TableCell>
 
                                          {/* Action */}
@@ -609,8 +622,8 @@ function StudentAttemptModal({
                             <div className="text-sm font-bold text-primary">
                                 {item.score} / {item.total_marks} ({item.percentage}%)
                             </div>
-                            <div className="text-[11px] text-muted-foreground">
-                                {item.submitted_at ? new Date(item.submitted_at).toLocaleString() : "In progress"}
+                            <div className="text-[11px] text-muted-foreground" suppressHydrationWarning>
+                                {formatDateTime(item.submitted_at, "In progress")}
                             </div>
                         </div>
                         <button

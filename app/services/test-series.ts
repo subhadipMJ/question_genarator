@@ -1,5 +1,13 @@
 import { createApiClient } from "../lib/api-client";
 
+export interface AnswerKey {
+    id: number;
+    test_series_id: number;
+    path: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export type TestSeries = {
     id: number;
     name: string;
@@ -21,6 +29,7 @@ export type TestSeries = {
     batch_ids?: number[];
     student_ids?: number[];
     result_file_key?: string | null;
+    answer_key?: AnswerKey | null;
 };
 
 export type TestSeriesCreate = {
@@ -77,6 +86,7 @@ export type TestSeriesResults = {
     completed_attempts: number;
     average_score: number;
     result_file_key?: string | null;
+    answer_key?: AnswerKey | null;
     results: TestSeriesResultItem[];
 };
 
@@ -103,5 +113,38 @@ export async function getTestSeriesResults(seriesId: number): Promise<TestSeries
 export async function deleteTestSeries(seriesId: number): Promise<void> {
     const client = await createApiClient();
     await client.delete(`test-series/${seriesId}`);
+}
+
+export async function uploadAnswerKey(seriesId: number, file: File): Promise<AnswerKey> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/api/backend/test-series/${seriesId}/result-sheet`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to upload answer key PDF");
+    }
+
+    return response.json();
+}
+
+export async function getAnswerKey(seriesId: number): Promise<AnswerKey | null> {
+    const response = await fetch(`/api/backend/test-series/${seriesId}/result-sheet`);
+    if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error("Failed to fetch answer key");
+    }
+    return response.json();
+}
+
+export async function deleteAnswerKey(seriesId: number): Promise<boolean> {
+    const response = await fetch(`/api/backend/test-series/${seriesId}/result-sheet`, {
+        method: "DELETE",
+    });
+    return response.ok;
 }
 
