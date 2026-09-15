@@ -40,6 +40,7 @@ export type Attempt = {
     is_score_show?: boolean | number | string;
     is_result_show?: boolean | number | string;
     result_file_key?: string | null;
+    answer_key?: { id: number; test_series_id: number; path: string; created_at: string; updated_at: string } | null;
     pdf_url?: string | null;
     questions: AttemptQuestion[];
 };
@@ -201,7 +202,7 @@ export default function AttemptRunner({
     const isActive = !readOnly && isInProgress(attempt.status) && remaining > 0;
     const effectiveViewMode = isActive ? "single" : userViewMode;
 
-    const pdfUrl = attempt.result_file_key || attempt.pdf_url;
+    const pdfUrl = attempt.answer_key?.path || attempt.result_file_key || attempt.pdf_url;
     const canShowPdf = Boolean(!isActive && canShowResult(attempt) && pdfUrl);
 
     useEffect(() => {

@@ -5,6 +5,8 @@ import { X, UploadCloud, FileText, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+import type { AnswerKey } from "@/app/services/test-series";
+
 interface PublishResultsModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -50,7 +52,6 @@ export default function PublishResultsModal({
             const formData = new FormData();
             formData.append("file", file);
 
-            // TODO: Update this URL to the exact endpoint provided by backend
             const uploadRes = await fetch(`/api/backend/test-series/${seriesId}/result-sheet`, {
                 method: "POST",
                 body: formData,
@@ -58,12 +59,14 @@ export default function PublishResultsModal({
 
             if (!uploadRes.ok) {
                 const errData = await uploadRes.json().catch(() => ({}));
-                throw new Error(errData.detail || "Failed to upload PDF");
+                throw new Error(errData.detail || "Failed to upload answer key PDF");
             }
 
-            // After successful upload, publish the results
+            const answerKey: AnswerKey = await uploadRes.json();
+
+            // After successful upload & answer_keys DB save, notify parent and publish
             if (onPdfUploaded) {
-                onPdfUploaded(`uploads/results/series_${seriesId}/result.pdf`);
+                onPdfUploaded(answerKey.path);
             }
             await onPublish();
             onClose();
