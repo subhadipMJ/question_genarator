@@ -25,8 +25,8 @@ export async function PATCH(request: NextRequest, context: RouteContext<"/api/or
 
         const requestedBody = await request.json() as Record<string, unknown>;
         const allowedFields = role === "0"
-            ? ["name", "location", "phone_number", "is_active"]
-            : ["name", "location", "phone_number"];
+            ? ["name", "location", "phone_number", "email", "is_active"]
+            : ["name", "location", "phone_number", "email"];
         const body = Object.fromEntries(
             Object.entries(requestedBody).filter(([key]) => allowedFields.includes(key)),
         );

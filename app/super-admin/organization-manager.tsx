@@ -73,7 +73,7 @@ export default function OrganizationManager({ initialOrganizations }: { initialO
         }
     }
 
-    async function updateOrganization(id: number, body: { name?: string; location?: string | null; phone_number?: string | null; is_active?: boolean }) {
+    async function updateOrganization(id: number, body: { name?: string; location?: string | null; phone_number?: string | null; email?: string | null; is_active?: boolean }) {
         setPendingId(id);
         try {
             const response = await fetch(`/api/organizations/${id}`, {
