@@ -24,9 +24,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
-import logo from "../public/logos/safalya-logo-new-2.png";
+import logoFull from "../public/logos/safalya-logo-new-2.png";
+import logoIcon from "../public/logos/safalya-logo-icon.png";
+
 interface AppSidebarProps {
   role: string;
   userName: string;
@@ -35,6 +38,8 @@ interface AppSidebarProps {
 
 export function AppSidebar({ role, userName, organizationName }: AppSidebarProps) {
   const pathname = usePathname();
+  const { state, isMobile } = useSidebar();
+  const isCollapsed = state === "collapsed" && !isMobile;
 
   // Define navigation items based on user role
   const getNavItems = () => {
@@ -172,9 +177,21 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="h-16 flex flex-row items-center justify-between p-0 px-4 group-data-[collapsible=icon]:justify-center border-b border-border">
+      <SidebarHeader className={`h-16 flex flex-row items-center justify-between p-0 ${isCollapsed ? "px-2" : "px-4"} group-data-[collapsible=icon]:justify-center border-b border-border`}>
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold group-data-[collapsible=icon]:mx-auto">
-         {logo && <img src={logo.src} alt="Logo" className="h-full" />}
+          {isCollapsed ? (
+            <img
+              src={logoIcon.src}
+              alt="Safalya Icon"
+              className="h-[2.7rem]"
+            />
+          ) : (
+            <img
+              src={logoFull.src}
+              alt="Safalya Logo"
+              className="w-auto h-8 h-full"
+            />
+          )}
         </Link>
       </SidebarHeader>
 
