@@ -819,24 +819,18 @@ export default function AttemptRunner({
                     </div>
                 </div>
 
-                <div className="text-right">
-                    {isActive ? (
-                        <>
-                            <p
-                                className={`font-mono text-2xl font-bold tabular-nums ${remaining < 60 ? "text-destructive animate-pulse" : ""}`}
-                            >
-                                {formatTime(remaining)}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                                {answeredCount}/{attempt.questions.length} answered
-                            </p>
-                        </>
-                    ) : (
-                        <p className="font-mono text-2xl font-bold tabular-nums">
-                            {formatTime(0)}
+                {isActive && (
+                    <div className="text-right">
+                        <p
+                            className={`font-mono text-2xl font-bold tabular-nums ${remaining < 60 ? "text-destructive animate-pulse" : ""}`}
+                        >
+                            {formatTime(remaining)}
                         </p>
-                    )}
-                </div>
+                        <p className="text-muted-foreground text-xs">
+                            {answeredCount}/{attempt.questions.length} answered
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* ── Test workspace ── */}
