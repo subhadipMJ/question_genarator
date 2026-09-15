@@ -35,7 +35,7 @@ export default async function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Organization Settings</CardTitle>
-                    <CardDescription>Update your organization logo, name, location, and phone number.</CardDescription>
+                    <CardDescription>Update your organization logo, name, location, phone number, and email address.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <OrganizationSettings initialOrganization={organization} />

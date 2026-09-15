@@ -12,6 +12,7 @@ export default function OrganizationSettings({ initialOrganization }: { initialO
     const [name, setName] = useState(initialOrganization.name);
     const [location, setLocation] = useState(initialOrganization.location ?? "");
     const [phoneNumber, setPhoneNumber] = useState(initialOrganization.phone_number ?? "");
+    const [email, setEmail] = useState(initialOrganization.email ?? "");
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
     const logoInputRef = useRef<HTMLInputElement | null>(null);
@@ -53,6 +54,7 @@ export default function OrganizationSettings({ initialOrganization }: { initialO
                     name: name.trim(),
                     location: location.trim() || null,
                     phone_number: phoneNumber.trim() || null,
+                    email: email.trim() || null,
                 }),
             });
             const result = await response.json().catch(() => null) as Organization & { message?: string };
@@ -62,6 +64,7 @@ export default function OrganizationSettings({ initialOrganization }: { initialO
             setName(result.name);
             setLocation(result.location ?? "");
             setPhoneNumber(result.phone_number ?? "");
+            setEmail(result.email ?? "");
             toast.success("Organization details updated.");
         } catch (error: unknown) {
             toast.error(error instanceof Error ? error.message : "Unable to update organization.");
@@ -117,7 +120,11 @@ export default function OrganizationSettings({ initialOrganization }: { initialO
                 <Label htmlFor="organizationPhone">Phone number</Label>
                 <Input id="organizationPhone" type="tel" minLength={5} value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} />
             </div>
-            <div className="text-muted-foreground text-sm sm:col-span-2">Organization code: {organization.code}</div>
+            <div className="text-muted-foreground flex items-center text-sm">Organization code: {organization.code}</div>
+            <div className="space-y-2">
+                <Label htmlFor="organizationEmail">Email</Label>
+                <Input id="organizationEmail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+            </div>
             <Button type="submit" disabled={isSaving || !name.trim()} className="sm:col-span-2">
                 {isSaving ? "Saving..." : "Save organization details"}
             </Button>
