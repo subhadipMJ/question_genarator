@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo, FormEvent, useRef } from "react";
+import { useState, useMemo, FormEvent, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,11 +99,19 @@ export default function TestSeriesEditor({
     // Content Tabs state
     const [activeTab, setActiveTab] = useState<"questions" | "batches" | "students">("questions");
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>(series.student_ids ?? []);
-    const [studentSearchQuery, setStudentSearchQuery] = useState("");
     const [batchSearchQuery, setBatchSearchQuery] = useState("");
     const [expandedBatchId, setExpandedBatchId] = useState<number | null>(null);
     const [batchStudentsMap, setBatchStudentsMap] = useState<Record<number, BatchStudent[]>>({});
     const [loadingBatchStudents, setLoadingBatchStudents] = useState<Record<number, boolean>>({});
+
+    // Students Tab pagination & search states (5 per page, desc order)
+    const [studentPage, setStudentPage] = useState(1);
+    const [studentSearchInput, setStudentSearchInput] = useState("");
+    const [debouncedStudentSearch, setDebouncedStudentSearch] = useState("");
+    const [paginatedStudents, setPaginatedStudents] = useState<User[]>([]);
+    const [studentTotalCount, setStudentTotalCount] = useState(0);
+    const [studentTotalPages, setStudentTotalPages] = useState(1);
+    const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
     // Form metadata states
     const [name, setName] = useState(series.name);
@@ -115,6 +123,44 @@ export default function TestSeriesEditor({
         if (series.batch_id) return [series.batch_id];
         return [];
     });
+
+    // Automatically load students for selected batches to know all batch student IDs
+    useEffect(() => {
+        selectedBatchIds.forEach((bId) => {
+            if (!batchStudentsMap[bId] && !loadingBatchStudents[bId]) {
+                setLoadingBatchStudents((prev) => ({ ...prev, [bId]: true }));
+                fetch(`/api/backend/student-batches/${bId}/students`)
+                    .then((res) => (res.ok ? res.json() : []))
+                    .then((data) => {
+                        setBatchStudentsMap((prev) => ({ ...prev, [bId]: data }));
+                    })
+                    .catch(() => {})
+                    .finally(() => {
+                        setLoadingBatchStudents((prev) => ({ ...prev, [bId]: false }));
+                    });
+            }
+        });
+    }, [selectedBatchIds]);
+
+    // Keep track of all student IDs that belong to currently selected batches
+    const batchStudentIdsSet = useMemo(() => {
+        const set = new Set<number>();
+        for (const bId of selectedBatchIds) {
+            const list = batchStudentsMap[bId];
+            if (list) {
+                for (const s of list) {
+                    set.add(s.student_id ?? s.id);
+                }
+            }
+        }
+        return set;
+    }, [selectedBatchIds, batchStudentsMap]);
+
+    // The number only show: selected student - batch student
+    const effectiveSelectedStudentCount = useMemo(() => {
+        return selectedStudentIds.filter((id) => !batchStudentIdsSet.has(id)).length;
+    }, [selectedStudentIds, batchStudentIdsSet]);
+
     const [validUntil, setValidUntil] = useState(series.valid_until);
     
     // Auto-close heuristic states for native datetime-local
@@ -200,18 +246,65 @@ export default function TestSeriesEditor({
         return result;
     }, [localQuestions, searchQuery, topicFilter]);
 
-    const searchableStudents = useMemo(() => {
-        let students = organizationUsers.filter((u) => u.role === 3);
-        if (studentSearchQuery.trim()) {
-            const query = studentSearchQuery.toLowerCase();
-            students = students.filter(
-                (s) =>
-                    s.name.toLowerCase().includes(query) ||
-                    s.email.toLowerCase().includes(query)
-            );
+    // Fetch paginated students (5 per page in desc order)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedStudentSearch(studentSearchInput);
+            setStudentPage(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [studentSearchInput]);
+
+    const fetchStudents = useCallback(async (page: number, search: string, batchIds: number[]) => {
+        setIsLoadingStudents(true);
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                limit: "5",
+                sort_order: "desc",
+                exclude_batch_ids: batchIds.join(","),
+            });
+            if (search.trim()) params.set("q", search.trim());
+
+            const res = await fetch(`/api/backend/test-series/${series.id}/students?${params.toString()}`);
+            if (res.ok) {
+                const data = await res.json();
+                setPaginatedStudents(data.items || []);
+                setStudentTotalCount(data.total || 0);
+                setStudentTotalPages(data.total_pages || 1);
+            } else {
+                let filtered = (organizationUsers || []).filter((u) => u.role === 3).sort((a, b) => b.id - a.id);
+                if (search.trim()) {
+                    const q = search.toLowerCase();
+                    filtered = filtered.filter((s) => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q));
+                }
+                setStudentTotalCount(filtered.length);
+                setStudentTotalPages(Math.max(1, Math.ceil(filtered.length / 5)));
+                const offset = (page - 1) * 5;
+                setPaginatedStudents(filtered.slice(offset, offset + 5));
+            }
+        } catch {
+            let filtered = (organizationUsers || []).filter((u) => u.role === 3).sort((a, b) => b.id - a.id);
+            if (search.trim()) {
+                const q = search.toLowerCase();
+                filtered = filtered.filter((s) => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q));
+            }
+            setStudentTotalCount(filtered.length);
+            setStudentTotalPages(Math.max(1, Math.ceil(filtered.length / 5)));
+            const offset = (page - 1) * 5;
+            setPaginatedStudents(filtered.slice(offset, offset + 5));
+        } finally {
+            setIsLoadingStudents(false);
         }
-        return students;
-    }, [organizationUsers, studentSearchQuery]);
+    }, [series.id, organizationUsers]);
+
+    useEffect(() => {
+        setStudentPage(1);
+    }, [selectedBatchIds]);
+
+    useEffect(() => {
+        fetchStudents(studentPage, debouncedStudentSearch, selectedBatchIds);
+    }, [fetchStudents, studentPage, debouncedStudentSearch, selectedBatchIds]);
 
     const searchableBatches = useMemo(() => {
         let batches = availableStudentBatches;
@@ -306,8 +399,8 @@ export default function TestSeriesEditor({
     }
 
     // Save full series
-    async function handleSaveChanges(e: FormEvent) {
-        e.preventDefault();
+    async function handleSaveChanges(e?: FormEvent) {
+        if (e) e.preventDefault();
         const validUntilDate = new Date(validUntil);
         if (Number.isNaN(validUntilDate.getTime()) || validUntilDate.getTime() <= Date.now()) {
             toast.error("Valid until must be a future date and time.");
@@ -334,7 +427,7 @@ export default function TestSeriesEditor({
                     duration_seconds: durationSeconds,
                     question_ids: linkedQuestionIds,
                     is_active: isActive,
-                    student_ids: selectedStudentIds,
+                    student_ids: selectedStudentIds.filter((id) => !batchStudentIdsSet.has(id)),
                 }),
             });
             const data = await res.json().catch(() => null);
@@ -613,7 +706,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                 </div>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3 items-start">
                 {/* Left Side: Metadata Card */}
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
@@ -803,9 +896,11 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             }`}
                         >
                             <span>Students</span>
-                            <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                                {selectedStudentIds.length}
-                            </Badge>
+                            {effectiveSelectedStudentCount > 0 && (
+                                <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                    {effectiveSelectedStudentCount}
+                                </Badge>
+                            )}
                         </button>
                     </div>
 
@@ -1067,6 +1162,15 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                     <Plus className="h-3.5 w-3.5" />
                                     Create Batch
                                 </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleSaveChanges()}
+                                    disabled={busy}
+                                    className="h-8 px-3 text-xs"
+                                >
+                                    {busy ? "Saving..." : "Save Changes"}
+                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4 flex-1">
@@ -1293,74 +1397,106 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                         </CardContent>
                     </Card>
                 ) : (
-                    <Card className="flex flex-col h-full min-h-[450px]">
+                    <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
                             <div>
-                                <CardTitle>Assign Students</CardTitle>
-                                <CardDescription>Select students who are permitted to access this private test series.</CardDescription>
+                                <div className="flex items-center gap-2">
+                                    <CardTitle>Assign Students</CardTitle>
+                                    {selectedBatchIds.length > 0 && (
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 text-muted-foreground">
+                                            Excluding {selectedBatchIds.length} batch{selectedBatchIds.length > 1 ? "es" : ""}
+                                        </Badge>
+                                    )}
+                                </div>
+                                <CardDescription>
+                                    {selectedBatchIds.length > 0
+                                        ? "Showing students not enrolled in the selected batches."
+                                        : "Select students who are permitted to access this private test series."}
+                                </CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
-                                {searchableStudents.length > 0 && (
+                                {paginatedStudents.length > 0 && (
                                     <>
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
                                             onClick={() => {
-                                                const toAdd = searchableStudents.map((s) => s.id);
+                                                const toAdd = paginatedStudents.map((s) => s.id);
                                                 setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...toAdd])));
-                                                toast.success(`Selected ${toAdd.length} students.`);
+                                                toast.success(`Selected ${toAdd.length} students on this page.`);
                                             }}
                                             className="h-8 px-2.5 text-xs font-medium"
                                         >
-                                            Select all
+                                            Select page
                                         </Button>
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => {
-                                                const toRemove = searchableStudents.map((s) => s.id);
+                                                const toRemove = paginatedStudents.map((s) => s.id);
                                                 setSelectedStudentIds((prev) => prev.filter((id) => !toRemove.includes(id)));
-                                                toast.info("Cleared student selections.");
+                                                toast.info("Cleared selections on this page.");
                                             }}
                                             className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                                         >
-                                            Clear
+                                            Clear page
                                         </Button>
                                     </>
                                 )}
-                                <Badge variant="secondary" className="px-3 py-1 text-xs">
-                                    {selectedStudentIds.length} selected
-                                </Badge>
+                                {effectiveSelectedStudentCount > 0 && (
+                                    <Badge variant="secondary" className="px-3 py-1 text-xs">
+                                        {effectiveSelectedStudentCount} selected
+                                    </Badge>
+                                )}
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleSaveChanges()}
+                                    disabled={busy}
+                                    className="h-8 px-3 text-xs"
+                                >
+                                    {busy ? "Saving..." : "Save Changes"}
+                                </Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-4 pt-4 flex-1">
+                        <CardContent className="space-y-4 pt-4">
                             <div className="relative">
                                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search students by name or email..."
-                                    className="pl-9"
-                                    value={studentSearchQuery}
-                                    onChange={(e) => setStudentSearchQuery(e.target.value)}
+                                    className="pl-9 pr-9"
+                                    value={studentSearchInput}
+                                    onChange={(e) => setStudentSearchInput(e.target.value)}
                                 />
+                                {isLoadingStudents && (
+                                    <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
                             </div>
                             
-                            {searchableStudents.length === 0 ? (
+                            {isLoadingStudents ? (
+                                <div className="border border-dashed rounded-xl p-12 text-center flex flex-col items-center justify-center gap-2">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                    <p className="text-sm text-muted-foreground">Loading students...</p>
+                                </div>
+                            ) : paginatedStudents.length === 0 ? (
                                 <div className="border border-dashed rounded-xl p-12 text-center">
                                     <p className="text-muted-foreground text-sm">
-                                        No students found matching your search.
+                                        {selectedBatchIds.length > 0
+                                            ? "All eligible students already belong to the selected batch(es)."
+                                            : "No students found matching your search."}
                                     </p>
                                 </div>
                             ) : (
-                                <div className="max-h-[500px] overflow-y-auto border rounded-xl divide-y bg-card shadow-sm">
-                                    {searchableStudents.map((student) => {
+                                <div className="border rounded-xl divide-y bg-card shadow-sm overflow-hidden">
+                                    {paginatedStudents.map((student) => {
                                         const isChecked = selectedStudentIds.includes(student.id);
                                         return (
                                             <label
                                                 key={student.id}
                                                 htmlFor={`student-${student.id}`}
-                                                className={`flex cursor-pointer items-center p-4 gap-4 hover:bg-muted/30 transition-colors ${
+                                                className={`flex cursor-pointer items-center p-3.5 gap-4 hover:bg-muted/30 transition-colors ${
                                                     isChecked ? "bg-primary/5" : ""
                                                 }`}
                                             >
@@ -1375,19 +1511,91 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                                                 : [...prev, student.id]
                                                         );
                                                     }}
-                                                    className="h-5 w-5 shrink-0 accent-primary rounded border-gray-300"
+                                                    className="h-4 w-4 shrink-0 accent-primary rounded border-gray-300 cursor-pointer"
                                                 />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-medium text-foreground truncate">
-                                                        {student.name}
-                                                    </p>
-                                                    <p className="text-sm text-muted-foreground truncate">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-medium text-foreground text-sm truncate">
+                                                            {student.name}
+                                                        </p>
+                                                        <Badge variant="outline" className="text-[10px] px-1 py-0 text-muted-foreground font-mono">
+                                                            ID #{student.id}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground truncate mt-0.5">
                                                         {student.email}
                                                     </p>
                                                 </div>
                                             </label>
                                         );
                                     })}
+                                </div>
+                            )}
+
+                            {/* Pagination Footer */}
+                            {studentTotalCount > 0 && (
+                                <div className="pt-3 border-t flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                                    <div>
+                                        Showing <strong>{(studentPage - 1) * 5 + 1}</strong> -{" "}
+                                        <strong>{Math.min(studentPage * 5, studentTotalCount)}</strong> of{" "}
+                                        <strong>{studentTotalCount}</strong> students
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={studentPage <= 1 || isLoadingStudents}
+                                            onClick={() => setStudentPage((p) => Math.max(1, p - 1))}
+                                            className="h-8 px-2.5 text-xs flex items-center gap-1"
+                                        >
+                                            <ChevronLeft className="h-3.5 w-3.5" />
+                                            Previous
+                                        </Button>
+
+                                        <div className="flex items-center gap-1 px-1">
+                                            {Array.from({ length: studentTotalPages }, (_, i) => i + 1)
+                                                .filter((p) => {
+                                                    return p === 1 || p === studentTotalPages || Math.abs(p - studentPage) <= 1;
+                                                })
+                                                .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                                                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) {
+                                                        acc.push("...");
+                                                    }
+                                                    acc.push(p);
+                                                    return acc;
+                                                }, [])
+                                                .map((item, idx) => (
+                                                    typeof item === "string" ? (
+                                                        <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground">...</span>
+                                                    ) : (
+                                                        <Button
+                                                            key={item}
+                                                            type="button"
+                                                            size="sm"
+                                                            variant={studentPage === item ? "default" : "outline"}
+                                                            onClick={() => setStudentPage(item)}
+                                                            className="h-8 w-8 p-0 text-xs"
+                                                            disabled={isLoadingStudents}
+                                                        >
+                                                            {item}
+                                                        </Button>
+                                                    )
+                                                ))}
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={studentPage >= studentTotalPages || isLoadingStudents}
+                                            onClick={() => setStudentPage((p) => Math.min(studentTotalPages, p + 1))}
+                                            className="h-8 px-2.5 text-xs flex items-center gap-1"
+                                        >
+                                            Next
+                                            <ChevronRight className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>

@@ -1,4 +1,5 @@
 import { createApiClient } from "../lib/api-client";
+import type { User } from "./users";
 
 export interface AnswerKey {
     id: number;
@@ -146,5 +147,28 @@ export async function deleteAnswerKey(seriesId: number): Promise<boolean> {
         method: "DELETE",
     });
     return response.ok;
+}
+
+export type PaginatedStudentsResponse = {
+    items: User[];
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+};
+
+export async function getTestSeriesStudents(
+    seriesId: number,
+    params?: { page?: number; limit?: number; sort_order?: string; q?: string; exclude_batch_ids?: string }
+): Promise<PaginatedStudentsResponse> {
+    const client = await createApiClient();
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.sort_order) query.set("sort_order", params.sort_order);
+    if (params?.q) query.set("q", params.q);
+    if (params?.exclude_batch_ids !== undefined) query.set("exclude_batch_ids", params.exclude_batch_ids);
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return client.get<PaginatedStudentsResponse>(`test-series/${seriesId}/students${qs}`);
 }
 
