@@ -105,6 +105,34 @@ export default function ResultsViewer({
         }
     }
 
+    async function handleDeletePdf() {
+        const res = await fetch(`/api/backend/test-series/${initialResults.series_id}/result-sheet`, {
+            method: "DELETE",
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || "Failed to delete answer sheet PDF");
+        }
+        setPdfKey(null);
+    }
+
+    async function handleReplacePdf(newFile: File) {
+        const formData = new FormData();
+        formData.append("file", newFile);
+        const res = await fetch(`/api/backend/test-series/${initialResults.series_id}/result-sheet`, {
+            method: "POST",
+            body: formData,
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || "Failed to replace answer sheet PDF");
+        }
+        const data = await res.json();
+        const newPath = data.path || `uploads/results/series_${initialResults.series_id}/result.pdf`;
+        setPdfKey(newPath);
+        return newPath;
+    }
+
     // Filter and sort results
     const filteredResults = useMemo(() => {
         const list = initialResults.results.filter((item) => {
@@ -549,7 +577,10 @@ export default function ResultsViewer({
             {isPdfModalOpen && pdfKey && (
                 <AnswerSheetPdfModal
                     pdfUrl={pdfKey}
+                    isAdmin={true}
                     onClose={() => setIsPdfModalOpen(false)}
+                    onDelete={handleDeletePdf}
+                    onReplace={handleReplacePdf}
                 />
             )}
         </div>
