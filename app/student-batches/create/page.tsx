@@ -28,7 +28,7 @@ export default async function CreateStudentBatchPage() {
 
     return (
         <main className="p-6">
-            <StudentBatchCreator users={users} />
+            <StudentBatchCreator users={users} organizationId={Number(organizationId)} />
         </main>
     );
 }
