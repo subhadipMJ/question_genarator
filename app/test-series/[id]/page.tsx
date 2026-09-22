@@ -63,7 +63,7 @@ export default async function EditTestSeriesPage({
     });
 
     return (
-        <main className="p-6">
+        <>
             <TestSeriesEditor
                 series={series}
                 availableQuestions={questions}
@@ -75,6 +75,6 @@ export default async function EditTestSeriesPage({
                 userRole={role}
                 userOrgId={organizationId}
             />
-        </main>
+        </>
     );
 }
