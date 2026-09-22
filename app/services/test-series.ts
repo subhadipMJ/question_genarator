@@ -9,6 +9,12 @@ export interface AnswerKey {
     updated_at: string;
 }
 
+export type SeriesQuestionInput = {
+    question_id: number;
+    marks?: number | null;
+    negative_marks?: number | null;
+};
+
 export type TestSeries = {
     id: number;
     name: string;
@@ -22,7 +28,7 @@ export type TestSeries = {
     valid_until: string;
     duration_seconds: number;
     is_active: boolean;
-    question_ids: number[];
+    questions: SeriesQuestionInput[];
     attempt_count?: number;
     is_result_show?: boolean;
     is_score_show?: boolean;
@@ -40,7 +46,7 @@ export type TestSeriesCreate = {
     supervisor_id?: number | null;
     valid_until: string;
     duration_seconds: number;
-    question_ids: number[];
+    questions: SeriesQuestionInput[];
     is_active?: boolean;
     batch_id?: number | null;
     batch_ids?: number[];
@@ -54,7 +60,7 @@ export type TestSeriesUpdate = {
     supervisor_id?: number | null;
     valid_until?: string;
     duration_seconds?: number;
-    question_ids?: number[];
+    questions?: SeriesQuestionInput[];
     is_active?: boolean;
     is_result_show?: boolean;
     is_score_show?: boolean;

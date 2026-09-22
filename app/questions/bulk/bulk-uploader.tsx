@@ -456,13 +456,19 @@ export default function BulkUploader({
                 const tsRes = await fetch(`/api/backend/test-series/${selectedTsId}`);
                 if (tsRes.ok) {
                     const tsData = await tsRes.json();
-                    const existingQIds = Array.isArray(tsData.question_ids) ? tsData.question_ids : [];
-                    const combinedQIds = Array.from(new Set([...existingQIds, ...ids]));
+                    const existingQuestions = Array.isArray(tsData.questions) ? tsData.questions : [];
+                    const existingQIds = existingQuestions.map((q: any) => q.question_id);
+                    const newQuestions = (data as any[]).filter(q => !existingQIds.includes(q.id)).map(q => ({
+                        question_id: q.id,
+                        marks: parseFloat(q.marks) || 1,
+                        negative_marks: 0,
+                    }));
+                    const combinedQuestions = [...existingQuestions, ...newQuestions];
 
                     const patchRes = await fetch(`/api/backend/test-series/${selectedTsId}`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ question_ids: combinedQIds }),
+                        body: JSON.stringify({ questions: combinedQuestions }),
                     });
                     if (patchRes.ok) {
                         assignedSeriesId = Number(selectedTsId);
@@ -474,18 +480,22 @@ export default function BulkUploader({
                 validUntilDate.setDate(validUntilDate.getDate() + 30);
                 const durationMins = parseInt(newTsDuration) || 60;
 
-                const createTsRes = await fetch("/api/backend/test-series/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name: newTsName.trim(),
-                        access_type: newTsAccessType,
-                        valid_until: validUntilDate.toISOString(),
-                        duration_seconds: durationMins * 60,
-                        question_ids: ids,
-                        is_active: true,
-                    }),
-                });
+                    const createTsRes = await fetch("/api/backend/test-series/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            name: newTsName.trim(),
+                            access_type: newTsAccessType,
+                            valid_until: validUntilDate.toISOString(),
+                            duration_seconds: durationMins * 60,
+                            questions: (data as any[]).map(q => ({
+                                question_id: q.id,
+                                marks: parseFloat(q.marks) || 1,
+                                negative_marks: 0
+                            })),
+                            is_active: true,
+                        }),
+                    });
                 if (createTsRes.ok) {
                     const newTsData = await createTsRes.json();
                     assignedSeriesId = newTsData.id;
@@ -678,7 +688,7 @@ Please generate ${promptNumQuestions.trim() || "5"} high-quality questions${prom
                                 <option value="">-- Choose Test Series --</option>
                                 {testSeries.map((ts) => (
                                     <option key={ts.id} value={ts.id}>
-                                        {ts.name} ({ts.question_ids?.length || 0} questions)
+                                        {ts.name} ({ts.questions?.length || 0} questions)
                                     </option>
                                 ))}
                             </select>
