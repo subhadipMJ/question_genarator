@@ -21,6 +21,7 @@ import {
     Check,
     AlertCircle,
     FileText,
+    Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AnswerSheetPdfModal from "@/components/answer-sheet-pdf-modal";
@@ -67,6 +68,7 @@ export default function ResultsViewer({
     );
     const [isPublishing, setIsPublishing] = useState(false);
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+    const [publishModalInitialStep, setPublishModalInitialStep] = useState<"decision" | "upload">("decision");
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
     const [pdfKey, setPdfKey] = useState<string | null | undefined>(
         initialResults.answer_key?.path || initialResults.result_file_key
@@ -206,22 +208,38 @@ export default function ResultsViewer({
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2">
-                    {isPublished && pdfKey && (
+                    {isPublished && pdfKey ? (
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setIsPdfModalOpen(true)}
-                            className="h-9 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5"
+                            className="h-9 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5 cursor-pointer"
                         >
                             <FileText className="h-3.5 w-3.5 text-primary" />
                             View Answer Sheet
                         </Button>
-                    )}
+                    ) : isPublished && !pdfKey ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setPublishModalInitialStep("upload");
+                                setIsPublishModalOpen(true);
+                            }}
+                            className="h-9 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5 hover:text-primary cursor-pointer"
+                        >
+                            <Upload className="h-3.5 w-3.5 text-primary" />
+                            Upload Answer Key
+                        </Button>
+                    ) : null}
                     <Button
                         variant={isPublished ? "outline" : "default"}
                         size="sm"
                         disabled={isPublishing}
-                        onClick={isPublished ? handleTogglePublish : () => setIsPublishModalOpen(true)}
+                        onClick={isPublished ? handleTogglePublish : () => {
+                            setPublishModalInitialStep("decision");
+                            setIsPublishModalOpen(true);
+                        }}
                         className={`h-9 text-xs gap-1.5 font-medium cursor-pointer ${
                             isPublished
                                 ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
@@ -571,6 +589,8 @@ export default function ResultsViewer({
                 seriesId={initialResults.series_id}
                 onPublish={handleTogglePublish}
                 onPdfUploaded={(key) => setPdfKey(key)}
+                initialStep={publishModalInitialStep}
+                isAlreadyPublished={isPublished}
             />
 
             {/* Answer Sheet PDF Modal */}
