@@ -94,7 +94,7 @@ export default function TestSeriesEditor({
 }: TestSeriesEditorProps) {
     const router = useRouter();
     const [localQuestions, setLocalQuestions] = useState<Question[]>(availableQuestions);
-    const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.question_ids);
+    const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.questions?.map(q => q.question_id) || []);
 
     // Content Tabs state
     const [activeTab, setActiveTab] = useState<"questions" | "batches" | "students">("questions");
@@ -425,7 +425,15 @@ export default function TestSeriesEditor({
                     batch_ids: selectedBatchIds,
                     valid_until: validUntilDate.toISOString(),
                     duration_seconds: durationSeconds,
-                    question_ids: linkedQuestionIds,
+                    questions: linkedQuestionIds.map(id => {
+                        const originalQ = series.questions?.find(q => q.question_id === id);
+                        const localQ = localQuestions.find(q => q.id === id);
+                        return {
+                            question_id: id,
+                            marks: originalQ?.marks ?? (localQ ? parseFloat(localQ.marks) : 1),
+                            negative_marks: originalQ?.negative_marks ?? 0,
+                        };
+                    }),
                     is_active: isActive,
                     student_ids: selectedStudentIds.filter((id) => !batchStudentIdsSet.has(id)),
                 }),

@@ -203,7 +203,7 @@ export default function TestSeriesManager({
                     access_type: data.access_type,
                     valid_until: data.valid_until,
                     duration_seconds: data.duration_seconds,
-                    question_ids: [],
+                    questions: [],
                     is_active: data.is_active,
                 }),
             });
@@ -620,10 +620,10 @@ function SeriesCard({
                     </div>
 
                     <p className="text-muted-foreground text-xs">
-                        {s.question_ids.length === 0 ? (
+                        {s.questions.length === 0 ? (
                             <span className="text-amber-600 dark:text-amber-500 font-medium">Empty series — click edit to configure</span>
                         ) : (
-                            `${s.question_ids.length} question${s.question_ids.length !== 1 ? "s" : ""}`
+                            `${s.questions.length} question${s.questions.length !== 1 ? "s" : ""}`
                         )}
                         {" · "}
                         {formatDuration(s.duration_seconds)} · {formatExpiry(s.valid_until)}
