@@ -13,6 +13,8 @@ interface PublishResultsModalProps {
     seriesId: number;
     onPublish: () => Promise<void>; // the function that publishes results, returning a promise to await
     onPdfUploaded?: (pdfKey: string | null) => void;
+    initialStep?: "decision" | "upload";
+    isAlreadyPublished?: boolean;
 }
 
 export default function PublishResultsModal({
@@ -21,12 +23,19 @@ export default function PublishResultsModal({
     seriesId,
     onPublish,
     onPdfUploaded,
+    initialStep = "decision",
+    isAlreadyPublished = false,
 }: PublishResultsModalProps) {
-    const [step, setStep] = useState<"decision" | "upload">("decision");
+    const [step, setStep] = useState<"decision" | "upload">(initialStep);
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Reset state whenever modal opens or initialStep changes
+    if (isOpen && step !== initialStep && !file && !isUploading) {
+        setStep(initialStep);
+    }
 
     if (!isOpen) return null;
 
@@ -64,13 +73,15 @@ export default function PublishResultsModal({
 
             const answerKey: AnswerKey = await uploadRes.json();
 
-            // After successful upload & answer_keys DB save, notify parent and publish
+            // After successful upload & answer_keys DB save, notify parent
             if (onPdfUploaded) {
                 onPdfUploaded(answerKey.path);
             }
-            await onPublish();
+            if (!isAlreadyPublished) {
+                await onPublish();
+            }
             onClose();
-            toast.success("Result sheet PDF uploaded successfully.");
+            toast.success("Answer key PDF uploaded successfully.");
         } catch (error: any) {
             toast.error(error.message || "Failed to upload result sheet");
         } finally {
@@ -121,7 +132,9 @@ export default function PublishResultsModal({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
                 <div className="flex items-center justify-between p-5 border-b border-border bg-muted/30">
-                    <h3 className="text-lg font-bold">Publish Results</h3>
+                    <h3 className="text-lg font-bold">
+                        {isAlreadyPublished || initialStep === "upload" ? "Upload Answer Key" : "Publish Results"}
+                    </h3>
                     <button
                         type="button"
                         onClick={handleClose}
@@ -215,22 +228,28 @@ export default function PublishResultsModal({
                             )}
 
                             <div className="flex items-center justify-between pt-4 border-t">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        setStep("decision");
-                                        setFile(null);
-                                    }}
-                                    disabled={isUploading}
-                                >
-                                    Back
-                                </Button>
+                                {!isAlreadyPublished ? (
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => {
+                                            setStep("decision");
+                                            setFile(null);
+                                        }}
+                                        disabled={isUploading}
+                                    >
+                                        Back
+                                    </Button>
+                                ) : (
+                                    <div />
+                                )}
                                 <Button
                                     onClick={handleUploadAndPublish}
                                     disabled={!file || isUploading}
                                 >
                                     {isUploading ? (
                                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                                    ) : isAlreadyPublished ? (
+                                        "Upload Answer Key"
                                     ) : (
                                         "Upload & Publish"
                                     )}

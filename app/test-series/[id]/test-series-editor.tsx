@@ -94,7 +94,7 @@ export default function TestSeriesEditor({
 }: TestSeriesEditorProps) {
     const router = useRouter();
     const [localQuestions, setLocalQuestions] = useState<Question[]>(availableQuestions);
-    const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.question_ids);
+    const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.question_ids ?? []);
 
     // Content Tabs state
     const [activeTab, setActiveTab] = useState<"questions" | "batches" | "students">("questions");
