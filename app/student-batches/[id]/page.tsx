@@ -43,7 +43,12 @@ export default async function EditStudentBatchPage({
 
     return (
         <main className="p-6">
-            <StudentBatchEditor batch={batch} users={orgUsers} initialStudents={batchStudents} />
+            <StudentBatchEditor 
+                batch={batch} 
+                users={orgUsers} 
+                initialStudents={batchStudents} 
+                organizationId={Number(organizationId)} 
+            />
         </main>
     );
 }

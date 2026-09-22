@@ -4,7 +4,7 @@ import { useState, useMemo, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, Users, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,15 +28,20 @@ function getApiError(data: unknown, status: number): string {
     return `Server returned error status ${status}`;
 }
 
+import AddStudentModal from "@/components/add-student-modal";
+
 type StudentBatchCreatorProps = {
     users: User[];
+    organizationId: number;
 };
 
-export default function StudentBatchCreator({ users }: StudentBatchCreatorProps) {
+export default function StudentBatchCreator({ users, organizationId }: StudentBatchCreatorProps) {
     const router = useRouter();
 
-    const eligibleSupervisors = useMemo(() => users.filter((u) => u.role === 1 || u.role === 2), [users]);
-    const eligibleStudents = useMemo(() => users.filter((u) => u.role === 3), [users]);
+    const [localUsers, setLocalUsers] = useState<User[]>(users);
+
+    const eligibleSupervisors = useMemo(() => localUsers.filter((u) => u.role === 1 || u.role === 2), [localUsers]);
+    const eligibleStudents = useMemo(() => localUsers.filter((u) => u.role === 3), [localUsers]);
 
     const [batchName, setBatchName] = useState("");
     const [supervisorId, setSupervisorId] = useState<number | "">(
@@ -48,6 +53,8 @@ export default function StudentBatchCreator({ users }: StudentBatchCreatorProps)
     const [pageSize, setPageSize] = useState(5);
     const [studentPage, setStudentPage] = useState(1);
     const [busy, setBusy] = useState(false);
+    
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     const searchableStudents = useMemo(() => {
         if (!searchQuery.trim()) return eligibleStudents;
@@ -232,14 +239,25 @@ export default function StudentBatchCreator({ users }: StudentBatchCreatorProps)
                 {/* Right Side: Assign Students */}
                 <div className="lg:col-span-2 space-y-6">
                     <Card className="flex flex-col h-full min-h-[450px]">
-                        <CardHeader className="pb-3 flex flex-row items-center justify-between gap-4 space-y-0">
+                        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-4 space-y-0">
                             <div>
                                 <CardTitle>Assign Students</CardTitle>
                                 <CardDescription className="mt-1">Select students to include in this batch.</CardDescription>
                             </div>
-                            <Badge variant="secondary" className="px-3 py-1 text-xs shrink-0">
-                                {selectedStudentIds.length} selected
-                            </Badge>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                                <Badge variant="secondary" className="px-3 py-1 text-xs">
+                                    {selectedStudentIds.length} selected
+                                </Badge>
+                                <Button 
+                                    size="sm"
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="h-8 text-xs flex items-center gap-1.5 cursor-pointer"
+                                    type="button"
+                                >
+                                    <UserPlus className="h-3.5 w-3.5" />
+                                    Add Student
+                                </Button>
+                            </div>
                         </CardHeader>
 
                         <CardContent className="space-y-4 flex-1 flex flex-col">
@@ -401,6 +419,15 @@ export default function StudentBatchCreator({ users }: StudentBatchCreatorProps)
                     </Card>
                 </div>
             </div>
+            
+            <AddStudentModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                organizationId={organizationId}
+                onStudentAdded={(newStudent) => {
+                    setLocalUsers((prev) => [newStudent, ...prev]);
+                }}
+            />
         </div>
     );
 }
