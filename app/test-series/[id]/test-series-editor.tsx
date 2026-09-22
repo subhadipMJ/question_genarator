@@ -116,6 +116,13 @@ export default function TestSeriesEditor({
     // Form metadata states
     const [name, setName] = useState(series.name);
     const [accessType, setAccessType] = useState(series.access_type);
+    const isPrivateTest = accessType === "private";
+
+    useEffect(() => {
+        if (!isPrivateTest && (activeTab === "batches" || activeTab === "students")) {
+            setActiveTab("questions");
+        }
+    }, [isPrivateTest, activeTab]);
     const [teacherGroupId, setTeacherGroupId] = useState<number | null>(series.teacher_group_id ?? null);
     const [supervisorId, setSupervisorId] = useState<number | null>(series.supervisor_id ?? null);
     const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>(() => {
@@ -215,7 +222,7 @@ export default function TestSeriesEditor({
     const [bulkBusy, setBulkBusy] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    useMemo(() => {
+    useEffect(() => {
         if (typeof window !== "undefined") setOrigin(window.location.origin);
     }, []);
 
@@ -874,42 +881,46 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 {linkedQuestionIds.length}
                             </Badge>
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("batches")}
-                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                activeTab === "batches"
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                            }`}
-                        >
-                            <span>Batches</span>
-                            {selectedBatchIds.length > 0 ? (
-                                <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 hover:bg-emerald-600 text-white">
-                                    {selectedBatchIds.length} Assigned
-                                </Badge>
-                            ) : (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                    Unassigned
-                                </Badge>
-                            )}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("students")}
-                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                activeTab === "students"
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                            }`}
-                        >
-                            <span>Students</span>
-                            {effectiveSelectedStudentCount > 0 && (
-                                <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                                    {effectiveSelectedStudentCount}
-                                </Badge>
-                            )}
-                        </button>
+                        {isPrivateTest && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab("batches")}
+                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                        activeTab === "batches"
+                                            ? "border-primary text-primary"
+                                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                                    }`}
+                                >
+                                    <span>Batches</span>
+                                    {selectedBatchIds.length > 0 ? (
+                                        <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 hover:bg-emerald-600 text-white">
+                                            {selectedBatchIds.length} Assigned
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                            Unassigned
+                                        </Badge>
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab("students")}
+                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                        activeTab === "students"
+                                            ? "border-primary text-primary"
+                                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                                    }`}
+                                >
+                                    <span>Students</span>
+                                    {effectiveSelectedStudentCount > 0 && (
+                                        <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                            {effectiveSelectedStudentCount}
+                                        </Badge>
+                                    )}
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     {activeTab === "questions" ? (
