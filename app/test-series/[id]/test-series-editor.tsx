@@ -99,7 +99,7 @@ export default function TestSeriesEditor({
     const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.questions?.map(q => q.question_id) || []);
 
     // Content Tabs state
-    const [activeTab, setActiveTab] = useState<"questions" | "batches" | "students">("questions");
+    const [activeTab, setActiveTab] = useState<"details" | "questions" | "batches" | "students">("details");
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>(series.student_ids ?? []);
     const [batchSearchQuery, setBatchSearchQuery] = useState("");
     const [expandedBatchId, setExpandedBatchId] = useState<number | null>(null);
@@ -122,7 +122,7 @@ export default function TestSeriesEditor({
 
     useEffect(() => {
         if (!isPrivateTest && (activeTab === "batches" || activeTab === "students")) {
-            setActiveTab("questions");
+            setActiveTab("details");
         }
     }, [isPrivateTest, activeTab]);
     const [teacherGroupId, setTeacherGroupId] = useState<number | null>(series.teacher_group_id ?? null);
@@ -564,7 +564,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
     );
 
     return (
-        <div className="mx-auto max-w-6xl space-y-6">
+        <div className="w-full space-y-6">
             {/* Header / Nav */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -611,16 +611,104 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                 </div>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-3 items-start">
-                {/* Left Side: Metadata Card */}
-                <div className="lg:col-span-1 space-y-6">
+            {/* Tab Bar */}
+            <div className="flex border-b overflow-x-auto">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("details")}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                        activeTab === "details"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                >
+                    <span>Details</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("questions")}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                        activeTab === "questions"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                >
+                    <span>Questions</span>
+                    <Badge variant={activeTab === "questions" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                        {linkedQuestionIds.length}
+                    </Badge>
+                </button>
+                {isPrivateTest && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("batches")}
+                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                activeTab === "batches"
+                                    ? "border-primary text-primary"
+                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
+                        >
+                            <span>Batches</span>
+                            {selectedBatchIds.length > 0 ? (
+                                <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 hover:bg-emerald-600 text-white">
+                                    {selectedBatchIds.length} Assigned
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    Unassigned
+                                </Badge>
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("students")}
+                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                activeTab === "students"
+                                    ? "border-primary text-primary"
+                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
+                        >
+                            <span>Students</span>
+                            {effectiveSelectedStudentCount > 0 && (
+                                <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                    {effectiveSelectedStudentCount}
+                                </Badge>
+                            )}
+                        </button>
+                    </>
+                )}
+                <div className="ml-auto flex items-center gap-2 px-1">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleSaveChanges()}
+                        disabled={busy}
+                        className="h-8 px-3 text-xs"
+                    >
+                        {busy ? "Saving..." : "Save Changes"}
+                    </Button>
+                    {/* <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        nativeButton={false}
+                        render={<Link href="/test-series" />}
+                        className="h-8 px-3 text-xs"
+                    >
+                        Back
+                    </Button> */}
+                </div>
+            </div>
+
+            {activeTab === "details" ? (
                     <Card>
                         <CardHeader>
                             <CardTitle>Series Details</CardTitle>
                             <CardDescription>Configure core configuration fields.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSaveChanges} className="space-y-4">
+                            <form onSubmit={handleSaveChanges} className="grid gap-4 sm:grid-cols-3">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="s-name">Series Name</Label>
                                     <Input
@@ -741,79 +829,10 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                     </select>
                                 </div>
 
-                                <div className="pt-4 border-t flex flex-col gap-2">
-                                    <Button type="submit" className="w-full" disabled={busy}>
-                                        {busy ? "Saving changes..." : "Save changes"}
-                                    </Button>
-                                    <Button variant="outline" className="w-full" nativeButton={false} render={<Link href="/test-series" />}>
-                                        Back to list
-                                    </Button>
-                                </div>
                             </form>
                         </CardContent>
                     </Card>
-                </div>
-
-                {/* Right Side: Questions / Students Content */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex border-b">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("questions")}
-                            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                activeTab === "questions"
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                            }`}
-                        >
-                            <span>Questions</span>
-                            <Badge variant={activeTab === "questions" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                                {linkedQuestionIds.length}
-                            </Badge>
-                        </button>
-                        {isPrivateTest && (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab("batches")}
-                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                        activeTab === "batches"
-                                            ? "border-primary text-primary"
-                                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                                    }`}
-                                >
-                                    <span>Batches</span>
-                                    {selectedBatchIds.length > 0 ? (
-                                        <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 hover:bg-emerald-600 text-white">
-                                            {selectedBatchIds.length} Assigned
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                            Unassigned
-                                        </Badge>
-                                    )}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab("students")}
-                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                        activeTab === "students"
-                                            ? "border-primary text-primary"
-                                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                                    }`}
-                                >
-                                    <span>Students</span>
-                                    {effectiveSelectedStudentCount > 0 && (
-                                        <Badge variant={activeTab === "students" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                                            {effectiveSelectedStudentCount}
-                                        </Badge>
-                                    )}
-                                </button>
-                            </>
-                        )}
-                    </div>
-
-                    {activeTab === "questions" ? (
+            ) : activeTab === "questions" ? (
                     <Card className="flex flex-col h-full min-h-[450px]">
                         <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div>
@@ -979,14 +998,14 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         return (
                                             <div key={q.id} className="flex items-center justify-between px-4 py-3 gap-4 hover:bg-muted/10 transition-colors">
                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                    <span className="text-muted-foreground text-xs font-semibold font-mono">
+                                                    <span className="text-muted-foreground text-sm font-semibold font-mono">
                                                         {String(idx + 1).padStart(2, "0")}
                                                     </span>
-                                                    <span className="text-xs truncate font-medium flex items-center gap-2">
+                                                    <span className="text-sm truncate font-medium flex items-center gap-2">
                                                         {plain || `Question #${q.id}`}
                                                         {q.topic && (
                                                             <span
-                                                                className="inline-block text-[9px] px-1.5 py-0.5 rounded font-semibold text-white shrink-0"
+                                                                className="inline-block text-xs px-1.5 py-0.5 rounded font-semibold text-white shrink-0"
                                                                 style={{ backgroundColor: q.topic.color }}
                                                             >
                                                                 {q.topic.name}
@@ -996,7 +1015,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                                 </div>
 
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    <Badge variant="outline" className="text-[10px] py-0">{q.marks} marks</Badge>
+                                                    <Badge variant="outline" className="text-sm font-bold py-0">{q.marks} marks</Badge>
                                                     <div className="flex border rounded-md">
                                                         <Button
                                                             type="button"
@@ -1071,7 +1090,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                     <Plus className="h-3.5 w-3.5" />
                                     Create Batch
                                 </Button>
-                                <Button
+                                {/* <Button
                                     type="button"
                                     size="sm"
                                     onClick={() => handleSaveChanges()}
@@ -1079,7 +1098,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                     className="h-8 px-3 text-xs"
                                 >
                                     {busy ? "Saving..." : "Save Changes"}
-                                </Button>
+                                </Button> */}
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4 flex-1">
@@ -1359,7 +1378,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                         {effectiveSelectedStudentCount} selected
                                     </Badge>
                                 )}
-                                <Button
+                                {/* <Button
                                     type="button"
                                     size="sm"
                                     onClick={() => handleSaveChanges()}
@@ -1367,7 +1386,7 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                     className="h-8 px-3 text-xs"
                                 >
                                     {busy ? "Saving..." : "Save Changes"}
-                                </Button>
+                                </Button> */}
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4">
@@ -1510,8 +1529,6 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                         </CardContent>
                     </Card>
                 )}
-                </div>
-            </div>
 
             {/* Create Question Modal */}
             {isCreateModalOpen && (
