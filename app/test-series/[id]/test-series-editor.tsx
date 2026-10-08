@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Edit3, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Edit3, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,9 +132,10 @@ export default function TestSeriesEditor({
     const initialTabParam = searchParams.get("tab") || searchParams.get("activeTab");
 
     // Content Tabs state
-    const [activeTab, setActiveTab] = useState<"details" | "questions" | "batches" | "students">(
-        initialTabParam === "questions" ? "questions" : "details"
+    const [activeTab, setActiveTab] = useState<"details" | "questions" | "instructions" | "batches" | "students">(
+        initialTabParam === "questions" ? "questions" : initialTabParam === "instructions" ? "instructions" : "details"
     );
+    const [instructions, setInstructions] = useState<string>(series.instructions ?? "");
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>(series.student_ids ?? []);
     const [batchSearchQuery, setBatchSearchQuery] = useState("");
     const [expandedBatchId, setExpandedBatchId] = useState<number | null>(null);
@@ -641,6 +642,7 @@ export default function TestSeriesEditor({
                     }),
                     is_active: isActive,
                     student_ids: selectedStudentIds.filter((id) => !batchStudentIdsSet.has(id)),
+                    instructions: instructions,
                 }),
             });
             const data = await res.json().catch(() => null);
@@ -916,6 +918,23 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                     <Badge variant={activeTab === "questions" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
                         {linkedQuestionIds.length}
                     </Badge>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("instructions")}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                        activeTab === "instructions"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                >
+                    <FileText className="h-4 w-4" />
+                    <span>Instructions</span>
+                    {instructions && instructions.replace(/<[^>]*>/g, "").trim().length > 0 && (
+                        <Badge variant={activeTab === "instructions" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                            Set
+                        </Badge>
+                    )}
                 </button>
                 {isPrivateTest && (
                     <>
@@ -1440,6 +1459,89 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 render={<Link href={`/test-series/${series.id}/preview`} />}
                             >
                                 View Questions
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ) : activeTab === "instructions" ? (
+                    <Card className="flex flex-col h-full min-h-[500px]">
+                        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
+                            <div>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    Test Instructions
+                                </CardTitle>
+                                <CardDescription>
+                                    Write instructions, guidelines, and rules for students appearing for this test. These will be formatted and displayed before students begin.
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleSaveChanges()}
+                                    disabled={busy}
+                                    className="flex items-center gap-1.5 text-xs"
+                                >
+                                    {busy ? (
+                                        <>
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="h-3.5 w-3.5" />
+                                            Save Instructions
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="space-y-4 pt-4 flex-1 flex flex-col">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 px-3 py-2 rounded-lg border">
+                                <span className="flex items-center gap-1.5">
+                                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                                    Use headings, bullet points, and formatting to outline exam rules, timing, and negative marking details clearly.
+                                </span>
+                                {instructions && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setInstructions("")}
+                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                                    >
+                                        Clear
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="flex-1 flex flex-col min-h-[350px] [&_.quill]:flex-1 [&_.quill]:flex [&_.quill]:flex-col [&_.ql-container]:flex-1 [&_.ql-container]:min-h-[260px] [&_.ql-editor]:min-h-[260px] [&_.ql-editor]:text-sm">
+                                <ReactQuill
+                                    theme="snow"
+                                    value={instructions}
+                                    onChange={setInstructions}
+                                    modules={QUILL_MODULES}
+                                    formats={QUILL_FORMATS}
+                                    placeholder="Enter test instructions here (e.g. marking scheme, allowed tools, guidelines, etc.)..."
+                                />
+                            </div>
+                        </CardContent>
+
+                        <CardFooter className="flex items-center justify-between border-t py-3 bg-muted/10">
+                            <span className="text-xs text-muted-foreground">
+                                {instructions && instructions.replace(/<[^>]*>/g, "").trim().length > 0
+                                    ? `${instructions.replace(/<[^>]*>/g, "").trim().length} characters`
+                                    : "No instructions entered yet"}
+                            </span>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handleSaveChanges()}
+                                disabled={busy}
+                                className="flex items-center gap-1.5 text-xs"
+                            >
+                                {busy ? "Saving..." : "Save Instructions"}
                             </Button>
                         </CardFooter>
                     </Card>

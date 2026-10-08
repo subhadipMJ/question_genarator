@@ -10,6 +10,7 @@ export type AvailableTest = {
     duration_seconds: number;
     question_count: number;
     topics?: string[];
+    instructions?: string | null;
 };
 
 export type PaginatedTests = {

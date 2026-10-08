@@ -37,6 +37,7 @@ export type TestSeries = {
     student_ids?: number[];
     result_file_key?: string | null;
     answer_key?: AnswerKey | null;
+    instructions?: string | null;
 };
 
 export type TestSeriesCreate = {
@@ -51,6 +52,7 @@ export type TestSeriesCreate = {
     batch_id?: number | null;
     batch_ids?: number[];
     student_ids?: number[];
+    instructions?: string | null;
 };
 
 export type TestSeriesUpdate = {
@@ -67,6 +69,7 @@ export type TestSeriesUpdate = {
     batch_id?: number | null;
     batch_ids?: number[];
     student_ids?: number[];
+    instructions?: string | null;
 };
 
 export type TestSeriesResultItem = {

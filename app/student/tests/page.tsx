@@ -17,6 +17,7 @@ export type AvailableTest = {
     topics?: string[];
     access_type?: string;
     is_private?: boolean;
+    instructions?: string | null;
 };
 
 export type PaginatedTests = {

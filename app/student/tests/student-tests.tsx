@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Search, X, Tag, Filter, RotateCcw, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Check } from "lucide-react";
+import { Search, X, Tag, Filter, RotateCcw, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Check, FileText } from "lucide-react";
 import type { PaginatedTests } from "./page";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -267,6 +267,18 @@ export default function StudentTests({
                                 <span>
                                     <strong>No Negative Marking:</strong> Incorrect answers carry 0 negative penalty.
                                 </span>
+                            </div>
+                        )}
+                        {pendingTest.instructions && pendingTest.instructions.trim() && (
+                            <div className="rounded-lg border bg-card p-4 space-y-2">
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <FileText className="h-3.5 w-3.5 text-primary" />
+                                    Test Instructions
+                                </h4>
+                                <div
+                                    className="prose dark:prose-invert max-w-none text-sm text-foreground [&_p]:my-1 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4"
+                                    dangerouslySetInnerHTML={{ __html: pendingTest.instructions }}
+                                />
                             </div>
                         )}
                         <div className="grid gap-3 sm:grid-cols-3 text-sm">

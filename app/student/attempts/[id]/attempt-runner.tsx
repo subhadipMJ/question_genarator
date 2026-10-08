@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
-import { AlertTriangle, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -134,6 +134,14 @@ export default function AttemptRunner({
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const router = useRouter();
+
+    const handleBack = useCallback(() => {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push(readOnly ? "/test-series" : "/student/tests");
+        }
+    }, [router, readOnly]);
     const tabWasHiddenRef = useRef(false);
     const fullscreenSubmitStartedRef = useRef(false);
     const fullscreenWarningTriggeredRef = useRef(false);
@@ -869,6 +877,21 @@ export default function AttemptRunner({
 
             <div className="mx-auto max-w-6xl space-y-5 pb-24">
 
+                {(!isActive || readOnly) && (
+                    <div className="flex items-center justify-between">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleBack}
+                            className="gap-2 text-muted-foreground hover:text-foreground h-9 px-2.5 cursor-pointer -ml-2"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back to Tests</span>
+                        </Button>
+                    </div>
+                )}
+
                 {readOnly && (
                     <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">
                         Read-only staff view. Answers and submission cannot be changed.
@@ -888,40 +911,81 @@ export default function AttemptRunner({
                         {organizationName && <span className="text-lg font-semibold">{organizationName}</span>}
                     </div>
                 )}
-                {!(!isActive && !canShowResult(attempt))&&<div data-exam-header className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background p-4 shadow-sm backdrop-blur">
-                    <div className="min-w-0">
-                        <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
-                        <div className="mt-1 flex items-center gap-2">
-                            <Badge variant={isActive ? "default" : "secondary"} className="text-xs capitalize">
-                                {statusLabel(attempt.status)}
-                            </Badge>
-                            {!isInProgress(attempt.status) && (
-                                <span className="text-sm font-medium">
-                                    {canShowScore(attempt) ? (
-                                        `Score: ${attempt.score} / ${attempt.total_marks}`
-                                    ) : (
-                                        <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-xs">
-                                            Result Pending Announcement
-                                        </Badge>
-                                    )}
-                                </span>
+                {!(!isActive && !canShowResult(attempt)) && (
+                    <div data-exam-header className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background p-4 shadow-sm backdrop-blur">
+                        <div className="flex items-center gap-3 min-w-0">
+                            {(!isActive || readOnly) && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleBack}
+                                    className="h-9 px-3 gap-1.5 text-xs font-medium shrink-0 cursor-pointer"
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    Back
+                                </Button>
                             )}
+                            <div className="min-w-0">
+                                <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <Badge variant={isActive ? "default" : "secondary"} className="text-xs capitalize">
+                                        {statusLabel(attempt.status)}
+                                    </Badge>
+                                    {!isInProgress(attempt.status) && (
+                                        <span className="text-sm font-medium">
+                                            {canShowScore(attempt) ? (
+                                                `Score: ${attempt.score} / ${attempt.total_marks}`
+                                            ) : (
+                                                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-xs">
+                                                    Result Pending Announcement
+                                                </Badge>
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    {isActive && (
-                        <div className="text-right">
-                            <p
-                                className={`font-mono text-2xl font-bold tabular-nums ${remaining < 60 ? "text-destructive animate-pulse" : ""}`}
-                            >
-                                {formatTime(remaining)}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                                {answeredCount}/{attempt.questions.length} answered
-                            </p>
-                        </div>
-                    )}
-                </div>}
+                        {isActive ? (
+                            <div className="text-right">
+                                <p
+                                    className={`font-mono text-2xl font-bold tabular-nums ${remaining < 60 ? "text-destructive animate-pulse" : ""}`}
+                                >
+                                    {formatTime(remaining)}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                    {answeredCount}/{attempt.questions.length} answered
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 shrink-0">
+                                {canShowPdf && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsPdfModalOpen(true)}
+                                        className="h-9 px-3 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5 hover:text-primary cursor-pointer shadow-2xs"
+                                    >
+                                        <FileText className="h-3.5 w-3.5 text-primary" />
+                                        View Answer Key
+                                    </Button>
+                                )}
+                                <Button
+                                    type="button"
+                                    variant="default"
+                                    size="sm"
+                                    onClick={handleBack}
+                                    className="h-9 px-3.5 text-xs gap-1.5 font-medium cursor-pointer"
+                                >
+                                    <ArrowLeft className="h-3.5 w-3.5" />
+                                    Back to Tests
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* ── Test workspace ── */}
                 {!isActive && !canShowResult(attempt) ? (
@@ -974,13 +1038,22 @@ export default function AttemptRunner({
                                 </div>
                             )}
 
-                            <div className="pt-2 flex justify-center">
+                            <div className="pt-2 flex justify-center gap-3">
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="px-6 shadow-sm cursor-pointer font-semibold gap-2"
+                                    onClick={handleBack}
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    Back
+                                </Button>
                                 <Button
                                     size="lg"
                                     className="px-8 shadow-sm cursor-pointer font-semibold"
                                     onClick={() => {
                                         setIsNavigating(true);
-                                        router.push("/student/tests");
+                                        router.push(readOnly ? "/test-series" : "/student/tests");
                                     }}
                                     disabled={isNavigating}
                                 >
@@ -1135,6 +1208,18 @@ export default function AttemptRunner({
                                             </>
                                         )}
                                     </CardContent>
+                                    <div className="border-t py-4 px-6 bg-muted/20 flex justify-center">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleBack}
+                                            className="gap-2 font-medium cursor-pointer"
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                            Back to Tests
+                                        </Button>
+                                    </div>
                                 </Card>
                             )}
                         </div>
@@ -1217,6 +1302,19 @@ export default function AttemptRunner({
                                             </p>
                                         </div>
                                     )}
+                                {!isActive && (
+                                    <div className="border-t pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleBack}
+                                            className="w-full gap-2 cursor-pointer"
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                            Back to Tests
+                                        </Button>
+                                    </div>
+                                )}
                             </Card>
                         </aside>
                     )}
