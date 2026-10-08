@@ -154,18 +154,24 @@ export default function TestSeriesModal({
                                         }, 100);
                                     }}
                                     onChange={(e) => {
-                                        const newVal = e.target.value;
-                                        if (newVal && !isTypingRef.current) {
+                                        let newVal = e.target.value;
+                                        if (newVal) {
+                                            const [newDate, newTime] = newVal.split("T");
                                             const oldVal = lastDateRef.current;
-                                            if (oldVal) {
-                                                const [oldDate, oldTime] = oldVal.split("T");
-                                                const [newDate, newTime] = newVal.split("T");
+                                            const [oldDate] = oldVal ? oldVal.split("T") : ["", ""];
+                                            
+                                            // When a date is newly chosen or date changed
+                                            if (newDate && (!oldDate || oldDate !== newDate)) {
+                                                newVal = `${newDate}T23:59`;
+                                                e.target.value = newVal;
+                                            }
+
+                                            if (!isTypingRef.current && oldVal) {
+                                                const [, oldTime] = oldVal.split("T");
                                                 if (oldDate === newDate && oldTime !== newTime) {
                                                     e.target.blur();
                                                 }
                                             }
-                                            lastDateRef.current = newVal;
-                                        } else if (newVal) {
                                             lastDateRef.current = newVal;
                                         }
                                     }}
