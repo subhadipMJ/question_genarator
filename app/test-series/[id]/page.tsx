@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { getTestSeries } from "../../services/test-series";
-import { getQuestionsByIds } from "../../services/questions";
+import { getQuestionsByIds, type Question } from "../../services/questions";
+import { getTestSeriesQuestions } from "../../services/student";
 import { getOrganizationUsers } from "../../services/organizations";
 import { getAllTeacherGroups } from "../../services/teacher-groups";
 import { getStudentBatches } from "../../services/student-batches";
@@ -34,12 +35,13 @@ export default async function EditTestSeriesPage({
     const seriesId = Number(id);
     if (isNaN(seriesId)) notFound();
 
-    // Fetch details
-    const [series, orgUsers, teacherGroups, studentBatches] = await Promise.all([
+    // Fetch details and test series questions
+    const [series, orgUsers, teacherGroups, studentBatches, seriesQuestionsPayload] = await Promise.all([
         getTestSeries(seriesId).catch(() => null),
         organizationId ? getOrganizationUsers(organizationId).catch(() => []) : Promise.resolve([]),
         getAllTeacherGroups().catch(() => []),
         getStudentBatches().catch(() => []),
+        getTestSeriesQuestions<any>(seriesId).catch(() => null),
     ]);
 
     if (!series) notFound();
@@ -54,15 +56,53 @@ export default async function EditTestSeriesPage({
 
     if (!canEdit) redirect("/test-series");
 
-    const questionFilters = role === "0"
-        ? { isGlobal: true }
-        : role === "1"
-            ? { isGlobal: false, organizationId }
-            : { userId };
-    const questions = await getQuestionsByIds(
-        series.questions.map((question) => question.question_id),
-        questionFilters,
-    );
+    // Build map from the test series questions endpoint (authoritative for this series)
+    const questionsMap = new Map<number, Question>();
+    if (seriesQuestionsPayload?.questions && Array.isArray(seriesQuestionsPayload.questions)) {
+        for (const sq of seriesQuestionsPayload.questions) {
+            questionsMap.set(sq.question_id, {
+                id: sq.question_id,
+                question: sq.question,
+                organization_id: sq.organization_id ?? series.org_id,
+                user_id: sq.user_id ?? 0,
+                is_global: false,
+                marks: String(sq.marks ?? 1),
+                is_active: sq.is_active ?? true,
+                topic_id: sq.topic_id,
+                topic: sq.topic,
+                options: (sq.options || []).map((opt: any) => ({
+                    id: opt.id,
+                    q_id: sq.question_id,
+                    ans: opt.ans || opt.text || "",
+                    is_correct: Boolean(opt.is_correct),
+                    diagram_path: opt.diagram_path,
+                })),
+                diagram_path: sq.diagram_path,
+                diagrams: sq.diagrams,
+            });
+        }
+    }
+
+    // Also fetch from question bank for any questions not already in the map
+    const missingIds = (series.questions || [])
+        .map((q) => q.question_id)
+        .filter((id) => !questionsMap.has(id));
+
+    if (missingIds.length > 0) {
+        const questionFilters = role === "0"
+            ? { isGlobal: true }
+            : role === "1"
+                ? { isGlobal: false, organizationId }
+                : {};
+        const fetchedQuestions = await getQuestionsByIds(missingIds, questionFilters).catch(() => []);
+        for (const q of fetchedQuestions) {
+            questionsMap.set(q.id, q);
+        }
+    }
+
+    const questions = (series.questions || [])
+        .map((sq) => questionsMap.get(sq.question_id))
+        .filter((q): q is Question => q !== undefined);
 
     return (
         <>
