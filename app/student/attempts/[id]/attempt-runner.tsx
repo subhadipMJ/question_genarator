@@ -913,37 +913,23 @@ export default function AttemptRunner({
                 )}
                 {!(!isActive && !canShowResult(attempt)) && (
                     <div data-exam-header className="sticky top-16 z-40 flex items-center justify-between gap-4 rounded-xl border bg-background p-4 shadow-sm backdrop-blur">
-                        <div className="flex items-center gap-3 min-w-0">
-                            {(!isActive || readOnly) && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleBack}
-                                    className="h-9 px-3 gap-1.5 text-xs font-medium shrink-0 cursor-pointer"
-                                >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Back
-                                </Button>
-                            )}
-                            <div className="min-w-0">
-                                <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
-                                <div className="mt-1 flex items-center gap-2">
-                                    <Badge variant={isActive ? "default" : "secondary"} className="text-xs capitalize">
-                                        {statusLabel(attempt.status)}
-                                    </Badge>
-                                    {!isInProgress(attempt.status) && (
-                                        <span className="text-sm font-medium">
-                                            {canShowScore(attempt) ? (
-                                                `Score: ${attempt.score} / ${attempt.total_marks}`
-                                            ) : (
-                                                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-xs">
-                                                    Result Pending Announcement
-                                                </Badge>
-                                            )}
-                                        </span>
-                                    )}
-                                </div>
+                        <div className="min-w-0">
+                            <h1 className="truncate text-lg font-bold">{attempt.series_name}</h1>
+                            <div className="mt-1 flex items-center gap-2">
+                                <Badge variant={isActive ? "default" : "secondary"} className="text-xs capitalize">
+                                    {statusLabel(attempt.status)}
+                                </Badge>
+                                {!isInProgress(attempt.status) && (
+                                    <span className="text-sm font-medium">
+                                        {canShowScore(attempt) ? (
+                                            `Score: ${attempt.score} / ${attempt.total_marks}`
+                                        ) : (
+                                            <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-xs">
+                                                Result Pending Announcement
+                                            </Badge>
+                                        )}
+                                    </span>
+                                )}
                             </div>
                         </div>
 
