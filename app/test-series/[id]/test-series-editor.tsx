@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, FormEvent, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
@@ -128,9 +128,13 @@ export default function TestSeriesEditor({
     const router = useRouter();
     const [localQuestions, setLocalQuestions] = useState<Question[]>(availableQuestions);
     const [linkedQuestionIds, setLinkedQuestionIds] = useState<number[]>(series.questions?.map(q => q.question_id) || []);
+    const searchParams = useSearchParams();
+    const initialTabParam = searchParams.get("tab") || searchParams.get("activeTab");
 
     // Content Tabs state
-    const [activeTab, setActiveTab] = useState<"details" | "questions" | "batches" | "students">("details");
+    const [activeTab, setActiveTab] = useState<"details" | "questions" | "batches" | "students">(
+        initialTabParam === "questions" ? "questions" : "details"
+    );
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>(series.student_ids ?? []);
     const [batchSearchQuery, setBatchSearchQuery] = useState("");
     const [expandedBatchId, setExpandedBatchId] = useState<number | null>(null);
