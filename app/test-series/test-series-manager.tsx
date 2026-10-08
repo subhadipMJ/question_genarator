@@ -210,7 +210,7 @@ export default function TestSeriesManager({
             setNewInviteToken((responseData as TestSeries).invite_token ?? null);
             toast.success("Test created!");
             closeModal();
-            router.push(`/test-series/${responseData.id}`);
+            router.push(`/test-series/${responseData.id}?tab=questions`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Unable to create Test .");
         } finally {
