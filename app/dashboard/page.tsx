@@ -88,8 +88,9 @@ export default async function DashboardPage() {
 
     const totalUsers = usersList.length;
 
-    // Get up to 5 recent test series
-    const recentTestSeries = testSeriesList.slice(0, 5);
+    // Get up to 5 recent test series (newest first / LIFO)
+    const sortedTestSeriesList = [...testSeriesList].sort((a, b) => b.id - a.id);
+    const recentTestSeries = sortedTestSeriesList.slice(0, 5);
 
     return (
         <main className="mx-auto max-w-6xl space-y-6 px-6 py-8">
