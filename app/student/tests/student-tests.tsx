@@ -101,7 +101,7 @@ export default function StudentTests({
         searchQuery.trim() !== "" ||
         selectedTopic !== "" ||
         selectedOrg !== "" ||
-        sortOrder !== "asc" ||
+        sortOrder !== "lifo" ||
         accessType !== "";
 
     function updateBackendQuery(newParams: {
@@ -125,7 +125,7 @@ export default function StudentTests({
         if (q.trim()) params.set("q", q.trim());
         if (topic) params.set("topic", topic);
         if (org_id) params.set("org_id", org_id);
-        if (sort_order && sort_order !== "asc") params.set("sort_order", sort_order);
+        if (sort_order && sort_order !== "lifo") params.set("sort_order", sort_order);
         if (access_type) params.set("access_type", access_type);
         if (page > 1) params.set("page", String(page));
         if (limit !== 10) params.set("limit", String(limit));
@@ -174,7 +174,7 @@ export default function StudentTests({
         setSearchQuery("");
         setSelectedTopic("");
         setSelectedOrg("");
-        setSortOrder("asc");
+        setSortOrder("lifo");
         setAccessType("");
         startFilterTransition(() => {
             router.push("/student/tests");
@@ -457,12 +457,14 @@ export default function StudentTests({
                         ))}
                     </select>
 
-                    {/* Alphabetical Sort Dropdown */}
+                    {/* Sort Dropdown */}
                     <select
                         value={sortOrder}
                         onChange={(e) => handleSortChange(e.target.value)}
                         className="h-9 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring shrink-0"
                     >
+                        <option value="lifo">Newest First (LIFO)</option>
+                        <option value="fifo">Oldest First (FIFO)</option>
                         <option value="asc">Alphabetical (A–Z)</option>
                         <option value="desc">Alphabetical (Z–A)</option>
                     </select>

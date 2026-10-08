@@ -48,7 +48,7 @@ export async function getStudentTests(params: StudentAttemptParams = {}): Promis
     if (params.q) query.set("q", params.q);
     if (params.topic) query.set("topic", params.topic);
     if (params.org_id) query.set("org_id", params.org_id);
-    if (params.sort_order) query.set("sort_order", params.sort_order);
+    query.set("sort_order", params.sort_order ?? "lifo");
     if (params.access_type) query.set("access_type", params.access_type);
     if (params.page) query.set("page", params.page);
     if (params.limit) query.set("limit", params.limit);

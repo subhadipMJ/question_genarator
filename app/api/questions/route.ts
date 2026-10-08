@@ -10,7 +10,20 @@ export async function GET(request: NextRequest) {
     try {
         const proxy = await createBackendProxy();
         if (!proxy) return unauthorizedResponse();
-        return proxy.forward("questions/", { searchParams: request.nextUrl.searchParams });
+
+        const cookieStore = await cookies();
+        const role = cookieStore.get("user_role")?.value;
+        const orgId = cookieStore.get("organization_id")?.value;
+        const userId = cookieStore.get("user_id")?.value;
+
+        const searchParams = new URLSearchParams(request.nextUrl.searchParams);
+        if (role === "1" && orgId && !searchParams.has("organization_id")) {
+            searchParams.set("organization_id", orgId);
+        } else if (role === "2" && userId && !searchParams.has("question_user_id")) {
+            searchParams.set("question_user_id", userId);
+        }
+
+        return proxy.forward("questions/", { searchParams });
     } catch {
         return errorResponse("Failed to fetch questions.");
     }

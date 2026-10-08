@@ -67,7 +67,7 @@ export default async function Page({
                     q: params.q ?? "",
                     topic: params.topic ?? "",
                     org_id: params.org_id ?? "",
-                    sort_order: params.sort_order ?? "asc",
+                    sort_order: params.sort_order ?? "lifo",
                     access_type: params.access_type ?? "",
                     page: Number(params.page ?? "1"),
                     limit: Number(params.limit ?? "10"),

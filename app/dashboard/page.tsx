@@ -5,7 +5,7 @@ import { getAllQuestions } from "../services/questions";
 import { getAllTestSeries } from "../services/test-series";
 import { getStudentBatches } from "../services/student-batches";
 import { getAllTeacherGroups } from "../services/teacher-groups";
-import { getAllUsers } from "../services/users";
+import { getOrganizationUsers } from "../services/organizations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,24 +35,57 @@ export default async function DashboardPage() {
 
     const roleName = roleValue ? ROLE_NAMES[roleValue] ?? "User" : "User";
     const isAdmin = roleValue === "1";
+    const isTeacher = roleValue === "2";
+    const organizationId = Number(cookieStore.get("organization_id")?.value) || 0;
+    const userId = Number(cookieStore.get("user_id")?.value) || 0;
+
+    const questionFilters = isAdmin && organizationId
+        ? { organizationId }
+        : isTeacher && userId
+        ? { userId }
+        : {};
 
     const [questionsRes, testSeriesRes, batchesRes, groupsRes, usersRes] = await Promise.allSettled([
-        getAllQuestions(1, 1),
+        getAllQuestions(1, 1, undefined, questionFilters),
         getAllTestSeries(),
         getStudentBatches(),
         getAllTeacherGroups(),
-        getAllUsers(),
+        isAdmin && organizationId ? getOrganizationUsers(organizationId) : Promise.resolve([]),
     ]);
 
     const totalQuestions = questionsRes.status === "fulfilled" ? questionsRes.value.total : 0;
-    const testSeriesList = testSeriesRes.status === "fulfilled" ? testSeriesRes.value : [];
+    const rawTestSeriesList = testSeriesRes.status === "fulfilled" ? testSeriesRes.value : [];
     const batchesList = batchesRes.status === "fulfilled" ? batchesRes.value : [];
     const groupsList = groupsRes.status === "fulfilled" ? groupsRes.value : [];
     const usersList = usersRes.status === "fulfilled" ? usersRes.value : [];
 
+    // Filter teacher groups by organization
+    const visibleTeacherGroups = organizationId
+        ? groupsList.filter((g) => !g.org_id || g.org_id === organizationId)
+        : groupsList;
+    const totalTeacherGroups = visibleTeacherGroups.length;
+
+    // Filter test series accurately based on user role and permissions
+    const userGroupIds = new Set(visibleTeacherGroups.map((g) => g.id));
+    const testSeriesList = rawTestSeriesList.filter((s) => {
+        if (organizationId && s.org_id && s.org_id !== organizationId) return false;
+        if (isAdmin) return true;
+        if (isTeacher) {
+            if (s.created_by === userId || s.supervisor_id === userId) return true;
+            if (s.teacher_group_id && userGroupIds.has(s.teacher_group_id)) return true;
+            return false;
+        }
+        return true;
+    });
+
     const totalTestSeries = testSeriesList.length;
-    const totalBatches = batchesList.length;
-    const totalTeacherGroups = groupsList.length;
+
+    // Filter student batches by organization
+    const visibleBatches = organizationId
+        ? batchesList.filter((b) => !b.org_id || b.org_id === organizationId)
+        : batchesList;
+    const totalBatches = visibleBatches.length;
+
     const totalUsers = usersList.length;
 
     // Get up to 5 recent test series
@@ -88,7 +121,9 @@ export default async function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{totalQuestions}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Total questions created</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {isAdmin ? "Total organization questions" : "Total questions created"}
+                            </p>
                         </CardContent>
                     </Link>
                 </Card>

@@ -14,7 +14,19 @@ export default async function QuestionsPage() {
     if (!cookieStore.has("access_token")) redirect("/login");
     if (cookieStore.get("user_role")?.value === "3") redirect("/student/tests");
 
-    const paginated = await getAllQuestions(1, 10);
+    const organizationId = Number(cookieStore.get("organization_id")?.value) || 0;
+    const userId = Number(cookieStore.get("user_id")?.value) || 0;
+    const roleValue = cookieStore.get("user_role")?.value;
+    const isAdmin = roleValue === "1";
+    const isTeacher = roleValue === "2";
+
+    const questionFilters = isAdmin && organizationId
+        ? { organizationId }
+        : isTeacher && userId
+        ? { userId }
+        : {};
+
+    const paginated = await getAllQuestions(1, 10, undefined, questionFilters);
 
     // Resolve user/org names only for the first page
     const nonGlobalQuestions = paginated.items.filter((q) => !q.is_global);

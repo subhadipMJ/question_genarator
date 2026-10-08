@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAllTestSeries } from "../services/test-series";
+import { getAllTeacherGroups } from "../services/teacher-groups";
 import { getOrganization } from "../services/organizations";
 import TestSeriesManager from "./test-series-manager";
 
@@ -30,18 +31,30 @@ export default async function TestSeriesPage() {
         return [];
     }
 
-    const series = await fetchWithRetry(getAllTestSeries) as any[];
+    const [seriesRes, groupsRes] = await Promise.allSettled([
+        fetchWithRetry(getAllTestSeries),
+        getAllTeacherGroups(),
+    ]);
 
+    const series = (seriesRes.status === "fulfilled" ? seriesRes.value : []) as any[];
+    const teacherGroups = groupsRes.status === "fulfilled" ? groupsRes.value : [];
+    const teacherGroupIds = new Set(teacherGroups.map((g: any) => g.id));
 
-    const organizationId = Number(cookieStore.get("organization_id")?.value);
-    const userId = Number(cookieStore.get("user_id")?.value);
+    const organizationId = Number(cookieStore.get("organization_id")?.value) || 0;
+    const userId = Number(cookieStore.get("user_id")?.value) || 0;
 
-    // Keep all test series returned by backend (backend already applies role and supervisor visibility)
-    const teacherSeries = role === "2"
-        ? series.filter((s) => s.created_by === userId || s.supervisor_id === userId || Boolean(s.teacher_group_id))
-        : series;
+    const visibleSeries = series.filter((s) => {
+        if (organizationId && s.org_id && s.org_id !== organizationId) return false;
+        if (role === "1") return true;
+        if (role === "2") {
+            if (s.created_by === userId || s.supervisor_id === userId) return true;
+            if (s.teacher_group_id && teacherGroupIds.has(s.teacher_group_id)) return true;
+            return false;
+        }
+        return true;
+    });
 
-    const orgIds = [...new Set(teacherSeries.map((s) => s.org_id).filter((id) => id > 0))];
+    const orgIds = [...new Set(visibleSeries.map((s) => s.org_id).filter((id) => id > 0))];
     const orgResults = await Promise.allSettled(orgIds.map((id) => getOrganization(id)));
     const organizations = Object.fromEntries(
         orgResults.flatMap((res) =>
@@ -52,7 +65,7 @@ export default async function TestSeriesPage() {
     return (
         <main className="p-6">
             <TestSeriesManager
-                initialSeries={teacherSeries}
+                initialSeries={visibleSeries}
                 organizations={organizations}
                 userId={userId}
                 userRole={role}
