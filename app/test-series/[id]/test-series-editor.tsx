@@ -1484,6 +1484,15 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                             >
                                 View Questions
                             </Button>
+                            {/* <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handleSaveChanges()}
+                                disabled={busy}
+                                className="h-8 px-3 text-xs"
+                            >
+                                {busy ? "Saving..." : "Save Changes"}
+                            </Button> */}
                         </CardFooter>
                     </Card>
                 ) : activeTab === "instructions" ? (
