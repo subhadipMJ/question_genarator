@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bookmark, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +135,37 @@ export default function AttemptRunner({
     const [isNavigating, setIsNavigating] = useState(false);
     const router = useRouter();
 
+    const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<number>>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem(`attempt_${initialAttempt.id}_marked_questions`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) return new Set(parsed);
+                }
+            } catch { }
+        }
+        return new Set<number>();
+    });
+
+    const toggleMarkQuestion = useCallback((qId: number) => {
+        setMarkedQuestionIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(qId)) {
+                next.delete(qId);
+            } else {
+                next.add(qId);
+            }
+            try {
+                localStorage.setItem(
+                    `attempt_${initialAttempt.id}_marked_questions`,
+                    JSON.stringify(Array.from(next)),
+                );
+            } catch { }
+            return next;
+        });
+    }, [initialAttempt.id]);
+
     const handleBack = useCallback(() => {
         if (typeof window !== "undefined" && window.history.length > 1) {
             router.back();
@@ -209,6 +240,7 @@ export default function AttemptRunner({
     }, []);
 
     const answeredCount = attempt.questions.filter((q) => q.selected_option_id !== null).length;
+    const markedCount = attempt.questions.filter((q) => markedQuestionIds.has(q.id)).length;
     const expiresAt = safeParseUTC(attempt.expires_at);
     const startedAt = safeParseUTC(attempt.started_at);
     const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
@@ -423,6 +455,9 @@ export default function AttemptRunner({
                 await document.exitFullscreen().catch(() => undefined);
             }
             document.documentElement.classList.remove("exam-fullscreen");
+            try {
+                localStorage.removeItem(`attempt_${attempt.id}_marked_questions`);
+            } catch { }
             toast.success("Test submitted!");
             router.refresh();
         } catch (err) {
@@ -480,6 +515,7 @@ export default function AttemptRunner({
         const isSaving = savingId === q.id;
         const isSubmittedState = isSubmitted(attempt.status);
         const showResult = canShowResult(attempt);
+        const isMarked = markedQuestionIds.has(q.id);
 
         return (
             <Card key={q.id} id={`question-${q.id}`} className={`scroll-mt-24 ${isSaving ? "opacity-70 transition-opacity" : "transition-opacity"}`}>
@@ -542,6 +578,12 @@ export default function AttemptRunner({
                             
                             </div>
 
+                        )}
+                        {isMarked && isActive && (
+                            <Badge variant="outline" className="border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 gap-1 text-xs shrink-0 font-medium">
+                                <Bookmark className="h-3 w-3 fill-current" />
+                                Marked for Review
+                            </Badge>
                         )}
                     </CardTitle>
                 </CardHeader>
@@ -808,7 +850,14 @@ export default function AttemptRunner({
                         </CardHeader>
                         <CardContent className="space-y-5">
                             <p className="text-sm text-muted-foreground">
-                                You answered {answeredCount} of {attempt.questions.length} questions. Answers cannot be changed after submission.
+                                You answered {answeredCount} of {attempt.questions.length} questions
+                                {markedCount > 0 && (
+                                    <span className="font-semibold text-red-600 dark:text-red-400">
+                                        {" "}
+                                        ({markedCount} marked for review)
+                                    </span>
+                                )}
+                                . Answers cannot be changed after submission.
                             </p>
                             <div className="flex gap-3">
                                 <Button
@@ -942,6 +991,11 @@ export default function AttemptRunner({
                                 </p>
                                 <p className="text-muted-foreground text-xs">
                                     {answeredCount}/{attempt.questions.length} answered
+                                    {markedCount > 0 && (
+                                        <span className="ml-1 font-semibold text-red-600 dark:text-red-400">
+                                            • {markedCount} marked for review
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                         ) : (
@@ -1130,9 +1184,28 @@ export default function AttemptRunner({
                                             <ChevronLeft className="h-5 w-5" />
                                             Previous
                                         </Button>
-                                        <span className="text-sm sm:text-base font-semibold text-muted-foreground font-mono">
-                                            Question {currentQuestionIndex + 1} of {attempt.questions.length}
-                                        </span>
+
+                                        {isActive && currentQuestion ? (
+                                            <Button
+                                                type="button"
+                                                variant={markedQuestionIds.has(currentQuestion.id) ? "destructive" : "outline"}
+                                                size="lg"
+                                                className={
+                                                    markedQuestionIds.has(currentQuestion.id)
+                                                        ? "h-11 px-6 text-sm sm:text-base font-semibold gap-2 bg-red-600 hover:bg-red-700 text-white shadow-sm cursor-pointer transition-colors"
+                                                        : "h-11 px-6 text-sm sm:text-base font-semibold gap-2 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-600 dark:border-red-500/60 dark:text-red-400 dark:hover:bg-red-950/30 shadow-xs cursor-pointer transition-colors"
+                                                }
+                                                onClick={() => toggleMarkQuestion(currentQuestion.id)}
+                                            >
+                                                <Bookmark className={`h-4 w-4 ${markedQuestionIds.has(currentQuestion.id) ? "fill-current" : ""}`} />
+                                                {markedQuestionIds.has(currentQuestion.id) ? "Marked for Review" : "Mark for Review"}
+                                            </Button>
+                                        ) : (
+                                            <span className="text-sm sm:text-base font-semibold text-muted-foreground font-mono">
+                                                Question {currentQuestionIndex + 1} of {attempt.questions.length}
+                                            </span>
+                                        )}
+
                                         <Button
                                             type="button"
                                             variant="default"
@@ -1216,14 +1289,19 @@ export default function AttemptRunner({
                             <aside data-exam-sidebar className="lg:sticky lg:top-32">
                                  {isActive && (
                                         <div className="my-2">
-                                            <p className="text-center text-sm text-muted-foreground">
+                                            {/* <p className="text-center text-sm text-muted-foreground">
                                                 {answeredCount}/{attempt.questions.length} answered
-                                            </p>
+                                                {markedCount > 0 && (
+                                                    <span className="ml-1.5 font-semibold text-red-600 dark:text-red-400">
+                                                        • {markedCount} marked for review
+                                                    </span>
+                                                )}
+                                            </p> */}
                                             <Button
                                                 onClick={() => handleSubmit(false)}
                                                 disabled={submitting}
                                                 size="lg"
-                                                className="w-full shadow-md"
+                                                className="w-full shadow-md mt-2"
                                             >
                                                 {submitting ? "Submitting…" : "Finish the entire test"}
                                             </Button>
@@ -1242,9 +1320,12 @@ export default function AttemptRunner({
                                             {attempt.questions.map((q, index) => {
                                                 const answered = q.selected_option_id !== null;
                                                 const isCurrent = index === currentQuestionIndex;
+                                                const isMarked = markedQuestionIds.has(q.id);
                                                 let bubbleClasses =
-                                                    "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors ";
-                                                if (answered) {
+                                                    "relative flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-all ";
+                                                if (isMarked) {
+                                                    bubbleClasses += "border-red-600 bg-red-600 text-white font-semibold shadow-xs ";
+                                                } else if (answered) {
                                                     bubbleClasses += "border-emerald-500 bg-emerald-500 text-white ";
                                                 } else {
                                                     bubbleClasses += "border-border bg-muted text-muted-foreground hover:bg-muted/70 ";
@@ -1261,10 +1342,17 @@ export default function AttemptRunner({
                                                             setCurrentQuestionIndex(index);
                                                         }}
                                                         className={bubbleClasses}
-                                                        aria-label={`Question ${q.position}, ${answered ? "answered" : "not answered"}`}
+                                                        aria-label={`Question ${q.position}, ${isMarked ? "marked for review, " : ""}${answered ? "answered" : "not answered"}`}
                                                         aria-current={isCurrent ? "true" : undefined}
+                                                        title={`Question ${q.position}${isMarked ? " (Marked for Review)" : ""}${answered ? " (Answered)" : ""}`}
                                                     >
                                                         {q.position}
+                                                        {isMarked && answered && (
+                                                            <span
+                                                                className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-background"
+                                                                title="Answered & Marked for Review"
+                                                            />
+                                                        )}
                                                     </button>
                                                 );
                                             })}
@@ -1279,12 +1367,27 @@ export default function AttemptRunner({
                                                 <span className="h-4 w-4 shrink-0 rounded-full border border-emerald-500 bg-emerald-500" />
                                                 <span className="text-muted-foreground">Answered</span>
                                             </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="h-4 w-4 shrink-0 rounded-full border border-red-600 bg-red-600" />
+                                                <span className="text-muted-foreground font-medium text-red-600 dark:text-red-400">Marked for Review</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative h-4 w-4 shrink-0 rounded-full border border-red-600 bg-red-600">
+                                                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-background" />
+                                                </div>
+                                                <span className="text-muted-foreground">Answered & Marked for Review</span>
+                                            </div>
                                         </div>
                                 </CardContent>
                                 {isActive && (
                                         <div className="space-y-2 border-t pt-4">
                                             <p className="text-center text-sm text-muted-foreground">
                                                 {answeredCount}/{attempt.questions.length} answered
+                                                {markedCount > 0 && (
+                                                    <span className="ml-1.5 font-semibold text-red-600 dark:text-red-400">
+                                                        • {markedCount} marked for review
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     )}
