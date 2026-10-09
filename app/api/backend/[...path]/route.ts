@@ -33,9 +33,14 @@ async function forward(request: NextRequest, context: RouteContext<"/api/backend
     }
     const body = response.status === 204 ? null : await response.arrayBuffer();
     const responseContentType = response.headers.get("content-type");
+    const responseDisposition = response.headers.get("content-disposition");
+    const responseHeaders: Record<string, string> = {};
+    if (body && responseContentType) responseHeaders["Content-Type"] = responseContentType;
+    if (body && responseDisposition) responseHeaders["Content-Disposition"] = responseDisposition;
+
     const nextResponse = new NextResponse(body, {
         status: response.status,
-        headers: body && responseContentType ? { "Content-Type": responseContentType } : undefined,
+        headers: Object.keys(responseHeaders).length ? responseHeaders : undefined,
     });
     if (response.status === 401) clearSession(nextResponse);
     return nextResponse;

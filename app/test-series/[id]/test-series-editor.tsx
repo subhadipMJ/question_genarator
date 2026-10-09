@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Edit3, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Edit3, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -980,6 +980,18 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                     <Button
                         type="button"
                         size="sm"
+                        variant="outline"
+                        nativeButton={false}
+                        render={<Link href={`/test-series/${series.id}/paper`} target="_blank" />}
+                        className="h-8 px-3 text-xs gap-1.5 font-medium border-primary/20 hover:bg-primary/5 hover:text-primary"
+                        title="Generate and print physical exam question paper (A4 PDF)"
+                    >
+                        <Printer className="h-3.5 w-3.5" />
+                        Question Paper (PDF)
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
                         onClick={() => handleSaveChanges()}
                         disabled={busy}
                         className="h-8 px-3 text-xs"
@@ -1452,11 +1464,23 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 </div>
                             )}
                         </CardContent>
-                        <CardFooter className="flex justify-end border-t pt-4 bg-muted/10">
+                        <CardFooter className="flex justify-end gap-2 border-t pt-4 bg-muted/10">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                nativeButton={false}
+                                render={<Link href={`/test-series/${series.id}/paper`} target="_blank" />}
+                                className="gap-1.5 text-xs font-medium"
+                            >
+                                <Printer className="h-3.5 w-3.5" />
+                                Physical Paper (PDF)
+                            </Button>
                             <Button 
                                 variant="outline" 
+                                size="sm"
                                 nativeButton={false}
                                 render={<Link href={`/test-series/${series.id}/preview`} />}
+                                className="text-xs font-medium"
                             >
                                 View Questions
                             </Button>

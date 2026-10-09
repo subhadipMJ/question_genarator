@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
-import { Check, ArrowLeft, LayoutGrid, List as ListIcon } from "lucide-react";
+import { Check, ArrowLeft, LayoutGrid, List as ListIcon, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -191,7 +191,18 @@ export default function PreviewRunner({ initialData }: { initialData: PreviewDat
                         </Button>
                     </div>
 
-                    <Button variant="outline" nativeButton={false} render={<Link href={`/test-series/${initialData.series_id}`} />}>
+                    <Button
+                        variant="default"
+                        size="sm"
+                        nativeButton={false}
+                        render={<Link href={`/test-series/${initialData.series_id}/paper`} target="_blank" />}
+                        className="gap-1.5"
+                    >
+                        <Printer className="h-4 w-4" />
+                        Print Paper (PDF)
+                    </Button>
+
+                    <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/test-series/${initialData.series_id}`} />}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Editor
                     </Button>

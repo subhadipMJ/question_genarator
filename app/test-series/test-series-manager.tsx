@@ -18,6 +18,7 @@ import {
     Copy,
     QrCode,
     Trash2,
+    Printer,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -698,6 +699,16 @@ function SeriesCard({
                             Edit
                         </Button>
                     )}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 hover:text-primary hover:border-primary/50"
+                        title="Print Physical Question Paper (A4 PDF)"
+                        nativeButton={false}
+                        render={<Link href={`/test-series/${s.id}/paper`} target="_blank" />}
+                    >
+                        <Printer className="h-3.5 w-3.5" />
+                    </Button>
                     {canDelete && (
                         <Button
                             variant="outline"
