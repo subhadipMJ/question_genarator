@@ -187,14 +187,21 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
 
                         {/* Download Backend Generated PDF Button */}
                         <a
-                            href={`/api/backend/test-series/${initialData.series_id}/question-paper-pdf${showAnswerKey ? "?include_answers=true" : ""}`}
+                            href={`/api/backend/test-series/${initialData.series_id}/question-paper-pdf?${new URLSearchParams({
+                                include_answers: String(showAnswerKey),
+                                columns: String(columns),
+                                font_size: fontSize,
+                                show_candidate_box: String(showCandidateBox),
+                                show_instructions: String(showInstructions),
+                                show_org_header: String(showOrgHeader),
+                            }).toString()}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm cursor-pointer transition-colors"
-                            title="Download backend-generated physical question paper in A4 PDF format"
+                            title={`Download backend PDF (${columns} Column${columns > 1 ? "s" : ""}, ${fontSize}, ${showAnswerKey ? "with answer key" : "without answer key"})`}
                         >
                             <Download className="h-3.5 w-3.5" />
-                            Download PDF (Backend)
+                            Download PDF ({columns} Col)
                         </a>
 
                         {/* Print / Save PDF Button */}
