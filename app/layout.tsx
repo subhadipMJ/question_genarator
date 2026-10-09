@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import QueryProvider from "@/app/providers/query-provider";
 import ReportIssueTrigger from "@/components/report-issue-trigger";
+import NotificationBell from "@/components/notification-bell";
 import "./globals.css";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -80,6 +81,7 @@ export default async function RootLayout({
                         organizationName={organizationName}
                         variant="icon"
                       />
+                      <NotificationBell />
                       <DropdownMenu>
                         <DropdownMenuTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity outline-none bg-transparent border-0 p-0">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground font-semibold shadow-xs shrink-0">
