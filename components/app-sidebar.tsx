@@ -20,6 +20,7 @@ import {
   TrendingUp,
   BookmarkCheck,
   KeyRound,
+  BookOpen,
 } from "lucide-react";
 
 import {
@@ -69,6 +70,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             icon: HelpCircle,
           },
           {
+            title: "Question Sets",
+            href: "/question-sets",
+            icon: BookOpen,
+          },
+          {
             title: "Teacher Groups",
             href: "/teacher-groups",
             icon: Users,
@@ -100,6 +106,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             title: "Questions",
             href: "/questions",
             icon: HelpCircle,
+          },
+          {
+            title: "Question Sets",
+            href: "/question-sets",
+            icon: BookOpen,
           },
           {
             title: "Topics",
@@ -143,6 +154,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             title: "Questions",
             href: "/questions",
             icon: HelpCircle,
+          },
+          {
+            title: "Question Sets",
+            href: "/question-sets",
+            icon: BookOpen,
           },
           {
             title: "Topics",

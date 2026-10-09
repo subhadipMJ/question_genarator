@@ -383,11 +383,13 @@ type TestSeriesOption = "none" | "existing" | "new";
 export default function AdvancedBulkUpload({
     testSeries = [],
     preselectedTestSeriesId,
+    preselectedQuestionSetId,
     onSuccess,
     onCancel,
 }: {
     testSeries?: TestSeries[];
     preselectedTestSeriesId?: number;
+    preselectedQuestionSetId?: number;
     onSuccess?: (newQuestions: any[], assignedSeriesId?: number) => void;
     onCancel?: () => void;
 }) {
@@ -557,6 +559,18 @@ export default function AdvancedBulkUpload({
                 }
             }
 
+            if (preselectedQuestionSetId) {
+                const qSetRes = await fetch(`/api/backend/question-sets/${preselectedQuestionSetId}/questions`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question_ids: ids }),
+                });
+                if (!qSetRes.ok) {
+                    const errData = await qSetRes.json().catch(() => null);
+                    console.error("Failed to link questions to question set:", errData);
+                }
+            }
+
             setResult({
                 created: ids.length,
                 ids,
@@ -569,6 +583,8 @@ export default function AdvancedBulkUpload({
                 toast.success(`${ids.length} questions created and assigned to "${assignedSeriesName}"!`);
             } else if (preselectedTestSeriesId) {
                 toast.success(`${ids.length} questions created and automatically assigned!`);
+            } else if (preselectedQuestionSetId) {
+                toast.success(`${ids.length} questions created and added to the Question Set!`);
             } else {
                 toast.success(`${ids.length} question${ids.length !== 1 ? "s" : ""} created!`);
             }
@@ -718,7 +734,7 @@ Please generate ${promptNumQuestions.trim() || "5"} high-quality questions${prom
             )}
 
             {/* ── Test Series Assignment Card ── */}
-            {!preselectedTestSeriesId && (
+            {!preselectedTestSeriesId && !preselectedQuestionSetId && (
                 <Card className="border bg-card">
                 <CardHeader className="py-3.5 px-4">
                     <CardTitle className="text-sm font-semibold flex items-center gap-2">

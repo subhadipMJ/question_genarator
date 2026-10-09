@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import sanitizeHtml from "sanitize-html";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Edit3, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2, FileText, Printer } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Edit3, Plus, X, Search, Sparkles, Upload, Users, Check, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, Layers, ChevronLeft, ChevronRight, Loader2, FileText, Printer, BookOpen, Globe, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -334,6 +334,90 @@ export default function TestSeriesEditor({
 
     // Bulk upload states
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+
+    // Question Set import states
+    const [isQuestionSetModalOpen, setIsQuestionSetModalOpen] = useState(false);
+    const [availableQuestionSets, setAvailableQuestionSets] = useState<any[]>([]);
+    const [selectedSetDetail, setSelectedSetDetail] = useState<any | null>(null);
+    const [isLoadingSets, setIsLoadingSets] = useState(false);
+    const [isLoadingSetDetail, setIsLoadingSetDetail] = useState(false);
+    const [selectedQSetIds, setSelectedQSetIds] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        if (!isQuestionSetModalOpen) {
+            setSelectedSetDetail(null);
+            setSelectedQSetIds(new Set());
+            return;
+        }
+        let cancelled = false;
+        const fetchSets = async () => {
+            setIsLoadingSets(true);
+            try {
+                const res = await fetch("/api/backend/question-sets");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!cancelled) setAvailableQuestionSets(Array.isArray(data) ? data : []);
+                }
+            } catch {
+                if (!cancelled) toast.error("Failed to load question sets");
+            } finally {
+                if (!cancelled) setIsLoadingSets(false);
+            }
+        };
+        void fetchSets();
+        return () => {
+            cancelled = true;
+        };
+    }, [isQuestionSetModalOpen]);
+
+    const handleSelectQuestionSet = async (setId: number) => {
+        setIsLoadingSetDetail(true);
+        try {
+            const res = await fetch(`/api/backend/question-sets/${setId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setSelectedSetDetail(data);
+                const unlinkedIds = (data.questions || [])
+                    .filter((q: any) => !linkedQuestionIds.includes(q.id))
+                    .map((q: any) => q.id);
+                setSelectedQSetIds(new Set(unlinkedIds));
+            } else {
+                toast.error("Failed to load set details");
+            }
+        } catch {
+            toast.error("Failed to fetch questions from set");
+        } finally {
+            setIsLoadingSetDetail(false);
+        }
+    };
+
+    const handleImportFromQuestionSet = () => {
+        if (!selectedSetDetail || selectedQSetIds.size === 0) {
+            toast.error("Please select at least one question to import");
+            return;
+        }
+        const candidateQuestions = (selectedSetDetail.questions || []).filter((q: any) =>
+            selectedQSetIds.has(q.id)
+        );
+        const newQuestions = candidateQuestions.filter((q: any) => !linkedQuestionIds.includes(q.id));
+
+        if (newQuestions.length === 0) {
+            toast.info("Selected questions are already in this test series");
+            return;
+        }
+
+        setLocalQuestions((prev) => {
+            const map = new Map(prev.map((q) => [q.id, q]));
+            for (const q of newQuestions) {
+                map.set(q.id, q);
+            }
+            return Array.from(map.values());
+        });
+
+        setLinkedQuestionIds((prev) => [...prev, ...newQuestions.map((q: any) => q.id)]);
+        toast.success(`Imported ${newQuestions.length} questions from '${selectedSetDetail.name}'!`);
+        setIsQuestionSetModalOpen(false);
+    };
 
     const quillRef = useRef<any>(null);
     const handleDictation = (text: string) => {
@@ -1158,6 +1242,15 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 >
                                     <Search className="h-3 w-3" />
                                     {isAddPanelOpen ? "Close Finder" : "Add Existing"}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setIsQuestionSetModalOpen(true)}
+                                    className="flex items-center gap-1 text-xs"
+                                >
+                                    <BookOpen className="h-3.5 w-3.5 text-primary" />
+                                    From Question Set
                                 </Button>
                                 <Button
                                     size="sm"
@@ -2203,6 +2296,232 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
                                 }}
                                 onCancel={() => setIsBulkModalOpen(false)}
                             />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Import from Question Set Modal */}
+            {isQuestionSetModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+                    onClick={() => setIsQuestionSetModalOpen(false)}
+                >
+                    <div
+                        className="relative bg-background border rounded-xl shadow-lg w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-6 py-4 border-b flex items-center justify-between bg-muted/20">
+                            <div>
+                                <h3 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+                                    <BookOpen className="h-5 w-5 text-primary" />
+                                    Import from Question Set
+                                </h3>
+                                <p className="text-sm text-muted-foreground mt-1.5">
+                                    Select a Question Set to import its curated questions into &apos;{series.name}&apos;.
+                                </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full shrink-0"
+                                onClick={() => setIsQuestionSetModalOpen(false)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            {isLoadingSets ? (
+                                <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+                                    <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                                    <p className="text-xs">Loading question sets...</p>
+                                </div>
+                            ) : availableQuestionSets.length === 0 ? (
+                                <div className="text-center py-12 border border-dashed rounded-xl bg-muted/20 space-y-3">
+                                    <BookOpen className="h-8 w-8 mx-auto text-muted-foreground" />
+                                    <p className="text-sm font-semibold">No Question Sets found</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Create question sets under the Question Sets section first.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {/* Left Column: Set selector */}
+                                    <div className="space-y-2 md:col-span-1 border-r pr-3">
+                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Available Sets ({availableQuestionSets.length})
+                                        </h4>
+                                        <div className="space-y-1.5 max-h-[420px] overflow-y-auto">
+                                            {availableQuestionSets.map((qs) => {
+                                                const isSelected = selectedSetDetail?.id === qs.id;
+                                                return (
+                                                    <button
+                                                        key={qs.id}
+                                                        type="button"
+                                                        onClick={() => void handleSelectQuestionSet(qs.id)}
+                                                        className={`w-full text-left p-3 rounded-lg border text-xs transition-all cursor-pointer ${
+                                                            isSelected
+                                                                ? "border-primary bg-primary/10 text-primary font-medium shadow-xs"
+                                                                : "border-border hover:bg-muted/50"
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-1 mb-1">
+                                                            <span className="font-semibold truncate">{qs.name}</span>
+                                                            {qs.visibility === 1 ? (
+                                                                <Badge variant="outline" className="text-[10px] py-0 px-1 border-emerald-500/30 text-emerald-600 bg-emerald-500/10">
+                                                                    Public
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="outline" className="text-[10px] py-0 px-1 border-amber-500/30 text-amber-600 bg-amber-500/10">
+                                                                    Org
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[11px] text-muted-foreground">
+                                                            {qs.question_count ?? 0} questions
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column: Questions in selected set */}
+                                    <div className="md:col-span-2 space-y-3">
+                                        {isLoadingSetDetail ? (
+                                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+                                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                                <p className="text-xs">Loading questions...</p>
+                                            </div>
+                                        ) : !selectedSetDetail ? (
+                                            <div className="text-center py-16 text-muted-foreground text-xs border border-dashed rounded-lg">
+                                                Select a Question Set on the left to preview and choose questions.
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center justify-between border-b pb-2">
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-foreground">
+                                                            {selectedSetDetail.name}
+                                                        </h4>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {selectedSetDetail.questions?.length || 0} total questions • {selectedQSetIds.size} selected
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex gap-1.5">
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                const all = (selectedSetDetail.questions || [])
+                                                                    .filter((q: any) => !linkedQuestionIds.includes(q.id))
+                                                                    .map((q: any) => q.id);
+                                                                setSelectedQSetIds(new Set(all));
+                                                            }}
+                                                        >
+                                                            Select All
+                                                        </Button>
+                                                        <Button
+                                                            size="xs"
+                                                            variant="ghost"
+                                                            onClick={() => setSelectedQSetIds(new Set())}
+                                                        >
+                                                            Clear
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+                                                    {(selectedSetDetail.questions || []).map((q: any, idx: number) => {
+                                                        const alreadyLinked = linkedQuestionIds.includes(q.id);
+                                                        const isChecked = selectedQSetIds.has(q.id);
+
+                                                        return (
+                                                            <div
+                                                                key={q.id}
+                                                                onClick={() => {
+                                                                    if (alreadyLinked) return;
+                                                                    setSelectedQSetIds((prev) => {
+                                                                        const next = new Set(prev);
+                                                                        if (next.has(q.id)) next.delete(q.id);
+                                                                        else next.add(q.id);
+                                                                        return next;
+                                                                    });
+                                                                }}
+                                                                className={`p-3 rounded-lg border text-xs flex items-start gap-2.5 transition-colors cursor-pointer ${
+                                                                    alreadyLinked
+                                                                        ? "bg-muted/40 opacity-60 cursor-not-allowed"
+                                                                        : isChecked
+                                                                        ? "border-primary/50 bg-primary/5"
+                                                                        : "hover:bg-muted/30"
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isChecked || alreadyLinked}
+                                                                    disabled={alreadyLinked}
+                                                                    onChange={() => {}}
+                                                                    className="mt-0.5 accent-primary shrink-0"
+                                                                />
+                                                                <div className="flex-1 space-y-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-mono text-[10px] text-muted-foreground">#{idx + 1}</span>
+                                                                        {q.topic_name && (
+                                                                            <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                                                                {q.topic_name}
+                                                                            </Badge>
+                                                                        )}
+                                                                        <span className="text-[10px] font-semibold text-muted-foreground">
+                                                                            {q.marks} marks
+                                                                        </span>
+                                                                        {alreadyLinked && (
+                                                                            <Badge variant="secondary" className="text-[9px] py-0 px-1">
+                                                                                Already added
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    <div
+                                                                        className="line-clamp-2 text-foreground font-medium"
+                                                                        dangerouslySetInnerHTML={{
+                                                                            __html: sanitizeHtml(q.question),
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-6 py-3 border-t bg-muted/20 flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">
+                                {selectedQSetIds.size} question{selectedQSetIds.size !== 1 ? "s" : ""} selected
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsQuestionSetModalOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    disabled={selectedQSetIds.size === 0}
+                                    onClick={handleImportFromQuestionSet}
+                                    className="gap-1.5"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Import Selected Questions
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
