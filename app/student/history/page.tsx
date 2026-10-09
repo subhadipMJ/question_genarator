@@ -11,10 +11,7 @@ export default async function Page() {
     const allHistory: AttemptHistory[] = await getAttemptHistory().catch(() => []);
 
     return (
-        <main className="mx-auto max-w-7xl p-6 space-y-3">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Attempt history</h1>
-            </div>
+        <main className="mx-auto max-w-7xl p-6">
             <HistorySearch allHistory={allHistory} />
         </main>
     );
