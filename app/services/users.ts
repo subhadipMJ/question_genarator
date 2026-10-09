@@ -33,6 +33,8 @@ export type StudentHistoryResponse = {
         total_marks: number;
         percentage: number;
         status: string;
+        is_result_show?: boolean;
+        is_score_show?: boolean;
         started_at: string;
         submitted_at: string | null;
     }>;

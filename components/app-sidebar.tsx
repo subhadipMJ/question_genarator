@@ -17,6 +17,9 @@ import {
   Mail,
   LogOut,
   Bug,
+  TrendingUp,
+  BookmarkCheck,
+  KeyRound,
 } from "lucide-react";
 
 import {
@@ -166,6 +169,11 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
       case "3": // Student
         return [
           {
+            title: "Dashboard",
+            href: "/dashboard",
+            icon: LayoutDashboard,
+          },
+          {
             title: "Available Tests",
             href: "/student/tests",
             icon: GraduationCap,
@@ -174,6 +182,21 @@ export function AppSidebar({ role, userName, organizationName }: AppSidebarProps
             title: "Attempt History",
             href: "/student/history",
             icon: History,
+          },
+          {
+            title: "Performance Analysis",
+            href: "/student/analysis",
+            icon: TrendingUp,
+          },
+          {
+            title: "Mistake Notebook",
+            href: "/student/revision",
+            icon: BookmarkCheck,
+          },
+          {
+            title: "Join with Code",
+            href: "/student/join",
+            icon: KeyRound,
           },
         ];
       default:

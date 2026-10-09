@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { FileText, GraduationCap, HelpCircle, Layers, Users, PlusCircle, ArrowRight } from "lucide-react";
 
+import { getStudentTests, getAttemptHistory } from "../services/student";
+import { StudentDashboard } from "./student-dashboard";
+
 const ROLE_NAMES: Record<string, string> = {
     0: "Super Admin",
     1: "Admin",
@@ -31,7 +34,29 @@ export default async function DashboardPage() {
     const userName = cookieStore.get("user_name")?.value ?? "User";
     const roleValue = cookieStore.get("user_role")?.value;
     if (roleValue === "0") redirect("/super-admin");
-    if (roleValue === "3") redirect("/student/tests");
+
+    if (roleValue === "3") {
+        const [testsRes, historyRes] = await Promise.allSettled([
+            getStudentTests({ limit: "5" }),
+            getAttemptHistory(),
+        ]);
+        const availableTestsData =
+            testsRes.status === "fulfilled"
+                ? testsRes.value
+                : { items: [], total: 0, page: 1, limit: 5, total_pages: 1 };
+        const historyData = historyRes.status === "fulfilled" ? historyRes.value : [];
+
+        return (
+            <main className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+                <StudentDashboard
+                    userName={userName}
+                    availableTests={availableTestsData.items}
+                    totalAvailableTests={availableTestsData.total}
+                    history={historyData}
+                />
+            </main>
+        );
+    }
 
     const roleName = roleValue ? ROLE_NAMES[roleValue] ?? "User" : "User";
     const isAdmin = roleValue === "1";

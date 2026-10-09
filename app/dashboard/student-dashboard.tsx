@@ -11,6 +11,9 @@ import {
     AlertTriangle,
     History as HistoryIcon,
     Sparkles,
+    KeyRound,
+    Bookmark,
+    TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -385,6 +388,64 @@ export function StudentDashboard({
                     </CardContent>
                 </Card>
             </div>
+
+            {/* ── 4. Study & Performance Tools ── */}
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card hover:border-primary/40 transition-all shadow-2xs">
+                    <CardContent className="p-4 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <TrendingUp className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-foreground">Performance & Progress</p>
+                                <p className="text-xs text-muted-foreground">Deep dive into test scores, progression, and trends.</p>
+                            </div>
+                        </div>
+                        <Button variant="outline" size="sm" className="shrink-0 gap-1 text-xs cursor-pointer font-medium" nativeButton={false} render={<Link href="/student/analysis" />}>
+                            Analyze
+                            <ArrowRight className="h-3 w-3" />
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-red-500/20 bg-gradient-to-br from-red-500/5 via-card to-card hover:border-red-500/40 transition-all shadow-2xs">
+                    <CardContent className="p-4 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
+                                <Bookmark className="h-5 w-5 fill-current" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-foreground">Mistake Notebook</p>
+                                <p className="text-xs text-muted-foreground">Revisit incorrect questions & doubts across tests.</p>
+                            </div>
+                        </div>
+                        <Button variant="outline" size="sm" className="shrink-0 gap-1 text-xs cursor-pointer font-medium" nativeButton={false} render={<Link href="/student/revision" />}>
+                            Revise
+                            <ArrowRight className="h-3 w-3" />
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* ── Quick Join Assessment Card ── */}
+            <Card className="border-dashed bg-muted/20 shadow-2xs">
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <KeyRound className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold text-foreground">Have an invite code or private assessment token?</p>
+                            <p className="text-xs text-muted-foreground">Enter an assessment code from your teacher to unlock private tests.</p>
+                        </div>
+                    </div>
+                    <Button variant="default" size="sm" className="shrink-0 gap-1.5 font-medium cursor-pointer" nativeButton={false} render={<Link href="/student/join" />}>
+                        Join Test with Code
+                        <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -4,11 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { sanitizeHtmlContent } from "@/lib/sanitize";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, Bookmark, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, List, Loader2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bookmark, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, List, Loader2, RotateCcw, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AnswerSheetPdfModal from "@/components/answer-sheet-pdf-modal";
+import TestLeaderboardModal from "@/components/test-leaderboard-modal";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ export default function AttemptRunner({
     const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
     const [isEnteringTest, setIsEnteringTest] = useState(false);
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+    const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const router = useRouter();
 
@@ -1000,6 +1002,18 @@ export default function AttemptRunner({
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 shrink-0">
+                                {canShowResult(attempt) && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsLeaderboardOpen(true)}
+                                        className="h-9 px-3 text-xs gap-1.5 font-medium border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 cursor-pointer shadow-2xs"
+                                    >
+                                        <Trophy className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                        Leaderboard
+                                    </Button>
+                                )}
                                 {canShowPdf && (
                                     <Button
                                         type="button"
@@ -1115,6 +1129,18 @@ export default function AttemptRunner({
                                 </span>
                                 {!isActive && (
                                     <div className="flex items-center gap-2">
+                                        {canShowResult(attempt) && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setIsLeaderboardOpen(true)}
+                                                className="h-8 px-2.5 text-xs gap-1.5 font-medium border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 cursor-pointer shadow-2xs"
+                                            >
+                                                <Trophy className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                                Leaderboard
+                                            </Button>
+                                        )}
                                         {canShowPdf && (
                                             <Button
                                                 type="button"
@@ -1246,6 +1272,20 @@ export default function AttemptRunner({
                                                     <p className="mt-2 text-xl font-medium text-amber-600 dark:text-amber-400">
                                                         Score Hidden (Result Not Out)
                                                     </p>
+                                                )}
+                                                {canShowResult(attempt) && (
+                                                    <div className="mt-5 flex justify-center">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setIsLeaderboardOpen(true)}
+                                                            className="gap-2 text-xs font-semibold border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 cursor-pointer shadow-2xs"
+                                                        >
+                                                            <Trophy className="h-4 w-4" />
+                                                            View Batch Leaderboard & Percentile
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </>
                                         ) : (
@@ -1424,6 +1464,12 @@ export default function AttemptRunner({
                     onClose={() => setIsPdfModalOpen(false)}
                 />
             )}
+            <TestLeaderboardModal
+                isOpen={isLeaderboardOpen}
+                seriesId={attempt.series_id}
+                seriesName={attempt.series_name}
+                onClose={() => setIsLeaderboardOpen(false)}
+            />
         </>
     );
 }
