@@ -13,7 +13,7 @@ export default async function ResetPasswordPage() {
   const token = cookieStore.get("access_token")?.value;
 
   if (!token) {
-    redirect("/login");
+    redirect("/forgot-password");
   }
 
   return (
