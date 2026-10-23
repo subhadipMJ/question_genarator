@@ -72,10 +72,10 @@ export default function UserManager({ initialUsers, organizationId }: UserManage
                 }),
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => null);
 
             if (!response.ok) {
-                throw new Error(data.detail ?? "Failed to create user");
+                throw new Error(data?.detail ?? `Failed to create user (${response.status})`);
             }
 
             setUsers((prev) => [...prev, data]);

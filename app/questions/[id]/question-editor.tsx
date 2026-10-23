@@ -261,9 +261,9 @@ export default function QuestionEditor({ question: initialQuestion }: { question
                 }),
             });
 
-            const updatedResult = await response.json();
+            const updatedResult = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error(updatedResult.message ?? "Unable to update question.");
+                throw new Error(updatedResult?.message ?? `Unable to update question (${response.status}).`);
             }
 
             if (newDiagramFiles.length > 0) {

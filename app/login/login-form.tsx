@@ -31,9 +31,11 @@ export default function LoginForm() {
                     password: formData.get("password"),
                 }),
             });
-            const result = await response.json();
+            const result = await response.json().catch(() => null);
 
-            if (!response.ok) throw new Error(result.message);
+            if (!response.ok) {
+                throw new Error(result?.message || `Login failed (${response.status} ${response.statusText || "Error"}).`);
+            }
 
             const inviteHash = window.location.hash;
             router.replace(inviteHash.includes("token=") ? `/student/join${inviteHash}` : "/dashboard");

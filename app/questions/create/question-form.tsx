@@ -227,8 +227,8 @@ export default function QuestionForm() {
                 }),
             });
 
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message);
+            const result = await response.json().catch(() => null);
+            if (!response.ok) throw new Error(result?.message || `Request failed (${response.status})`);
 
             if (diagramFiles.length > 0) {
                 try {
