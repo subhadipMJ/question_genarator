@@ -1129,18 +1129,6 @@ export default function AttemptRunner({
                                 </span>
                                 {!isActive && (
                                     <div className="flex items-center gap-2">
-                                        {canShowResult(attempt) && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setIsLeaderboardOpen(true)}
-                                                className="h-8 px-2.5 text-xs gap-1.5 font-medium border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 cursor-pointer shadow-2xs"
-                                            >
-                                                <Trophy className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                                                Leaderboard
-                                            </Button>
-                                        )}
                                         {canShowPdf && (
                                             <Button
                                                 type="button"
