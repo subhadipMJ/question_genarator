@@ -164,6 +164,21 @@ export default function TestSeriesEditor({
     }, [isPrivateTest, activeTab]);
     const [teacherGroupId, setTeacherGroupId] = useState<number | null>(series.teacher_group_id ?? null);
     const [supervisorId, setSupervisorId] = useState<number | null>(series.supervisor_id ?? null);
+
+    const isTeacher = userRole === "2";
+    const hasInitialSupervisor = series.supervisor_id !== null && series.supervisor_id !== undefined;
+    const supervisorUser = useMemo(() => {
+        const targetId = series.supervisor_id ?? supervisorId;
+        return organizationUsers.find((u) => u.id === targetId);
+    }, [organizationUsers, series.supervisor_id, supervisorId]);
+
+    const selectableSupervisors = useMemo(() => {
+        if (isTeacher) {
+            const selfUser = organizationUsers.find((u) => u.id === userId);
+            return selfUser ? [selfUser] : [{ id: userId, name: "You" } as User];
+        }
+        return organizationUsers;
+    }, [isTeacher, organizationUsers, userId]);
     const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>(() => {
         if (series.batch_ids && series.batch_ids.length > 0) return series.batch_ids;
         if (series.batch_id) return [series.batch_id];
@@ -710,7 +725,7 @@ export default function TestSeriesEditor({
                     name: name.trim(),
                     access_type: accessType,
                     teacher_group_id: teacherGroupId,
-                    supervisor_id: supervisorId,
+                    supervisor_id: isTeacher && hasInitialSupervisor ? series.supervisor_id : supervisorId,
                     batch_id: selectedBatchIds[0] ?? null,
                     batch_ids: selectedBatchIds,
                     valid_until: validUntilDate.toISOString(),
@@ -1147,19 +1162,28 @@ Please generate 5 high-quality questions. Respond with the raw JSON array ONLY. 
 
                                 <div className="space-y-1.5">
                                     <Label htmlFor="s-supervisor">Supervisor</Label>
-                                    <select
-                                        id="s-supervisor"
-                                        className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                        value={supervisorId ?? ""}
-                                        onChange={(e) => setSupervisorId(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">None (Unassigned)</option>
-                                        {(organizationUsers ?? []).map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {isTeacher && hasInitialSupervisor ? (
+                                        <div className="border border-input bg-muted/50 rounded-lg px-3 py-2 text-sm text-foreground flex items-center justify-between">
+                                            <span className="font-medium">
+                                                {supervisorUser?.name ?? (series.supervisor_id === userId ? "You" : `User #${series.supervisor_id}`)}
+                                            </span>
+                                            <Badge variant="secondary" className="text-[10px]">Supervisor (Locked)</Badge>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            id="s-supervisor"
+                                            className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                            value={supervisorId ?? ""}
+                                            onChange={(e) => setSupervisorId(e.target.value ? Number(e.target.value) : null)}
+                                        >
+                                            <option value="">None (Unassigned)</option>
+                                            {selectableSupervisors.map((u) => (
+                                                <option key={u.id} value={u.id}>
+                                                    {u.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
 
                                 <div className="space-y-1.5">
