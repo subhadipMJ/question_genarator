@@ -592,13 +592,9 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
                                         <span className="font-bold shrink-0">NAME:</span>
                                         <div className="flex-1 border-b border-black h-4" />
                                     </div>
-                                    <div>
-                                        <span className="font-bold text-[11px] block mb-1">ROLL / ENROLLMENT NO:</span>
-                                        <div className="flex gap-1.5">
-                                            {Array.from({ length: 8 }).map((_, i) => (
-                                                <div key={i} className="w-5 h-6 border border-neutral-700 rounded-xs flex items-center justify-center text-xs font-bold" />
-                                            ))}
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold shrink-0">ROLL / ENROLLMENT NO:</span>
+                                        <div className="flex-1 border-b border-black h-4" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 pt-1">
                                         <div className="flex items-center gap-1.5">
