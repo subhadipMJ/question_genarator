@@ -43,10 +43,11 @@ export default function AddStudentModal({ isOpen, onClose, onStudentAdded, organ
                 }),
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => null);
 
             if (!response.ok) {
-                throw new Error(data.detail ?? "Failed to create student");
+                const message = typeof data?.detail === "string" ? data.detail : "Failed to create student";
+                throw new Error(message);
             }
 
             toast.success("Student created successfully.");

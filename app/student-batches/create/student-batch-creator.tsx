@@ -454,6 +454,7 @@ export default function StudentBatchCreator({
                 organizationId={organizationId}
                 onStudentAdded={(newStudent) => {
                     setLocalUsers((prev) => [newStudent, ...prev]);
+                    setSelectedStudentIds((prev) => [...prev, newStudent.id]);
                 }}
             />
         </div>

@@ -460,6 +460,7 @@ export default function StudentBatchEditor({
                 organizationId={organizationId}
                 onStudentAdded={(newStudent) => {
                     setLocalUsers((prev) => [newStudent, ...prev]);
+                    setSelectedStudentIds((prev) => [...prev, newStudent.id]);
                 }}
             />
         </div>
