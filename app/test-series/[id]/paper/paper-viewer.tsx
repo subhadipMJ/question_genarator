@@ -15,6 +15,7 @@ import {
     ZoomOut,
     Sparkles,
     FileText,
+    FileCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,7 @@ function getOptionLabel(index: number): string {
 
 export default function PaperViewer({ initialData }: { initialData: PaperData }) {
     const [showAnswerKey, setShowAnswerKey] = useState(false);
+    const [includeOmr, setIncludeOmr] = useState(false);
     const [columns, setColumns] = useState<1 | 2>(1);
     const [fontSize, setFontSize] = useState<"compact" | "normal" | "large">("normal");
     const [showCandidateBox, setShowCandidateBox] = useState(true);
@@ -185,10 +187,24 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
                             )}
                         </Button>
 
+                        {/* OMR Sheet Toggle */}
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant={includeOmr ? "default" : "outline"}
+                            className="h-8 gap-1.5 text-xs cursor-pointer"
+                            onClick={() => setIncludeOmr((prev) => !prev)}
+                            title="Attach a standardized A4 OMR response bubble sheet to the PDF"
+                        >
+                            <FileCheck className="h-3.5 w-3.5" />
+                            OMR Sheet: {includeOmr ? "ON" : "OFF"}
+                        </Button>
+
                         {/* Download Backend Generated PDF Button */}
                         <a
                             href={`/api/backend/test-series/${initialData.series_id}/question-paper-pdf?${new URLSearchParams({
                                 include_answers: String(showAnswerKey),
+                                include_omr: String(includeOmr),
                                 columns: String(columns),
                                 font_size: fontSize,
                                 show_candidate_box: String(showCandidateBox),
@@ -198,7 +214,7 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm cursor-pointer transition-colors"
-                            title={`Download backend PDF (${columns} Column${columns > 1 ? "s" : ""}, ${fontSize}, ${showAnswerKey ? "with answer key" : "without answer key"})`}
+                            title={`Download backend PDF (${columns} Column${columns > 1 ? "s" : ""}, ${fontSize}, ${showAnswerKey ? "with answer key" : "without answer key"}${includeOmr ? ", with OMR sheet" : ""})`}
                         >
                             <Download className="h-3.5 w-3.5" />
                             Download PDF ({columns} Col)
@@ -249,6 +265,15 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
                             />
                             Institute Header
                         </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-foreground font-medium text-foreground">
+                            <input
+                                type="checkbox"
+                                checked={includeOmr}
+                                onChange={(e) => setIncludeOmr(e.target.checked)}
+                                className="h-3.5 w-3.5 rounded accent-primary"
+                            />
+                            Attach OMR Sheet
+                        </label>
                     </div>
                     <span className="hidden sm:inline text-xs text-muted-foreground/80">
                         Tip: Select <strong>Save as PDF</strong> and Paper size <strong>A4</strong> in the print dialog.
@@ -257,7 +282,7 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
             </div>
 
             {/* ── Printable Physical A4 Sheet Container ── */}
-            <div className="py-8 px-2 sm:px-4 print:p-0 flex justify-center overflow-x-auto">
+            <div className="py-8 px-2 sm:px-4 print:p-0 flex flex-col items-center gap-8 print:gap-0 overflow-x-auto">
                 <div
                     className={`paper-sheet w-full max-w-[210mm] bg-white text-black shadow-xl print:shadow-none print:w-full print:max-w-none border print:border-none print:m-0 print:p-0 ${
                         fontSize === "compact"
@@ -526,6 +551,131 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
                         </div>
                     </footer>
                 </div>
+
+                {/* ── 8. Optional OMR Response Sheet ── */}
+                {includeOmr && (() => {
+                    const omrTotal = Math.max(questions.length, 20);
+                    const omrCols = omrTotal <= 30 ? 2 : omrTotal <= 60 ? 3 : 4;
+                    const qPerCol = Math.ceil(omrTotal / omrCols);
+
+                    return (
+                        <div
+                            className="paper-sheet omr-sheet w-full max-w-[210mm] bg-white text-black shadow-xl print:shadow-none print:w-full print:max-w-none border print:border-none print:m-0 print:p-0"
+                            style={{
+                                minHeight: "297mm",
+                                padding: "12mm 14mm",
+                                boxSizing: "border-box",
+                                fontFamily: "Helvetica, Arial, sans-serif",
+                                breakBefore: "page",
+                                pageBreakBefore: "always",
+                            }}
+                        >
+                            {/* Header */}
+                            <div className="text-center pb-2 mb-2">
+                                {initialData.organization_name && (
+                                    <div className="text-xs font-bold uppercase tracking-wider text-neutral-600 mb-0.5">
+                                        {initialData.organization_name}
+                                    </div>
+                                )}
+                                <div className="text-sm font-bold uppercase tracking-wide">
+                                    {initialData.series_name}
+                                </div>
+                                <div className="mt-2 bg-slate-800 text-white font-bold py-1.5 px-3 text-xs tracking-wider uppercase rounded-xs shadow-xs">
+                                    OMR RESPONSE SHEET / ANSWER SHEET
+                                </div>
+                            </div>
+
+                            {/* Candidate Info & Instructions Box */}
+                            <div className="border border-slate-700 grid grid-cols-1 md:grid-cols-12 text-xs mb-3">
+                                <div className="md:col-span-7 p-2.5 space-y-2 border-b md:border-b-0 md:border-r border-slate-300">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold shrink-0">NAME:</span>
+                                        <div className="flex-1 border-b border-black h-4" />
+                                    </div>
+                                    <div>
+                                        <span className="font-bold text-[11px] block mb-1">ROLL / ENROLLMENT NO:</span>
+                                        <div className="flex gap-1.5">
+                                            {Array.from({ length: 8 }).map((_, i) => (
+                                                <div key={i} className="w-5 h-6 border border-neutral-700 rounded-xs flex items-center justify-center text-xs font-bold" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 pt-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-bold shrink-0 text-[11px]">BATCH:</span>
+                                            <div className="flex-1 border-b border-black h-4" />
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-bold shrink-0 text-[11px]">DATE:</span>
+                                            <div className="flex-1 border-b border-black h-4" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="md:col-span-5 p-2.5 bg-slate-50 text-[10.5px] leading-relaxed text-slate-700">
+                                    <div className="font-bold text-slate-900 mb-1">INSTRUCTIONS FOR MARKING:</div>
+                                    <ul className="list-disc list-inside space-y-0.5">
+                                        <li>Use <b>BLUE or BLACK</b> ballpoint pen only.</li>
+                                        <li>Darken circles completely: <b>(A) &nbsp; ● &nbsp; (C) &nbsp; (D)</b></li>
+                                        <li>Do NOT use pencil, tick (✓), or cross (✗).</li>
+                                        <li>Do not fold or make any stray marks on this sheet.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* OMR Bubble Grid */}
+                            <div className={`grid gap-2 mb-3 ${omrCols === 2 ? "grid-cols-2" : omrCols === 3 ? "grid-cols-3" : "grid-cols-4"}`}>
+                                {Array.from({ length: omrCols }).map((_, colIdx) => {
+                                    const startQ = colIdx * qPerCol + 1;
+                                    const endQ = Math.min(omrTotal, (colIdx + 1) * qPerCol);
+                                    const colQuestions = Array.from({ length: endQ - startQ + 1 }, (_, i) => startQ + i);
+
+                                    return (
+                                        <div key={colIdx} className="border border-slate-300 rounded-xs overflow-hidden">
+                                            <div className="grid grid-cols-5 bg-slate-700 text-white text-[10px] font-bold text-center py-1">
+                                                <span>Q#</span>
+                                                <span>A</span>
+                                                <span>B</span>
+                                                <span>C</span>
+                                                <span>D</span>
+                                            </div>
+                                            <div className="divide-y divide-slate-200">
+                                                {colQuestions.map((qNum) => (
+                                                    <div
+                                                        key={qNum}
+                                                        className={`grid grid-cols-5 items-center py-1 text-center text-xs ${
+                                                            qNum % 5 === 0 ? "bg-slate-100/70 border-b border-slate-300" : ""
+                                                        }`}
+                                                    >
+                                                        <span className="font-bold text-[10.5px] text-slate-800">{qNum}</span>
+                                                        {["A", "B", "C", "D"].map((opt) => (
+                                                            <div key={opt} className="flex justify-center">
+                                                                <div className="w-5 h-5 rounded-full border border-slate-800 flex items-center justify-center text-[9px] font-bold text-slate-800 hover:bg-slate-900 hover:text-white transition-colors cursor-pointer select-none">
+                                                                    {opt}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Signatures Box */}
+                            <div className="border border-slate-400 p-3 bg-slate-50/50 grid grid-cols-2 gap-4 text-xs">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800 shrink-0">Candidate&apos;s Signature:</span>
+                                    <div className="flex-1 border-b border-black h-4" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800 shrink-0">Invigilator&apos;s Signature:</span>
+                                    <div className="flex-1 border-b border-black h-4" />
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Custom print CSS injection */}
@@ -557,6 +707,11 @@ export default function PaperViewer({ initialData }: { initialData: PaperData })
                         width: 100% !important;
                         max-width: 100% !important;
                         min-height: auto !important;
+                    }
+                    .omr-sheet {
+                        page-break-before: always !important;
+                        break-before: page !important;
+                        margin-top: 0 !important;
                     }
                     .question-item {
                         break-inside: avoid !important;
