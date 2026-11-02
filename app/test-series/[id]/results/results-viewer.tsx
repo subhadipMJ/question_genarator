@@ -53,8 +53,10 @@ function formatDateTime(dateStr: string | null | undefined, fallback = "Not subm
 
 export default function ResultsViewer({
     initialResults,
+    canPublish = false,
 }: {
     initialResults: TestSeriesResults;
+    canPublish?: boolean;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "submitted" | "force_submitted" | "in_progress" | "expired">("all");
@@ -232,37 +234,47 @@ export default function ResultsViewer({
                             Upload Answer Key
                         </Button>
                     ) : null}
-                    <Button
-                        variant={isPublished ? "outline" : "default"}
-                        size="sm"
-                        disabled={isPublishing}
-                        onClick={isPublished ? handleTogglePublish : () => {
-                            setPublishModalInitialStep("decision");
-                            setIsPublishModalOpen(true);
-                        }}
-                        className={`h-9 text-xs gap-1.5 font-medium cursor-pointer ${
-                            isPublished
-                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
-                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-                        }`}
-                    >
-                        {isPublishing ? (
-                            <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                Updating...
-                            </>
-                        ) : isPublished ? (
-                            <>
-                                <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                                Results Published
-                            </>
-                        ) : (
-                            <>
-                                <Eye className="h-3.5 w-3.5" />
-                                Publish Results
-                            </>
-                        )}
-                    </Button>
+                    {canPublish ? (
+                        <Button
+                            variant={isPublished ? "outline" : "default"}
+                            size="sm"
+                            disabled={isPublishing}
+                            onClick={isPublished ? handleTogglePublish : () => {
+                                setPublishModalInitialStep("decision");
+                                setIsPublishModalOpen(true);
+                            }}
+                            className={`h-9 text-xs gap-1.5 font-medium cursor-pointer ${
+                                isPublished
+                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                            }`}
+                        >
+                            {isPublishing ? (
+                                <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    Updating...
+                                </>
+                            ) : isPublished ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    Results Published
+                                </>
+                            ) : (
+                                <>
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Publish Results
+                                </>
+                            )}
+                        </Button>
+                    ) : isPublished ? (
+                        <Badge
+                            variant="outline"
+                            className="h-9 px-3 text-xs gap-1.5 font-medium border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        >
+                            <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                            Results Published
+                        </Badge>
+                    ) : null}
                     <Button
                         variant="outline"
                         size="sm"
@@ -303,17 +315,19 @@ export default function ResultsViewer({
                     <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
                         <span>
-                            <strong>Results are currently hidden from students.</strong> Students will not see scores or answer keys until you publish.
+                            <strong>Results are currently hidden from students.</strong> {canPublish ? "Students will not see scores or answer keys until you publish." : "Only the supervisor or admin can publish results."}
                         </span>
                     </div>
-                    <Button
-                        size="sm"
-                        disabled={isPublishing}
-                        onClick={() => setIsPublishModalOpen(true)}
-                        className="h-7 text-[11px] bg-amber-600 hover:bg-amber-700 text-white shrink-0 font-medium cursor-pointer"
-                    >
-                        Publish Results Now
-                    </Button>
+                    {canPublish && (
+                        <Button
+                            size="sm"
+                            disabled={isPublishing}
+                            onClick={() => setIsPublishModalOpen(true)}
+                            className="h-7 text-[11px] bg-amber-600 hover:bg-amber-700 text-white shrink-0 font-medium cursor-pointer"
+                        >
+                            Publish Results Now
+                        </Button>
+                    )}
                 </div>
             ) : (
                 <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300 text-xs">
@@ -583,15 +597,17 @@ export default function ResultsViewer({
             )}
 
             {/* Publish Results Modal */}
-            <PublishResultsModal
-                isOpen={isPublishModalOpen}
-                onClose={() => setIsPublishModalOpen(false)}
-                seriesId={initialResults.series_id}
-                onPublish={handleTogglePublish}
-                onPdfUploaded={(key) => setPdfKey(key)}
-                initialStep={publishModalInitialStep}
-                isAlreadyPublished={isPublished}
-            />
+            {canPublish && (
+                <PublishResultsModal
+                    isOpen={isPublishModalOpen}
+                    onClose={() => setIsPublishModalOpen(false)}
+                    seriesId={initialResults.series_id}
+                    onPublish={handleTogglePublish}
+                    onPdfUploaded={(key) => setPdfKey(key)}
+                    initialStep={publishModalInitialStep}
+                    isAlreadyPublished={isPublished}
+                />
+            )}
 
             {/* Answer Sheet PDF Modal */}
             {isPdfModalOpen && pdfKey && (
